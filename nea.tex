@@ -1,0 +1,147 @@
+\documentclass{article}
+
+\usepackage{hyperref}
+\usepackage{biblatex}
+\addbibresource{nea.bib}
+
+\author{Nils André-Chang}
+\title{NEA: OCR Exam Reference Language as a Language, an implementation}
+
+\begin{document}
+
+{\huge THIS COPY OF THE DOCUMENT IS A DRAFT AND IS NOT MEANT TO BE MARKED}
+
+\maketitle
+
+\tableofcontents
+
+Disclaimer: In this document, the author refers to themselves as `we' however,
+there is only a singular author, and the use of this pronoun is not meant as an
+indication of there being multiple authors.
+
+An implementation of the OCR Exam Reference Language as defined by
+\textcite{j277, h446}.
+
+\section{Analysis}
+
+\subsection{The problem and its computational solution}
+
+Every year in the UK, thousands of students take computer science as a subject
+for their secondary school education; in the summer of 2019, 11124 took it for
+A Levels, 3098 for AS Levels, and 80027 for GCSEs
+\cite{jcqalevel19, jcqgcse19}.
+
+In order to assess the ability of the students in the subject, 2 methods are
+used: examination and non exam assessment (NEA) in the form a programming
+project. To assess students during exams, exam boards produce questions that
+use and ask the student to use a pseudocode that is language agnostic and has
+been predefined in the specification of the exam board.  This is done for
+clarity and consistency among other reasons \cite{h446, j276, j277}.
+
+Such an exam board is OCR: in \textcite{h446, j276, j277} a pseudocode is
+defined, in \textcite{j277}, it was renamed to ``OCR Exam Reference Language''.
+
+The problem with having a relatively strictly defined language is that although
+it is called a "pseudocode" (at least in older specifications) and it is
+mentioned that ``Learners [...] may provide answers in any style of pseudocode
+they choose providing its meaning could be reasonably inferred by a competent
+programmer.'', it is often that students lose mark dude to the style of
+pseudocode they chose not being understood by the examiner for various reasons.
+As a result of this, it is preferable for students to write their answers in a
+style that is as close as possible to the "pseudocode" defined by the exam
+board to avoid losing marks.
+
+From here on out, what has been described as the `pseudocode' will now be
+referred to as a language for 2 reasons: firstly, We believe that as an
+inherent result of the language used in OCR exams being formally defined, it is
+no longer a pseudocode but in fact a programming language. Secondly, in the
+newest computer science specification, \textcite{j277}, what was previously
+described as a pseudocode, is now known as the ``OCR Exam Reference Language''
+(We suspect it is because of the realisation of point 1 by OCR although there
+is no evidence to this).
+
+Unfortunately, learning a language is complicated and one of the best ways to
+learn one is to practice with it. However because the language is only defined
+in the specifications of exam boards, there is no way to practice using it, as
+there is no way to execute any code written using the syntax of this language.
+
+Another problem that stems from the use of this language as described is that
+there is no way to check in a reliable way if code written using it is correct.
+Whether that is when a student is practicing for exams or when writing exam
+papers themselves. In the June 2018 A Level Paper 2, there was a mistake in the
+exam paper students had to take \cite{ocrpec18}.
+
+We believe that a solution for the problems described would be to implement the
+language, as described in the specifications and as used in exams, such that
+users can run code that was written using the language.
+
+If there was the possibility to run the code, it will allow students to use the
+language when going through the GCSE and A Level courses which will allow them
+to learn the language well and then be able to use it confidently within the
+exam. This will improve their ability and allow them to score higher in exams.
+Being able to execute code written in this language will also allow to check
+answers when practising giving students practical ways to verify what they are
+doing; this is especially important at GCSE where students are not necessarily
+confident enough to be able to tell for themselves if something is correct and
+why it is correct. Lastly being able to execute code written in this language
+will also allow to check code that was written using it for example for the
+purpose of exam papers removing the possibility of mistakes creeping up like
+they did in the June 2018 A Level paper.
+
+Another advantage of having a working implementation of this language is that
+students will no longer need to learn 2 languages: a programming language and
+the OCR Exam Reference Language. They will be able to only learn the OCR Exam
+Reference Language because they will now be able to use it as a proper
+programming language and write programs using it.
+
+Although this project will focus on the OCR Exam Reference Language, this
+section in particular applies to other exam boards. The problems described here
+are not specific to OCR.
+
+\subsection{Stakeholders}
+
+
+
+\subsection{Existing solutions}
+
+\subsection{Essential Features}
+
+% TODO implement other exam boards as a bonus
+
+\subsection{Limitations}
+
+Performance
+
+\subsection{Hardware and Software requirements}
+
+The language needs to be widely available (as most programming languages are)
+and as a result needs to have the least amounts of requirements as possible.
+Due to the implementation of the language being in the form of an interpreter
+and there being no low level constructs defined (within the OCR spec), the
+language doesn't require to run without an operating system (This would be a
+requirement if firmwares, operating system and other low level software was
+written using the language). As a result a standard operating system will be
+required.
+
+The operating systems that will be primarily supported are Linux, MacOS and
+Windows (in that order) however the interpreter will be written in a cross
+platform fashion (by using libraries to abstract platform specific code) such
+that it is most likely going to work on any other modern operating system such
+as the BSDs.
+
+If a playground is offered, a browser implementing the standard browser
+specifications should be required and no specific operating system will be
+required. The web version could be implemented using web assembly in which case
+a modern browser supporting WebAssembly will be required. If the web version is
+implemented by running the interpreter on a server, the server will require one
+of the operating system aforementioned.
+
+There are no hardware requirements other than dependencies on already mentioned
+software requirements. Interpreters are not resource intensive programs and can
+even execute on most low power micro controllers\cite{micropython}.
+
+\subsection{Success Criteria}
+
+\printbibliography[heading=bibintoc]
+
+\end{document}
