@@ -4,6 +4,8 @@
 \usepackage{biblatex}
 \addbibresource{nea.bib}
 
+\usepackage{adjustbox}
+
 \author{Nils André-Chang}
 \title{NEA: OCR Exam Reference Language as a Language, an implementation}
 
@@ -15,8 +17,8 @@
 
 \tableofcontents
 
-Disclaimer: In this document, the author refers to themselves as `we' however,
-there is only a singular author, and the use of this pronoun is not meant as an
+In this document, the author refers to themselves as `we' however, there is
+only a singular author, and the use of this pronoun is not meant as an
 indication of there being multiple authors.
 
 An implementation of the OCR Exam Reference Language as defined by
@@ -42,13 +44,13 @@ Such an exam board is OCR: in \textcite{h446, j276, j277} a pseudocode is
 defined, in \textcite{j277}, it was renamed to ``OCR Exam Reference Language''.
 
 The problem with having a relatively strictly defined language is that although
-it is called a "pseudocode" (at least in older specifications) and it is
+it is called a ``pseudocode" (at least in older specifications) and it is
 mentioned that ``Learners [...] may provide answers in any style of pseudocode
 they choose providing its meaning could be reasonably inferred by a competent
 programmer.'', it is often that students lose mark dude to the style of
 pseudocode they chose not being understood by the examiner for various reasons.
 As a result of this, it is preferable for students to write their answers in a
-style that is as close as possible to the "pseudocode" defined by the exam
+style that is as close as possible to the ``pseudocode" defined by the exam
 board to avoid losing marks.
 
 From here on out, what has been described as the `pseudocode' will now be
@@ -70,6 +72,8 @@ there is no way to check in a reliable way if code written using it is correct.
 Whether that is when a student is practicing for exams or when writing exam
 papers themselves. In the June 2018 A Level Paper 2, there was a mistake in the
 exam paper students had to take \cite{ocrpec18}.
+
+% TODO how is computation better than other solutions.
 
 We believe that a solution for the problems described would be to implement the
 language, as described in the specifications and as used in exams, such that
@@ -98,19 +102,195 @@ Although this project will focus on the OCR Exam Reference Language, this
 section in particular applies to other exam boards. The problems described here
 are not specific to OCR.
 
+% TODO reference to the sections
+
+From here on out, the result of this project will be referred to as an
+implementation of the language, this is because the specifics of the
+implementation have not been well defined yet and will be in the features and
+the design section.
+
 \subsection{Stakeholders}
 
+One of the main stakeholders for the project are the users. There will be
+many different types of users but a majority of them will fall under one of
+four different categories: exam board and resource producers, student, and
+teacher.
 
+The exam boards and resource producers will make a similar use of the
+implementation of the language: they will use it to create resources, one
+mainly in the form of exams and the other will form a wide variety of
+resources: exam style questions, practice activities and other learning
+resources. They can use the implementation to verify code they show the
+students is correct. \Textcite{pattis88} found that only 20\% of textbooks
+implemented binary search correctly and the 2018 A Level OCR paper contained an
+error in the code they presented students suggesting errors in code presented
+to students is common and solutions need to be found. We believe that using
+an implementation of the language in one such solution and will reduce the
+occurrence of this mistake. Exam boards have previously been fined for mistakes
+in exams \cite{ofqual20180702} and resource producers could also be sued if the
+content they produce lead to students failing their qualifications. For this
+reason, using this an implementation of the language will not only improve the
+accuracy or resources it will also reduce costs (in forms of fines) for exam
+boards and resource producers.
+
+Another category user of the implementation of the language will be students
+who are studying computer science in secondary school. They will be able to use
+the implementation to check their answers to questions as well as to write
+programs as part of their learning. We believe that this will help boost their
+grades in 2 ways: firstly, being able to check their answer will allow them go
+to a lot more quickly through questions and learn the fundamentals of
+programming a lot more quickly and be more confident with their learning as
+they can prove that what they have learned works; secondly, having to learn
+only a single language will reduce the amount of learning necessary which will
+allow them to have a more focused learning and know the content they need to
+know better.
+
+Lastly, teachers like students will be able to use the implementation of the
+language to mark their students and make sure the answers are correct and will
+be able to use it to plan their lessons and demo some of the programs to their
+students.
+
+Other than users, stakeholders may include hosting companies especially if a
+server side ``playground'' is developed as part of the project. However,
+regardless of if and how services provided as part of this project are hosted,
+the hosting provider will probably be automated and the existence of this
+project will be negligible to them.
+
+% None user stakeholders (possible hosting provider)
 
 \subsection{Existing solutions}
+
+Currently what is done is that when people write code in the OCR Exam Reference
+Language is that they can only check it manually, this can be considered to be
+a solution to making mistakes however it is error prone and doesn't provide
+much.
+
+There are however other software that have been written in the past that are
+much more similar to what this project aims to offer.
+
+\subsubsection{Pseudo Code Interpreter}
+
+\Textcite{jacobsieradzki18} is an iPad app that allows to execute pseudo code
+for OCR exams.
+
+However, it has many disadvantages that I hope this project will address.
+Starting with the syntax, it uses a syntax that although is inspired from the
+OCR pseudo code guide is not like the OCR pseudocode guide and as a result
+cannot be used to learn the language properly nor can it be used to check for
+mistake. Another feature of \textcite{jacobsieradzki18} that makes it
+unsuitable to solve the problem demonstrated above is that it is only available
+as an iPad app and as a result it cannot be used across a wide variety of
+devices and for many different purposes; this ties in with the fact the
+language is not implemented like other languages: it is not possible to use it
+standalone. For example, when input is asked from the user a special interface
+is shown which is not suitable for use as a programming language.
+
+I will be able to use \textcite{jacobsieradzki18} to inspire a possible user
+interface for the implementation.
+
+\subsubsection{Pseudocompiler}
+
+\Textcite{pseudocompiler} ``is a (pretty) spec-compliant implementation of
+OCR's provisional "pseudocode" specification''.
+
+It seems to have the features that this project aims for including a playground
+which is a website to test out a language. However, we were not able to use it
+and the link to the playground is invalid. Additionally, although it discusses
+the possible use of LLVM as a target, for the moment it only targets JavaScript
+which means that it requires a JavaScript runtime to execute making it less
+cross platform.
+
+Considering there are no instructions on how to use it and no demos or examples
+of its uses whatsoever on its homepage, it was not possible for us to look at
+its features and as a result we do not have much to go off of.
+
+\subsubsection{Pseudocode-Compiler}
+
+\Textcite{pseudocode-compiler} is a compiler ``that compiles IGCSE pseudocode
+to LLVM IR''.
+
+This project compiles to LLVM IR which allows it to support many platforms, as
+many as LLVM supports, however it compiles IGCSE pseudocode which is not
+suitable for our use case.
+
+\subsubsection{Pseudocode-Transpiler}
+
+\Textcite{pseudocode-transpiler} is a compiler that ``compiles pseudocode into
+python''. It uses regular expressions to evaluate statements.
+
+This project compiles IGCSE pseudocode using regular expressions which is not a
+reliable method, additionally, it compiles to python which is itself an
+interpreted language (at least its main implementation is), which means that
+running code using this method will be slow and probably inaccurate.
+
+To conclude there are many different approaches to writing an implementation of
+any given pseudocode. It is possible to compile to different ``targets'' such
+as the JVM, python, LLVM or JavaScript; each have their advantage and
+disadvantage, some being more cross-platform than others, more efficient than
+others.
+
+It is also possible to interpret the language and there are different types of
+user interfaces.
+
+\paragraph{Other projects:}
+
+\begin{itemize}
+    \item{https://github.com/Sherlemious/IGCSE-CS-PC-Transpiler}
+\end{itemize}
 
 \subsection{Essential Features}
 
 % TODO implement other exam boards as a bonus
 
+In of itself, the project is quite self contained and there aren't many
+features apart from the core itself: implement a language.
+
+It is possible however to separate the core of the language into different
+section; for example, the GCSE features and the A Level (Object-oriented
+programming) features can be separated.
+
+Other features which we are unlikely to be able to implement but may be done as
+a bonus in order to turn this implementation into a more usable language is
+tooling. Here is a list of tooling we could implement although it is quite
+unlikely this stage is reached.
+
+\begin{itemize}
+    \item{Syntax highlighting for already existing editors}
+    \item{A playground, an platform to test a language}
+    \item{An Language Server}
+\end{itemize}
+
 \subsection{Limitations}
 
-Performance
+% TODO: students will probably still need to learn another language alongside
+
+A limitation of this solution which we propose is that although this language
+will be usable as a general purpose language, students will likely benefit from
+also learning another language that is more widely used and is supported by
+more libraries. This means that using this implementation in order to avoid
+learning 2 languages is not necessarily beneficial.
+
+Another limitation of this solution is that the OCR Exam Reference Language is
+a language designed to be as neutral as possible and has as its only intended
+purpose to represent simple algorithms for exams. As a result, the language is
+very limited and cannot be used for much without extensions that add features
+to it and it is therefore not necessarily beneficial to learn it as a language.
+
+One of the most important features of a language is its community: it
+allows to have easily available libraries to make development faster without
+having to rewrite code that has already been written before. By using a niche
+language like this one, a developer is giving up on all the libraries that can
+make their life easier.
+
+% TODO: reference the design section here
+
+Lastly, the tooling. Another important part of the user experience of a
+language is the tooling that comes with that language making it easier to use.
+Although we hope to have syntax highlighting through tree-sitter (see Design
+section) and possibly an LSP, the tooling will be greatly reduced compared to
+other languages which means that the development experience will be less
+enjoyable and more difficult leading to users not being able to write as high
+quality code.
 
 \subsection{Hardware and Software requirements}
 
@@ -141,6 +321,85 @@ software requirements. Interpreters are not resource intensive programs and can
 even execute on most low power micro controllers\cite{micropython}.
 
 \subsection{Success Criteria}
+
+In order to test the software and validate the success criteria in an objective
+way, a testing script \texttt{neasuccess} will be written before the
+implementation has started to be written. This test script will run the
+implementation with different inputs and verity that the output is the one
+expected.
+
+The success test script will be modular and be able to support many different
+tests. It will work in the following way: In the \texttt{tests} directory,
+there will be files with the extension \texttt{.input} and \texttt{.output}.
+The success test script will run the interpreter with as input the content of
+the \texttt{.input} files and check if the output is the same as the file with
+the same basename but as extension \texttt{.output} file.
+
+An argument can be given to the success test script to only use the tests with
+the basename given.
+
+The following success criteria are derived from the pseudocode guide in
+\textcite{h446}. They are ordered such that later tests can include features
+from previous tests. Due to the nature of a programming language, it is very
+possible that some of these features will all be implemented at once,
+especially considering some features are really built-in functions more than
+anything else and as such may not require to be core language features.
+
+\begin{table}
+    \begin{adjustbox}{center}
+        \begin{tabular}{|l|l|}
+            \hline
+            Criteria & How to evidence \\
+            \hline
+            Being able to read a file & Run the interpreter with a file as input \\
+            \hline
+            Working sequential instructions & Run \texttt{./neasuccess seq} \\
+            \hline
+            Comments & Run \texttt{./neasuccess comments} \\
+            \hline
+            Outputting to screen & Run \texttt{./neasuccess print} \\
+            \hline
+            Variables & Run \texttt{./neasuccess variables} \\
+            \hline
+            Iteration --- Count Controlled & Run \texttt{./neasuccess forloop}
+            \\
+            \hline
+            Selection & Run \texttt{./neasuccess selection} \\
+            \hline
+            Logical Operators & Run \texttt{./neasuccess logic} \\
+            \hline
+            Iteration --- Condition Controlled & Run \texttt{./neasuccess
+            whileloop} \\
+            \hline
+            String Handling & Run \texttt{./neasuccess strings} \\
+            \hline
+            Subroutines & Run \texttt{./neasuccess subroutines} \\
+            \hline
+            Subroutines --- Passing values by value or by reference & Run
+            \texttt{./neasuccess byvalue\_byref} \\
+            \hline
+            Arrays & Run \texttt{./neasuccess arrays} \\
+            \hline
+            Reading from files & Run \texttt{./neasuccess readfile} \\
+            \hline
+            Writing to files & Run \texttt{./neasuccess writefile} \\
+            \hline
+            Objects --- Attributes & Run \texttt{./neasuccess attributes} \\
+            \hline
+            Objects --- Methods & Run \texttt{./neasuccess methods} \\
+            \hline
+            Object --- Access level & Run \texttt{./neasuccess access} \\
+            \hline
+            Object --- Constructors & Run \texttt{./neasuccess constructors} \\
+            \hline
+            Object --- Inheritence & Run \texttt{./neasuccess inheritance} \\
+            \hline
+        \end{tabular}
+    \end{adjustbox}
+    \caption{Success Criteria}
+\end{table}
+
+\section{Design}
 
 \printbibliography[heading=bibintoc]
 
