@@ -401,6 +401,79 @@ anything else and as such may not require to be core language features.
 
 \section{Design}
 
+There are 2 main ways to be able to write language: as an interpreter or as a
+compiler. Additionally there are also different flavours of JIT compilers.
+
+We have decided to opt for an interpreter due to the language's dynamic nature
+as well as because interpreters are less complex.
+
+The task of interpreting source code can be separated into 2 major parts:
+
+\begin{enumerate}
+    \item{Parsing---Converting source code into an abstract syntax tree (AST)}
+    \item{Interpreting---Interpreting the abstract syntax tree}
+\end{enumerate}
+
+At first we were hoping to use tree-sitter as our parsing system because it
+would give us syntax highlighting inside of editors without having to write a
+regex based grammar or other parser. However writing tree-sitter grammars is
+not an easy task and is described as having ``a difficult learning
+curve''\cite{ts_creating_parsers}.
+
+This is why we have decided to use a different method for parsing the code. We
+settled on using parser combinators with the help of the parser combinator
+framework nom. This library was chosen because it is the most widely used
+parsing framework for rust (our implementation language) and the author has
+experience having used it while going through \textcite{eopl}.
+
+The implementation language will be rust because it is a language the author is
+familiar with and because it is a high performance language as it compiles to
+machine code. This is very important when writing an interpreter because it
+will allow to have an acceptable performance.
+
+Language Grammar:
+
+Program ::= {Statement}^*
+
+Statement ::= global Identifier = Expression
+Statement ::= Identifier = Expression
+Statement ::= array Identifier[{Expression}^{+(,)}]
+Statement ::= Expression
+Statement ::= for Identifier = Expression to Expression {Statement}^* next Identifier
+Statement ::= while Expression {Statement}^* endwhile
+Statement ::= do {Statement}^* until Expression
+
+Statement ::= if Expression then {Statement}^* {elseif Expression then {Statement}^*}^* {else {Statement}^*}^? endif
+Statement ::= switch Expression: {case Expression: {Statement}^*}^* {default: {Statment}^*}^? endswitch
+
+Statement ::= function Identifer({Identifier{:byVal|:byRef}}^{*(,)}) {Statement}^* endfunction
+Statement ::= procedure Identifer({Identifier{:byVal|:byRef}}^{*(,)}) {Statement}^* endfunction
+Statement ::= return Expression
+
+Expression ::= Constant
+Expression ::= Identifer({Expression}^{*(,)})
+Expression ::= Identifier.Field
+Expression ::= Identifier.Method({Expression}^{*(,)})
+
+Expression ::= Expression AND Expression
+Expression ::= Expression OR Expression
+Expression ::= NOT Expression
+
+Expression ::= Expression == Expression
+Expression ::= Expression != Expression
+Expression ::= Expression < Expression
+Expression ::= Expression <= Expression
+Expression ::= Expression > Expression
+Expression ::= Expression >= Expression
+
+Expression ::= Expression + Expression
+Expression ::= Expression - Expression
+Expression ::= Expression * Expression
+Expression ::= Expression / Expression
+Expression ::= Expression MOD Expression
+Expression ::= Expression DIV Expression
+Expression ::= Expression ^ Expression
+
 \printbibliography[heading=bibintoc]
 
 \end{document}
