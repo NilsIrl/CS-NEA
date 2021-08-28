@@ -1,9 +1,11 @@
+use core::cmp::min_by_key;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_till},
-    character::complete::{alpha1, alphanumeric0, char, i64, multispace0, multispace1},
+    bytes::complete::{tag, take_till, take_while},
+    character::complete::{alpha1, alphanumeric0, char, i64, multispace0, multispace1, satisfy},
     combinator::{all_consuming, map, recognize},
-    multi::many0,
+    multi::{many0, separated_list0},
+    number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
 };
@@ -11,9 +13,11 @@ use nom::{
 #[derive(Debug, PartialEq)]
 enum Expression<'a> {
     StringLiteral(&'a str),
-    NumberLiteral(i64),
+    IntegerLiteral(i64),
+    FloatLiteral(f64),
     Identifier(&'a str),
     FunctionCall(&'a str, Vec<Expression<'a>>),
+    Variable(&'a str),
 }
 
 #[derive(Debug, PartialEq)]
@@ -57,15 +61,33 @@ fn close_bracket(input: &str) -> IResult<&str, char> {
     char(')')(input)
 }
 
+fn comma(input: &str) -> IResult<&str, char> {
+    char(',')(input)
+}
+
 fn function_call(input: &str) -> IResult<&str, Expression> {
     let (input, (function_name, arguments)) = pair(
-        identifer,
-        preceded(
-            multispace0,
-            delimited(open_bracket, many0(expression), close_bracket),
+        identifier,
+        delimited(
+            preceded(multispace0, open_bracket),
+            separated_list0(preceded(multispace0, comma), expression),
+            preceded(multispace0, close_bracket),
         ),
     )(input)?;
     Ok((input, Expression::FunctionCall(function_name, arguments)))
+}
+
+fn number_literal(input: &str) -> IResult<&str, Expression> {
+    let int = map(i64, |num_const| Expression::IntegerLiteral(num_const))(input);
+    let float = map(double, |float_const| Expression::FloatLiteral(float_const))(input);
+    if int.is_err() {
+        float
+    } else if float.is_err() {
+        int
+    } else {
+        // unwrap because due to previous 2 selections, neither int nor float can be Err(_)
+        min_by_key(int, float, |x| x.as_ref().unwrap().0.len())
+    }
 }
 
 fn expression(input: &str) -> IResult<&str, Expression> {
@@ -80,19 +102,30 @@ fn expression(input: &str) -> IResult<&str, Expression> {
                 ),
                 |string_const| Expression::StringLiteral(string_const),
             ),
-            map(i64, |num_const| Expression::NumberLiteral(num_const)),
             function_call,
+            map(identifier, |identifier| Expression::Variable(identifier)),
+            number_literal,
         )),
     )(input)
 }
 
-fn identifer(input: &str) -> IResult<&str, &str> {
-    preceded(multispace0, recognize(pair(alpha1, alphanumeric0)))(input)
+fn is_identifer_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_' || c == '-'
+}
+
+fn identifier(input: &str) -> IResult<&str, &str> {
+    preceded(
+        multispace0,
+        recognize(pair(
+            satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
+            take_while(is_identifer_char),
+        )),
+    )(input)
 }
 
 fn assignment_statement(input: &str) -> IResult<&str, Statement> {
     let (input, (identifier, expression)) = tuple((
-        identifer,
+        identifier,
         preceded(preceded(multispace0, char('=')), expression),
     ))(input)?;
     Ok((input, Statement::Assignment(identifier, expression)))
@@ -162,4 +195,5 @@ mod tests {
     ast_test!(variable_quotes);
     ast_test!(variable_whitespace);
     ast_test!(function_call);
+    ast_test!(complex_function_call);
 }

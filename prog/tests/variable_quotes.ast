@@ -1,5 +1,5 @@
 Program(vec![
-    Statement::Assignment("x", Expression::NumberLiteral(3)),
+    Statement::Assignment("x", Expression::IntegerLiteral(3)),
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
@@ -9,5 +9,5 @@ Program(vec![
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
-    Statement::GlobalAssignment("userid", Expression::NumberLiteral(123)),
+    Statement::GlobalAssignment("userid", Expression::IntegerLiteral(123)),
 ])

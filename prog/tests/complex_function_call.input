@@ -1,0 +1,10 @@
+statement   
+ (
+
+preceded(multispace0, alt(assignment_statement, global_assignment_statement, map(exprsesion, expression, statement_expression(expression))), 3, "3409", 3.455)
+
+,
+
+input
+
+ )
