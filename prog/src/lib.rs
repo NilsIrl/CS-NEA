@@ -13,6 +13,7 @@ enum Expression<'a> {
     StringLiteral(&'a str),
     NumberLiteral(i64),
     Identifier(&'a str),
+    FunctionCall(&'a str, Vec<Expression<'a>>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -44,7 +45,27 @@ enum Statement<'a> {
 type ListOfStatements<'a> = Vec<Statement<'a>>;
 
 fn quote(input: &str) -> IResult<&str, char> {
+    // TODO: quotes are hardcoded
     alt((char('"'), char('“'), char('”')))(input)
+}
+
+fn open_bracket(input: &str) -> IResult<&str, char> {
+    char('(')(input)
+}
+
+fn close_bracket(input: &str) -> IResult<&str, char> {
+    char(')')(input)
+}
+
+fn function_call(input: &str) -> IResult<&str, Expression> {
+    let (input, (function_name, arguments)) = pair(
+        identifer,
+        preceded(
+            multispace0,
+            delimited(open_bracket, many0(expression), close_bracket),
+        ),
+    )(input)?;
+    Ok((input, Expression::FunctionCall(function_name, arguments)))
 }
 
 fn expression(input: &str) -> IResult<&str, Expression> {
@@ -60,6 +81,7 @@ fn expression(input: &str) -> IResult<&str, Expression> {
                 |string_const| Expression::StringLiteral(string_const),
             ),
             map(i64, |num_const| Expression::NumberLiteral(num_const)),
+            function_call,
         )),
     )(input)
 }
@@ -93,7 +115,11 @@ fn global_assignment_statement(input: &str) -> IResult<&str, Statement> {
 fn statement(input: &str) -> IResult<&str, Statement> {
     preceded(
         multispace0,
-        alt((assignment_statement, global_assignment_statement)),
+        alt((
+            assignment_statement,
+            global_assignment_statement,
+            map(expression, |expression| Statement::Expression(expression)),
+        )),
     )(input)
 }
 
@@ -135,4 +161,5 @@ mod tests {
     ast_test!(variable);
     ast_test!(variable_quotes);
     ast_test!(variable_whitespace);
+    ast_test!(function_call);
 }

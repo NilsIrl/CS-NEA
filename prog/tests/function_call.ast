@@ -1,0 +1,5 @@
+Program(vec![
+    Statement::Expression(Expression::FunctionCall("str", vec![Expression::NumberLiteral(3)])),
+    Statement::Expression(Expression::FunctionCall("int", vec![Expression::StringLiteral("3")])),
+    Statement::Expression(Expression::FunctionCall("float", vec![Expression::StringLiteral("3.14")])),
+])
