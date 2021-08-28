@@ -9,4 +9,5 @@ Program(vec![
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
     Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::GlobalAssignment("userid", Expression::NumberLiteral(123)),
 ])
