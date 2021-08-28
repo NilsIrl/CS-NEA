@@ -134,4 +134,5 @@ mod tests {
 
     ast_test!(variable);
     ast_test!(variable_quotes);
+    ast_test!(variable_whitespace);
 }
