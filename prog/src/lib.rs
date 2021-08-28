@@ -114,11 +114,24 @@ fn program(input: &str) -> IResult<&str, Program> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn variable_test() {
-        assert_eq!(
-            program(include_str!("../tests/variable.input")).unwrap().1,
-            include!("../tests/variable.ast")
-        );
+    macro_rules! ast_test {
+        ( $function_name:ident ) => {
+            #[test]
+            fn $function_name() {
+                assert_eq!(
+                    program(include_str!(concat!(
+                        "../tests/",
+                        stringify!($function_name),
+                        ".input"
+                    )))
+                    .unwrap()
+                    .1,
+                    include!(concat!("../tests/", stringify!($function_name), ".ast"))
+                );
+            }
+        };
     }
+
+    ast_test!(variable);
+    ast_test!(variable_quotes);
 }

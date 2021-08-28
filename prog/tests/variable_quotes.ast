@@ -1,0 +1,12 @@
+Program(vec![
+    Statement::Assignment("x", Expression::NumberLiteral(3)),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+    Statement::Assignment("a", Expression::StringLiteral("Ana")),
+])
