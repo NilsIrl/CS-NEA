@@ -48,9 +48,15 @@ enum Statement<'a> {
 
 type ListOfStatements<'a> = Vec<Statement<'a>>;
 
+const QUOTES: [char; 3] = ['"', '“', '”'];
+
+fn is_quote(c: char) -> bool {
+    QUOTES.contains(&c)
+}
+
 fn quote(input: &str) -> IResult<&str, char> {
     // TODO: quotes are hardcoded
-    alt((char('"'), char('“'), char('”')))(input)
+    satisfy(is_quote)(input)
 }
 
 fn open_bracket(input: &str) -> IResult<&str, char> {
@@ -95,11 +101,7 @@ fn expression(input: &str) -> IResult<&str, Expression> {
         multispace0,
         alt((
             map(
-                delimited(
-                    quote,
-                    take_till(|c| c == '"' || c == '“' || c == '”'),
-                    quote,
-                ),
+                delimited(quote, take_till(is_quote), quote),
                 |string_const| Expression::StringLiteral(string_const),
             ),
             function_call,
