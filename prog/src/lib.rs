@@ -2,8 +2,8 @@ use core::cmp::min_by_key;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_while},
-    character::complete::{alpha1, alphanumeric0, char, i64, multispace0, multispace1, satisfy},
-    combinator::{all_consuming, map, recognize, verify},
+    character::complete::{char, i64, multispace0, multispace1, satisfy},
+    combinator::{all_consuming, map, opt, recognize, verify},
     multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -18,6 +18,47 @@ enum Expression<'a> {
     Identifier(&'a str),
     FunctionCall(&'a str, Vec<Expression<'a>>),
     Variable(&'a str),
+    Equal(Box<Expression<'a>>, Box<Expression<'a>>),
+    NotEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+    LessThan(Box<Expression<'a>>, Box<Expression<'a>>),
+    LessThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+    GreaterThan(Box<Expression<'a>>, Box<Expression<'a>>),
+    GreaterThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+}
+
+macro_rules! ops {
+    ( $( $op:literal => $variant:path ),* ) => {
+        fn op(input: &str) -> IResult<&str, &str> {
+            alt((
+                    $(
+                        tag($op),
+                    )*
+            ))(input)
+        }
+
+        impl<'a> Expression<'a> {
+            fn from_op(op: &str, lhs: Expression<'a>, rhs: Expression<'a>) -> Self {
+                let lhs = Box::new(lhs);
+                let rhs = Box::new(rhs);
+                match op {
+                    $(
+                    $op => $variant(lhs, rhs),
+                    )*
+                    _ => unreachable!("Not an operator"),
+                }
+            }
+        }
+
+    }
+}
+
+ops! {
+    "==" => Expression::Equal,
+    "!=" => Expression::NotEqual,
+    "<=" => Expression::LessThanOrEqual,
+    ">=" => Expression::GreaterThanOrEqual,
+    "<" => Expression::LessThan,
+    ">" => Expression::GreaterThan
 }
 
 #[derive(Debug, PartialEq)]
@@ -96,19 +137,27 @@ fn number_literal(input: &str) -> IResult<&str, Expression> {
     }
 }
 
+fn non_recursive_expression(input: &str) -> IResult<&str, Expression> {
+    alt((
+        map(
+            delimited(quote, take_till(is_quote), quote),
+            |string_const| Expression::StringLiteral(string_const),
+        ),
+        function_call,
+        map(identifier, |identifier| Expression::Variable(identifier)),
+        number_literal,
+    ))(input)
+}
+
 fn expression(input: &str) -> IResult<&str, Expression> {
-    preceded(
-        multispace0,
-        alt((
-            map(
-                delimited(quote, take_till(is_quote), quote),
-                |string_const| Expression::StringLiteral(string_const),
-            ),
-            function_call,
-            map(identifier, |identifier| Expression::Variable(identifier)),
-            number_literal,
-        )),
-    )(input)
+    let (input, (lhs, rhs)) = pair(
+        preceded(multispace0, non_recursive_expression),
+        opt(pair(preceded(multispace1, op), expression)),
+    )(input)?;
+    match rhs {
+        Some((op, rhs)) => Ok((input, Expression::from_op(op, lhs, rhs))),
+        None => Ok((input, lhs)),
+    }
 }
 
 fn is_identifer_char(c: char) -> bool {
@@ -228,4 +277,5 @@ mod tests {
     ast_test!(print);
     ast_test!(input);
     ast_test!(for_loop1);
+    ast_test!(comparison1);
 }

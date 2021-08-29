@@ -1,0 +1,6 @@
+equal = "a" == "b"
+not_equal = "a" != "b"
+less_than = "a" < "b"
+less_than_or_eqal_to = "a" <= "b"
+greater_than = "a" > "b"
+greater_than_or_less = "a" >= "b"
