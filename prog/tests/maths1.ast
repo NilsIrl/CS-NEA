@@ -1,0 +1,9 @@
+Program(vec![
+    Statement::Assignment("x", Expression::Plus(Box::new(Expression::IntegerLiteral(6)), Box::new(Expression::IntegerLiteral(5)))),
+    Statement::Assignment("x", Expression::Minus(Box::new(Expression::IntegerLiteral(6)), Box::new(Expression::IntegerLiteral(5)))),
+    Statement::Assignment("x", Expression::Times(Box::new(Expression::IntegerLiteral(12)), Box::new(Expression::IntegerLiteral(2)))),
+    Statement::Assignment("x", Expression::Divide(Box::new(Expression::IntegerLiteral(12)), Box::new(Expression::IntegerLiteral(2)))),
+    Statement::Assignment("x", Expression::Modulus(Box::new(Expression::IntegerLiteral(12)), Box::new(Expression::IntegerLiteral(5)))),
+    Statement::Assignment("x", Expression::Quotient(Box::new(Expression::IntegerLiteral(17)), Box::new(Expression::IntegerLiteral(5)))),
+    Statement::Assignment("x", Expression::Power(Box::new(Expression::IntegerLiteral(3)), Box::new(Expression::IntegerLiteral(4)))),
+])

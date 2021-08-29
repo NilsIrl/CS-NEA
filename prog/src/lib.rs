@@ -18,16 +18,25 @@ enum Expression<'a> {
     Identifier(&'a str),
     FunctionCall(&'a str, Vec<Expression<'a>>),
     Variable(&'a str),
+
     Equal(Box<Expression<'a>>, Box<Expression<'a>>),
     NotEqual(Box<Expression<'a>>, Box<Expression<'a>>),
     LessThan(Box<Expression<'a>>, Box<Expression<'a>>),
     LessThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
     GreaterThan(Box<Expression<'a>>, Box<Expression<'a>>),
     GreaterThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+
+    Plus(Box<Expression<'a>>, Box<Expression<'a>>),
+    Minus(Box<Expression<'a>>, Box<Expression<'a>>),
+    Times(Box<Expression<'a>>, Box<Expression<'a>>),
+    Divide(Box<Expression<'a>>, Box<Expression<'a>>),
+    Modulus(Box<Expression<'a>>, Box<Expression<'a>>),
+    Quotient(Box<Expression<'a>>, Box<Expression<'a>>),
+    Power(Box<Expression<'a>>, Box<Expression<'a>>),
 }
 
 macro_rules! ops {
-    ( $( $op:literal => $variant:path ),* ) => {
+    ( $( $op:literal => $variant:path ),* $(,)? ) => {
         fn op(input: &str) -> IResult<&str, &str> {
             alt((
                     $(
@@ -58,7 +67,14 @@ ops! {
     "<=" => Expression::LessThanOrEqual,
     ">=" => Expression::GreaterThanOrEqual,
     "<" => Expression::LessThan,
-    ">" => Expression::GreaterThan
+    ">" => Expression::GreaterThan,
+    "+" => Expression::Plus,
+    "-" => Expression::Minus,
+    "*" => Expression::Times,
+    "/" => Expression::Divide,
+    "MOD" => Expression::Modulus,
+    "DIV" => Expression::Quotient,
+    "^" => Expression::Power,
 }
 
 #[derive(Debug, PartialEq)]
@@ -152,7 +168,7 @@ fn non_recursive_expression(input: &str) -> IResult<&str, Expression> {
 fn expression(input: &str) -> IResult<&str, Expression> {
     let (input, (lhs, rhs)) = pair(
         preceded(multispace0, non_recursive_expression),
-        opt(pair(preceded(multispace1, op), expression)),
+        opt(pair(preceded(multispace0, op), expression)),
     )(input)?;
     match rhs {
         Some((op, rhs)) => Ok((input, Expression::from_op(op, lhs, rhs))),
@@ -279,4 +295,5 @@ mod tests {
     ast_test!(for_loop1);
     ast_test!(comparison1);
     ast_test!(empty);
+    ast_test!(maths1);
 }
