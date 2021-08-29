@@ -196,4 +196,6 @@ mod tests {
     ast_test!(variable_whitespace);
     ast_test!(function_call);
     ast_test!(complex_function_call);
+    ast_test!(print);
+    ast_test!(input);
 }
