@@ -1,0 +1,9 @@
+Program(vec![Statement::For(
+    "i",
+    Expression::IntegerLiteral(0),
+    Expression::IntegerLiteral(7),
+    vec![Statement::Expression(Expression::FunctionCall(
+        "print",
+        vec![Expression::StringLiteral("Hello")],
+    ))],
+)])

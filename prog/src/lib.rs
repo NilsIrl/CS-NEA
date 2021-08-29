@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_while},
     character::complete::{alpha1, alphanumeric0, char, i64, multispace0, multispace1, satisfy},
-    combinator::{all_consuming, map, recognize},
+    combinator::{all_consuming, map, recognize, verify},
     multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -30,19 +30,19 @@ enum Statement<'a> {
         &'a str,
         Expression<'a>,
         Expression<'a>,
-        Box<ListOfStatements<'a>>,
+        ListOfStatements<'a>,
     ),
-    While(Expression<'a>, Box<ListOfStatements<'a>>),
+    While(Expression<'a>, ListOfStatements<'a>),
     If(
         Vec<(Expression<'a>, Statement<'a>)>,
-        Option<Box<Statement<'a>>>,
+        Option<ListOfStatements<'a>>,
     ),
     Switch(
         Expression<'a>,
         Vec<(Expression<'a>, Statement<'a>)>,
-        Option<Box<Statement<'a>>>,
+        Option<ListOfStatements<'a>>,
     ),
-    Function(&'a str, Vec<(&'a str, bool)>, Box<ListOfStatements<'a>>),
+    Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
     Return(Expression<'a>),
 }
 
@@ -113,13 +113,18 @@ fn is_identifer_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_' || c == '-'
 }
 
+const KEYWORDS: [&str; 1] = ["next"];
+
 fn identifier(input: &str) -> IResult<&str, &str> {
-    preceded(
-        multispace0,
-        recognize(pair(
-            satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
-            take_while(is_identifer_char),
-        )),
+    verify(
+        preceded(
+            multispace0,
+            recognize(pair(
+                satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
+                take_while(is_identifer_char),
+            )),
+        ),
+        |ident: &str| !KEYWORDS.contains(&ident),
     )(input)
 }
 
@@ -145,12 +150,34 @@ fn global_assignment_statement(input: &str) -> IResult<&str, Statement> {
     ))
 }
 
+fn for_loop(input: &str) -> IResult<&str, Statement> {
+    let (input, (assignment, end, body)) = delimited(
+        tag("for"),
+        tuple((
+            preceded(multispace1, assignment_statement),
+            preceded(preceded(multispace1, tag("to")), expression),
+            list_of_statements,
+        )),
+        preceded(multispace0, pair(tag("next"), identifier)),
+    )(input)?;
+    Ok((
+        input,
+        match assignment {
+            Statement::Assignment(identifier, expression) => {
+                Statement::For(identifier, expression, end, body)
+            }
+            _ => unreachable!("assignment_statement can only return Statement::Assignment"),
+        },
+    ))
+}
+
 fn statement(input: &str) -> IResult<&str, Statement> {
     preceded(
         multispace0,
         alt((
             assignment_statement,
             global_assignment_statement,
+            for_loop,
             map(expression, |expression| Statement::Expression(expression)),
         )),
     )(input)
@@ -198,4 +225,5 @@ mod tests {
     ast_test!(complex_function_call);
     ast_test!(print);
     ast_test!(input);
+    ast_test!(for_loop1);
 }
