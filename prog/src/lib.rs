@@ -3,8 +3,8 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_while},
     character::complete::{char, i64, multispace0, multispace1, satisfy},
-    combinator::{all_consuming, map, recognize, verify},
-    multi::{many0, separated_list0},
+    combinator::{all_consuming, map, opt, recognize, verify},
+    multi::{fold_many0, many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
@@ -217,10 +217,7 @@ enum Statement<'a> {
         ListOfStatements<'a>,
     ),
     While(Expression<'a>, ListOfStatements<'a>),
-    If(
-        Vec<(Expression<'a>, Statement<'a>)>,
-        Option<ListOfStatements<'a>>,
-    ),
+    If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
     Switch(
         Expression<'a>,
         Vec<(Expression<'a>, Statement<'a>)>,
@@ -252,7 +249,7 @@ fn is_identifer_char(c: char) -> bool {
 }
 
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
-const KEYWORDS: [&str; 2] = ["next", "endwhile"];
+const KEYWORDS: [&str; 5] = ["next", "endwhile", "elseif", "else", "endif"];
 
 fn identifier(input: &str) -> IResult<&str, &str> {
     verify(
@@ -319,6 +316,39 @@ fn while_loop(input: &str) -> IResult<&str, Statement> {
     Ok((input, Statement::While(exp, body)))
 }
 
+fn if_statement(input: &str) -> IResult<&str, Statement> {
+    let (input, (exp, body, elseifs, else_body)) = delimited(
+        tag("if"),
+        tuple((
+            expression,
+            preceded(pair(multispace0, tag("then")), list_of_statements),
+            many0(preceded(
+                pair(multispace0, tag("elseif")),
+                pair(
+                    expression,
+                    preceded(pair(multispace0, tag("then")), list_of_statements),
+                ),
+            )),
+            opt(preceded(pair(multispace0, tag("else")), list_of_statements)),
+        )),
+        pair(multispace0, tag("endif")),
+    )(input)?;
+
+    Ok((
+        input,
+        Statement::If(
+            exp,
+            body,
+            elseifs
+                .into_iter()
+                .rev()
+                .fold(else_body.unwrap_or_default(), |acc, (exp, body)| {
+                    vec![Statement::If(exp, body, acc)]
+                }),
+        ),
+    ))
+}
+
 fn statement(input: &str) -> IResult<&str, Statement> {
     preceded(
         multispace0,
@@ -327,6 +357,7 @@ fn statement(input: &str) -> IResult<&str, Statement> {
             global_assignment_statement,
             for_loop,
             while_loop,
+            if_statement,
             map(expression, |expression| Statement::Expression(expression)),
         )),
     )(input)
@@ -382,4 +413,5 @@ mod tests {
     ast_test!(logical_operators1);
     ast_test!(not1);
     ast_test!(while1);
+    ast_test!(if1);
 }
