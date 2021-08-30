@@ -1,0 +1,13 @@
+Program(vec![Statement::While(
+    Expression::NotEqual(
+        Box::new(Expression::Variable("answer")),
+        Box::new(Expression::StringLiteral("computer")),
+    ),
+    vec![Statement::Assignment(
+        "answer",
+        Expression::FunctionCall(
+            "input",
+            vec![Expression::StringLiteral("What is the password?")],
+        ),
+    )],
+)])

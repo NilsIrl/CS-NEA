@@ -251,7 +251,8 @@ fn is_identifer_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_' || c == '-'
 }
 
-const KEYWORDS: [&str; 1] = ["next"];
+// TODO: this only contains the endings, the beginnings are not necessary for parsing
+const KEYWORDS: [&str; 2] = ["next", "endwhile"];
 
 fn identifier(input: &str) -> IResult<&str, &str> {
     verify(
@@ -309,6 +310,15 @@ fn for_loop(input: &str) -> IResult<&str, Statement> {
     ))
 }
 
+fn while_loop(input: &str) -> IResult<&str, Statement> {
+    let (input, (exp, body)) = delimited(
+        tag("while"),
+        pair(expression, list_of_statements),
+        preceded(multispace0, tag("endwhile")),
+    )(input)?;
+    Ok((input, Statement::While(exp, body)))
+}
+
 fn statement(input: &str) -> IResult<&str, Statement> {
     preceded(
         multispace0,
@@ -316,6 +326,7 @@ fn statement(input: &str) -> IResult<&str, Statement> {
             assignment_statement,
             global_assignment_statement,
             for_loop,
+            while_loop,
             map(expression, |expression| Statement::Expression(expression)),
         )),
     )(input)
@@ -370,4 +381,5 @@ mod tests {
     ast_test!(maths1);
     ast_test!(logical_operators1);
     ast_test!(not1);
+    ast_test!(while1);
 }
