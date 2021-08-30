@@ -37,6 +37,7 @@ enum Expression<'a> {
 
     And(Box<Expression<'a>>, Box<Expression<'a>>),
     Or(Box<Expression<'a>>, Box<Expression<'a>>),
+    Not(Box<Expression<'a>>),
 }
 
 fn open_bracket(input: &str) -> IResult<&str, char> {
@@ -166,11 +167,20 @@ fn depth3(input: &str) -> IResult<&str, Expression> {
     )))
 }
 
+fn not_depth(input: &str) -> IResult<&str, Expression> {
+    alt((
+        map(preceded(preceded(multispace0, tag("NOT")), depth3), |exp| {
+            Expression::Not(Box::new(exp))
+        }),
+        depth3,
+    ))(input)
+}
+
 fn depth2(input: &str) -> IResult<&str, Expression> {
-    let (input, initial) = depth3(input)?;
+    let (input, initial) = not_depth(input)?;
     let (input, rest) = many0(preceded(
         preceded(multispace0, tag("AND")),
-        preceded(multispace0, depth3),
+        preceded(multispace0, not_depth),
     ))(input)?;
     Ok((
         input,
@@ -359,4 +369,5 @@ mod tests {
     ast_test!(empty);
     ast_test!(maths1);
     ast_test!(logical_operators1);
+    ast_test!(not1);
 }

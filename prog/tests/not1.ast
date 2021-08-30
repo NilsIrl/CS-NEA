@@ -1,0 +1,3 @@
+Program(vec![
+    Statement::Expression(Expression::FunctionCall("print", vec![Expression::Not(Box::new(Expression::Equal(Box::new(Expression::BoolLiteral(true)), Box::new(Expression::BoolLiteral(false)))))]))
+])
