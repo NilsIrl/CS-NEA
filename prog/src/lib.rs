@@ -327,6 +327,7 @@ fn program(input: &str) -> IResult<&str, Program> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     macro_rules! ast_test {
         ( $function_name:ident ) => {
