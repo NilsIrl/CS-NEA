@@ -1,0 +1,3 @@
+Program(vec![
+    Statement::Expression(Expression::FunctionCall("print", vec![Expression::StringLiteral("Hello World")]))
+])

@@ -2,13 +2,29 @@ use core::cmp::min_by_key;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_while},
-    character::complete::{char, i64, multispace0, multispace1, satisfy},
+    character::complete::{self, char, i64, not_line_ending, satisfy},
     combinator::{all_consuming, map, opt, recognize, verify},
     multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
 };
+
+fn comment(input: &str) -> IResult<&str, &str> {
+    recognize(pair(tag("//"), not_line_ending))(input)
+}
+
+fn space0(input: &str) -> IResult<&str, &str> {
+    recognize(tuple((
+        complete::multispace0,
+        opt(comment),
+        complete::multispace0,
+    )))(input)
+}
+
+fn space1(input: &str) -> IResult<&str, &str> {
+    alt((complete::multispace1, space0))(input)
+}
 
 #[derive(Debug, PartialEq, Clone)]
 enum Expression<'a> {
@@ -56,9 +72,9 @@ fn function_call(input: &str) -> IResult<&str, Expression> {
     let (input, (function_name, arguments)) = pair(
         identifier,
         delimited(
-            preceded(multispace0, open_bracket),
-            separated_list0(preceded(multispace0, comma), expression),
-            preceded(multispace0, close_bracket),
+            preceded(space0, open_bracket),
+            separated_list0(preceded(space0, comma), expression),
+            preceded(space0, close_bracket),
         ),
     )(input)?;
     Ok((input, Expression::FunctionCall(function_name, arguments)))
@@ -79,7 +95,7 @@ fn number_literal(input: &str) -> IResult<&str, Expression> {
 
 fn terminal(input: &str) -> IResult<&str, Expression> {
     preceded(
-        multispace0,
+        space0,
         alt((
             map(
                 delimited(quote, take_till(is_quote), quote),
@@ -96,7 +112,7 @@ fn terminal(input: &str) -> IResult<&str, Expression> {
 
 fn depth6(input: &str) -> IResult<&str, Expression> {
     let (input, initial) = terminal(input)?;
-    let (input, rest) = many0(preceded(preceded(multispace0, tag("^")), terminal))(input)?;
+    let (input, rest) = many0(preceded(preceded(space0, tag("^")), terminal))(input)?;
     Ok((
         input,
         rest.into_iter().fold(initial, |acc, current| {
@@ -108,11 +124,8 @@ fn depth6(input: &str) -> IResult<&str, Expression> {
 fn depth5(input: &str) -> IResult<&str, Expression> {
     let (input, initial) = depth6(input)?;
     let (input, rest) = many0(pair(
-        preceded(
-            multispace0,
-            alt((tag("*"), tag("/"), tag("MOD"), tag("DIV"))),
-        ),
-        preceded(multispace0, depth6),
+        preceded(space0, alt((tag("*"), tag("/"), tag("MOD"), tag("DIV")))),
+        preceded(space0, depth6),
     ))(input)?;
     Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
                 "*" => Expression::Times,
@@ -127,8 +140,8 @@ fn depth5(input: &str) -> IResult<&str, Expression> {
 fn depth4(input: &str) -> IResult<&str, Expression> {
     let (input, initial) = depth5(input)?;
     let (input, rest) = many0(pair(
-        preceded(multispace0, alt((tag("+"), tag("-")))),
-        preceded(multispace0, depth5),
+        preceded(space0, alt((tag("+"), tag("-")))),
+        preceded(space0, depth5),
     ))(input)?;
     Ok((input, rest.into_iter().fold(initial, |prev, current| match current.0 {
                 "+" => Expression::Plus,
@@ -142,7 +155,7 @@ fn depth3(input: &str) -> IResult<&str, Expression> {
     let (input, initial) = depth4(input)?;
     let (input, rest) = many0(pair(
         preceded(
-            multispace0,
+            space0,
             alt((
                 tag("=="),
                 tag("!="),
@@ -152,7 +165,7 @@ fn depth3(input: &str) -> IResult<&str, Expression> {
                 tag(">"),
             )),
         ),
-        preceded(multispace0, depth4),
+        preceded(space0, depth4),
     ))(input)?;
     Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
                 "==" => Expression::Equal,
@@ -169,7 +182,7 @@ fn depth3(input: &str) -> IResult<&str, Expression> {
 
 fn not_depth(input: &str) -> IResult<&str, Expression> {
     alt((
-        map(preceded(preceded(multispace0, tag("NOT")), depth3), |exp| {
+        map(preceded(preceded(space0, tag("NOT")), depth3), |exp| {
             Expression::Not(Box::new(exp))
         }),
         depth3,
@@ -179,8 +192,8 @@ fn not_depth(input: &str) -> IResult<&str, Expression> {
 fn depth2(input: &str) -> IResult<&str, Expression> {
     let (input, initial) = not_depth(input)?;
     let (input, rest) = many0(preceded(
-        preceded(multispace0, tag("AND")),
-        preceded(multispace0, not_depth),
+        preceded(space0, tag("AND")),
+        preceded(space0, not_depth),
     ))(input)?;
     Ok((
         input,
@@ -193,8 +206,8 @@ fn depth2(input: &str) -> IResult<&str, Expression> {
 fn depth1(input: &str) -> IResult<&str, Expression> {
     let (input, initial) = depth2(input)?;
     let (input, rest) = many0(preceded(
-        preceded(multispace0, tag("OR")),
-        preceded(multispace0, depth2),
+        preceded(space0, tag("OR")),
+        preceded(space0, depth2),
     ))(input)?;
     Ok((
         input,
@@ -258,7 +271,7 @@ const KEYWORDS: [&str; 8] = [
 fn identifier(input: &str) -> IResult<&str, &str> {
     verify(
         preceded(
-            multispace0,
+            space0,
             recognize(pair(
                 satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
                 take_while(is_identifer_char),
@@ -271,14 +284,14 @@ fn identifier(input: &str) -> IResult<&str, &str> {
 fn assignment_statement(input: &str) -> IResult<&str, Statement> {
     let (input, (identifier, expression)) = tuple((
         identifier,
-        preceded(preceded(multispace0, char('=')), expression),
+        preceded(preceded(space0, char('=')), expression),
     ))(input)?;
     Ok((input, Statement::Assignment(identifier, expression)))
 }
 
 fn global_assignment_statement(input: &str) -> IResult<&str, Statement> {
     let (input, assignment) =
-        preceded(tag("global"), preceded(multispace1, assignment_statement))(input)?;
+        preceded(tag("global"), preceded(space1, assignment_statement))(input)?;
     Ok((
         input,
         match assignment {
@@ -294,11 +307,11 @@ fn for_loop(input: &str) -> IResult<&str, Statement> {
     let (input, (assignment, end, body)) = delimited(
         tag("for"),
         tuple((
-            preceded(multispace1, assignment_statement),
-            preceded(preceded(multispace1, tag("to")), expression),
+            preceded(space1, assignment_statement),
+            preceded(preceded(space1, tag("to")), expression),
             list_of_statements,
         )),
-        preceded(multispace0, pair(tag("next"), identifier)),
+        preceded(space0, pair(tag("next"), identifier)),
     )(input)?;
     Ok((
         input,
@@ -315,7 +328,7 @@ fn while_loop(input: &str) -> IResult<&str, Statement> {
     let (input, (exp, body)) = delimited(
         tag("while"),
         pair(expression, list_of_statements),
-        preceded(multispace0, tag("endwhile")),
+        preceded(space0, tag("endwhile")),
     )(input)?;
     Ok((input, Statement::While(exp, body)))
 }
@@ -325,17 +338,17 @@ fn if_statement(input: &str) -> IResult<&str, Statement> {
         tag("if"),
         tuple((
             expression,
-            preceded(pair(multispace0, tag("then")), list_of_statements),
+            preceded(pair(space0, tag("then")), list_of_statements),
             many0(preceded(
-                pair(multispace0, tag("elseif")),
+                pair(space0, tag("elseif")),
                 pair(
                     expression,
-                    preceded(pair(multispace0, tag("then")), list_of_statements),
+                    preceded(pair(space0, tag("then")), list_of_statements),
                 ),
             )),
-            opt(preceded(pair(multispace0, tag("else")), list_of_statements)),
+            opt(preceded(pair(space0, tag("else")), list_of_statements)),
         )),
-        pair(multispace0, tag("endif")),
+        pair(space0, tag("endif")),
     )(input)?;
 
     Ok((
@@ -354,10 +367,10 @@ fn if_statement(input: &str) -> IResult<&str, Statement> {
 }
 
 fn switch_statement(input: &str) -> IResult<&str, Statement> {
-    let (input, exp) = delimited(tag("switch"), expression, pair(multispace0, char(':')))(input)?;
+    let (input, exp) = delimited(tag("switch"), expression, pair(space0, char(':')))(input)?;
     let (input, cases) = terminated(
         many0(preceded(
-            multispace0,
+            space0,
             pair(
                 alt((
                     preceded(
@@ -368,10 +381,10 @@ fn switch_statement(input: &str) -> IResult<&str, Statement> {
                     ),
                     map(tag("default"), |_| Expression::BoolLiteral(true)),
                 )),
-                preceded(pair(multispace0, char(':')), list_of_statements),
+                preceded(pair(space0, char(':')), list_of_statements),
             ),
         )),
-        pair(multispace0, tag("endswitch")),
+        pair(space0, tag("endswitch")),
     )(input)?;
 
     Ok((
@@ -388,7 +401,7 @@ fn switch_statement(input: &str) -> IResult<&str, Statement> {
 
 fn statement(input: &str) -> IResult<&str, Statement> {
     preceded(
-        multispace0,
+        space0,
         alt((
             assignment_statement,
             global_assignment_statement,
@@ -409,7 +422,7 @@ fn list_of_statements(input: &str) -> IResult<&str, ListOfStatements> {
 }
 
 fn program(input: &str) -> IResult<&str, Program> {
-    let (input, statements) = all_consuming(terminated(list_of_statements, multispace0))(input)?;
+    let (input, statements) = all_consuming(terminated(list_of_statements, space0))(input)?;
     // TODO check input is empty
     Ok((input, Program(statements)))
 }
@@ -453,4 +466,5 @@ mod tests {
     ast_test!(while1);
     ast_test!(if1);
     ast_test!(switch);
+    ast_test!(comment1);
 }
