@@ -1,0 +1,8 @@
+switch entry:
+    case “A”:
+        print(“You selected A”)
+    case “B”:
+        print(“You selected B”)
+    default:
+        print(“Unrecognised selection”)
+endswitch

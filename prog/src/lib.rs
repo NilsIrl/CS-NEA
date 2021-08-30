@@ -4,13 +4,13 @@ use nom::{
     bytes::complete::{tag, take_till, take_while},
     character::complete::{char, i64, multispace0, multispace1, satisfy},
     combinator::{all_consuming, map, opt, recognize, verify},
-    multi::{fold_many0, many0, separated_list0},
+    multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Expression<'a> {
     StringLiteral(&'a str),
     IntegerLiteral(i64),
@@ -218,11 +218,6 @@ enum Statement<'a> {
     ),
     While(Expression<'a>, ListOfStatements<'a>),
     If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
-    Switch(
-        Expression<'a>,
-        Vec<(Expression<'a>, Statement<'a>)>,
-        Option<ListOfStatements<'a>>,
-    ),
     Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
     Return(Expression<'a>),
 }
@@ -249,7 +244,16 @@ fn is_identifer_char(c: char) -> bool {
 }
 
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
-const KEYWORDS: [&str; 5] = ["next", "endwhile", "elseif", "else", "endif"];
+const KEYWORDS: [&str; 8] = [
+    "next",
+    "endwhile",
+    "elseif",
+    "else",
+    "endif",
+    "endswitch",
+    "case",
+    "default",
+];
 
 fn identifier(input: &str) -> IResult<&str, &str> {
     verify(
@@ -349,6 +353,39 @@ fn if_statement(input: &str) -> IResult<&str, Statement> {
     ))
 }
 
+fn switch_statement(input: &str) -> IResult<&str, Statement> {
+    let (input, exp) = delimited(tag("switch"), expression, pair(multispace0, char(':')))(input)?;
+    let (input, cases) = terminated(
+        many0(preceded(
+            multispace0,
+            pair(
+                alt((
+                    preceded(
+                        tag("case"),
+                        map(expression, |rhs| {
+                            Expression::Equal(Box::new(exp.clone()), Box::new(rhs))
+                        }),
+                    ),
+                    map(tag("default"), |_| Expression::BoolLiteral(true)),
+                )),
+                preceded(pair(multispace0, char(':')), list_of_statements),
+            ),
+        )),
+        pair(multispace0, tag("endswitch")),
+    )(input)?;
+
+    Ok((
+        input,
+        cases
+            .into_iter()
+            .rev()
+            .fold(Vec::new(), |acc, (exp, body)| {
+                vec![Statement::If(exp, body, acc)]
+            })
+            .remove(0),
+    ))
+}
+
 fn statement(input: &str) -> IResult<&str, Statement> {
     preceded(
         multispace0,
@@ -358,6 +395,7 @@ fn statement(input: &str) -> IResult<&str, Statement> {
             for_loop,
             while_loop,
             if_statement,
+            switch_statement,
             map(expression, |expression| Statement::Expression(expression)),
         )),
     )(input)
@@ -414,4 +452,5 @@ mod tests {
     ast_test!(not1);
     ast_test!(while1);
     ast_test!(if1);
+    ast_test!(switch);
 }
