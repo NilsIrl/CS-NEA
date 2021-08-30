@@ -1,0 +1,19 @@
+Program(vec![Statement::Expression(Expression::FunctionCall(
+    "print",
+    vec![Expression::Or(
+        Box::new(Expression::And(
+            Box::new(Expression::LessThanOrEqual(
+                Box::new(Expression::Variable("x")),
+                Box::new(Expression::IntegerLiteral(5)),
+            )),
+            Box::new(Expression::Equal(
+                Box::new(Expression::Variable("flag")),
+                Box::new(Expression::BoolLiteral(false)),
+            )),
+        )),
+        Box::new(Expression::Equal(
+            Box::new(Expression::BoolLiteral(false)),
+            Box::new(Expression::BoolLiteral(false)),
+        )),
+    )],
+))])

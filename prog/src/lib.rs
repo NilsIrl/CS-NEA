@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_while},
     character::complete::{char, i64, multispace0, multispace1, satisfy},
-    combinator::{all_consuming, map, opt, recognize, verify},
+    combinator::{all_consuming, map, recognize, verify},
     multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -15,6 +15,7 @@ enum Expression<'a> {
     StringLiteral(&'a str),
     IntegerLiteral(i64),
     FloatLiteral(f64),
+    BoolLiteral(bool),
     Identifier(&'a str),
     FunctionCall(&'a str, Vec<Expression<'a>>),
     Variable(&'a str),
@@ -33,48 +34,164 @@ enum Expression<'a> {
     Modulus(Box<Expression<'a>>, Box<Expression<'a>>),
     Quotient(Box<Expression<'a>>, Box<Expression<'a>>),
     Power(Box<Expression<'a>>, Box<Expression<'a>>),
+
+    And(Box<Expression<'a>>, Box<Expression<'a>>),
+    Or(Box<Expression<'a>>, Box<Expression<'a>>),
 }
 
-macro_rules! ops {
-    ( $( $op:literal => $variant:path ),* $(,)? ) => {
-        fn op(input: &str) -> IResult<&str, &str> {
-            alt((
-                    $(
-                        tag($op),
-                    )*
-            ))(input)
-        }
+fn open_bracket(input: &str) -> IResult<&str, char> {
+    char('(')(input)
+}
 
-        impl<'a> Expression<'a> {
-            fn from_op(op: &str, lhs: Expression<'a>, rhs: Expression<'a>) -> Self {
-                let lhs = Box::new(lhs);
-                let rhs = Box::new(rhs);
-                match op {
-                    $(
-                    $op => $variant(lhs, rhs),
-                    )*
-                    _ => unreachable!("Not an operator"),
-                }
-            }
-        }
+fn close_bracket(input: &str) -> IResult<&str, char> {
+    char(')')(input)
+}
 
+fn comma(input: &str) -> IResult<&str, char> {
+    char(',')(input)
+}
+
+fn function_call(input: &str) -> IResult<&str, Expression> {
+    let (input, (function_name, arguments)) = pair(
+        identifier,
+        delimited(
+            preceded(multispace0, open_bracket),
+            separated_list0(preceded(multispace0, comma), expression),
+            preceded(multispace0, close_bracket),
+        ),
+    )(input)?;
+    Ok((input, Expression::FunctionCall(function_name, arguments)))
+}
+
+fn number_literal(input: &str) -> IResult<&str, Expression> {
+    let int = map(i64, |num_const| Expression::IntegerLiteral(num_const))(input);
+    let float = map(double, |float_const| Expression::FloatLiteral(float_const))(input);
+    if int.is_err() {
+        float
+    } else if float.is_err() {
+        int
+    } else {
+        // unwrap because due to previous 2 selections, neither int nor float can be Err(_)
+        min_by_key(int, float, |x| x.as_ref().unwrap().0.len())
     }
 }
 
-ops! {
-    "==" => Expression::Equal,
-    "!=" => Expression::NotEqual,
-    "<=" => Expression::LessThanOrEqual,
-    ">=" => Expression::GreaterThanOrEqual,
-    "<" => Expression::LessThan,
-    ">" => Expression::GreaterThan,
-    "+" => Expression::Plus,
-    "-" => Expression::Minus,
-    "*" => Expression::Times,
-    "/" => Expression::Divide,
-    "MOD" => Expression::Modulus,
-    "DIV" => Expression::Quotient,
-    "^" => Expression::Power,
+fn terminal(input: &str) -> IResult<&str, Expression> {
+    preceded(
+        multispace0,
+        alt((
+            map(
+                delimited(quote, take_till(is_quote), quote),
+                |string_const| Expression::StringLiteral(string_const),
+            ),
+            map(tag("true"), |_| Expression::BoolLiteral(true)),
+            map(tag("false"), |_| Expression::BoolLiteral(false)),
+            function_call,
+            map(identifier, |identifier| Expression::Variable(identifier)),
+            number_literal,
+        )),
+    )(input)
+}
+
+fn depth6(input: &str) -> IResult<&str, Expression> {
+    let (input, initial) = terminal(input)?;
+    let (input, rest) = many0(preceded(preceded(multispace0, tag("^")), terminal))(input)?;
+    Ok((
+        input,
+        rest.into_iter().fold(initial, |acc, current| {
+            Expression::Power(Box::new(acc), Box::new(current))
+        }),
+    ))
+}
+
+fn depth5(input: &str) -> IResult<&str, Expression> {
+    let (input, initial) = depth6(input)?;
+    let (input, rest) = many0(pair(
+        preceded(
+            multispace0,
+            alt((tag("*"), tag("/"), tag("MOD"), tag("DIV"))),
+        ),
+        preceded(multispace0, depth6),
+    ))(input)?;
+    Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
+                "*" => Expression::Times,
+                "/" => Expression::Divide,
+                "MOD" => Expression::Modulus,
+                "DIV" => Expression::Quotient,
+                _ => unreachable!(),
+            }
+            (Box::new(acc), Box::new(current.1)))))
+}
+
+fn depth4(input: &str) -> IResult<&str, Expression> {
+    let (input, initial) = depth5(input)?;
+    let (input, rest) = many0(pair(
+        preceded(multispace0, alt((tag("+"), tag("-")))),
+        preceded(multispace0, depth5),
+    ))(input)?;
+    Ok((input, rest.into_iter().fold(initial, |prev, current| match current.0 {
+                "+" => Expression::Plus,
+                "-" => Expression::Minus,
+                _ => unreachable!(),
+            }
+            (Box::new(prev), Box::new(current.1)))))
+}
+
+fn depth3(input: &str) -> IResult<&str, Expression> {
+    let (input, initial) = depth4(input)?;
+    let (input, rest) = many0(pair(
+        preceded(
+            multispace0,
+            alt((
+                tag("=="),
+                tag("!="),
+                tag("<="),
+                tag(">="),
+                tag("<"),
+                tag(">"),
+            )),
+        ),
+        preceded(multispace0, depth4),
+    ))(input)?;
+    Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
+                "==" => Expression::Equal,
+                "!=" => Expression::NotEqual,
+                "<=" => Expression::LessThanOrEqual,
+                ">=" => Expression::GreaterThanOrEqual,
+                "<" => Expression::LessThan,
+                ">" => Expression::GreaterThan,
+                _ => unreachable!(),
+            }
+            (Box::new(acc), Box::new(current.1))
+    )))
+}
+
+fn depth2(input: &str) -> IResult<&str, Expression> {
+    let (input, initial) = depth3(input)?;
+    let (input, rest) = many0(preceded(
+        preceded(multispace0, tag("AND")),
+        preceded(multispace0, depth3),
+    ))(input)?;
+    Ok((
+        input,
+        rest.into_iter().fold(initial, |acc, current| {
+            Expression::And(Box::new(acc), Box::new(current))
+        }),
+    ))
+}
+
+fn depth1(input: &str) -> IResult<&str, Expression> {
+    let (input, initial) = depth2(input)?;
+    let (input, rest) = many0(preceded(
+        preceded(multispace0, tag("OR")),
+        preceded(multispace0, depth2),
+    ))(input)?;
+    Ok((
+        input,
+        rest.into_iter().fold(initial, |acc, current| {
+            Expression::Or(Box::new(acc), Box::new(current))
+        }),
+    ))
 }
 
 #[derive(Debug, PartialEq)]
@@ -116,64 +233,8 @@ fn quote(input: &str) -> IResult<&str, char> {
     satisfy(is_quote)(input)
 }
 
-fn open_bracket(input: &str) -> IResult<&str, char> {
-    char('(')(input)
-}
-
-fn close_bracket(input: &str) -> IResult<&str, char> {
-    char(')')(input)
-}
-
-fn comma(input: &str) -> IResult<&str, char> {
-    char(',')(input)
-}
-
-fn function_call(input: &str) -> IResult<&str, Expression> {
-    let (input, (function_name, arguments)) = pair(
-        identifier,
-        delimited(
-            preceded(multispace0, open_bracket),
-            separated_list0(preceded(multispace0, comma), expression),
-            preceded(multispace0, close_bracket),
-        ),
-    )(input)?;
-    Ok((input, Expression::FunctionCall(function_name, arguments)))
-}
-
-fn number_literal(input: &str) -> IResult<&str, Expression> {
-    let int = map(i64, |num_const| Expression::IntegerLiteral(num_const))(input);
-    let float = map(double, |float_const| Expression::FloatLiteral(float_const))(input);
-    if int.is_err() {
-        float
-    } else if float.is_err() {
-        int
-    } else {
-        // unwrap because due to previous 2 selections, neither int nor float can be Err(_)
-        min_by_key(int, float, |x| x.as_ref().unwrap().0.len())
-    }
-}
-
-fn non_recursive_expression(input: &str) -> IResult<&str, Expression> {
-    alt((
-        map(
-            delimited(quote, take_till(is_quote), quote),
-            |string_const| Expression::StringLiteral(string_const),
-        ),
-        function_call,
-        map(identifier, |identifier| Expression::Variable(identifier)),
-        number_literal,
-    ))(input)
-}
-
 fn expression(input: &str) -> IResult<&str, Expression> {
-    let (input, (lhs, rhs)) = pair(
-        preceded(multispace0, non_recursive_expression),
-        opt(pair(preceded(multispace0, op), expression)),
-    )(input)?;
-    match rhs {
-        Some((op, rhs)) => Ok((input, Expression::from_op(op, lhs, rhs))),
-        None => Ok((input, lhs)),
-    }
+    depth1(input)
 }
 
 fn is_identifer_char(c: char) -> bool {
@@ -296,4 +357,5 @@ mod tests {
     ast_test!(comparison1);
     ast_test!(empty);
     ast_test!(maths1);
+    ast_test!(logical_operators1);
 }
