@@ -1,0 +1,8 @@
+Program(vec![Statement::Function(
+    "triple",
+    vec![("number", false)],
+    vec![Statement::Return(Expression::Times(
+        Box::new(Expression::Variable("number")),
+        Box::new(Expression::IntegerLiteral(3)),
+    ))],
+)])

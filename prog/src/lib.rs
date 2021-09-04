@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_while},
     character::complete::{self, char, i64, not_line_ending, satisfy},
-    combinator::{all_consuming, map, opt, recognize, verify},
+    combinator::{all_consuming, map, opt, recognize, value, verify},
     multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -73,7 +73,7 @@ fn function_call(input: &str) -> IResult<&str, Expression> {
         identifier,
         delimited(
             preceded(space0, open_bracket),
-            separated_list0(preceded(space0, comma), expression),
+            separated_list0(token(comma), expression),
             preceded(space0, close_bracket),
         ),
     )(input)?;
@@ -231,6 +231,7 @@ enum Statement<'a> {
     ),
     While(Expression<'a>, ListOfStatements<'a>),
     If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
+    // asRef: bool
     Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
     Return(Expression<'a>),
 }
@@ -257,7 +258,7 @@ fn is_identifer_char(c: char) -> bool {
 }
 
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
-const KEYWORDS: [&str; 8] = [
+const KEYWORDS: [&str; 9] = [
     "next",
     "endwhile",
     "elseif",
@@ -266,17 +267,15 @@ const KEYWORDS: [&str; 8] = [
     "endswitch",
     "case",
     "default",
+    "endfunction",
 ];
 
 fn identifier(input: &str) -> IResult<&str, &str> {
     verify(
-        preceded(
-            space0,
-            recognize(pair(
-                satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
-                take_while(is_identifer_char),
-            )),
-        ),
+        token(recognize(pair(
+            satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
+            take_while(is_identifer_char),
+        ))),
         |ident: &str| !KEYWORDS.contains(&ident),
     )(input)
 }
@@ -399,16 +398,62 @@ fn switch_statement(input: &str) -> IResult<&str, Statement> {
     ))
 }
 
+fn token<'a, O>(
+    f: impl FnMut(&'a str) -> IResult<&'a str, O>,
+) -> impl FnMut(&'a str) -> IResult<&'a str, O> {
+    preceded(space0, f)
+}
+
+fn function(input: &str) -> IResult<&str, Statement> {
+    map(
+        delimited(
+            tag("function"),
+            tuple((
+                preceded(space1, identifier),
+                delimited(
+                    token(open_bracket),
+                    separated_list0(
+                        token(comma),
+                        pair(
+                            token(identifier),
+                            map(
+                                opt(preceded(
+                                    token(char(':')),
+                                    token(alt((
+                                        value(false, tag("byVal")),
+                                        value(true, tag("byRef")),
+                                    ))),
+                                )),
+                                |opt| opt.unwrap_or_default(),
+                            ),
+                        ),
+                    ),
+                    token(close_bracket),
+                ),
+                list_of_statements,
+            )),
+            token(tag("endfunction")),
+        ),
+        |(ident, arguments, body)| Statement::Function(ident, arguments, body),
+    )(input)
+}
+
+fn return_statement(input: &str) -> IResult<&str, Statement> {
+    map(preceded(tag("return"), expression), Statement::Return)(input)
+}
+
 fn statement(input: &str) -> IResult<&str, Statement> {
     preceded(
         space0,
         alt((
-            assignment_statement,
             global_assignment_statement,
             for_loop,
             while_loop,
             if_statement,
             switch_statement,
+            function,
+            return_statement,
+            assignment_statement,
             map(expression, |expression| Statement::Expression(expression)),
         )),
     )(input)
@@ -467,4 +512,5 @@ mod tests {
     ast_test!(if1);
     ast_test!(switch);
     ast_test!(comment1);
+    ast_test!(function1);
 }
