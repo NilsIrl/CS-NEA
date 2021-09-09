@@ -487,6 +487,47 @@ Expression ::= Expression MOD Expression\\
 Expression ::= Expression DIV Expression\\
 Expression ::= Expression \textasciicircum{} Expression\\
 
+Note on string literals: the unicode characters `“` and `”` seem to be used to
+delimit string literals. Is that normal??
+
+In the examples given, different unicode characters are used, that's a bit
+wacky.
+
+Escaping doesn't seem to exist either
+
+We'll assume identifiers cannot start with numbers (see alter, maybe this can
+be changed)
+
+What do we consider whitespace? is a zero width space whitespace?
+
+Do we want to implement closures?? (for language? for implementation? for parsing? for interpreting?)
+
+What are valid identifiers? We'll follow C with: only: letters, digits and
+underscore, but first character must be letter or underscore.
+
+Test cases shouldn't be called '*.input' they can contain actual programs so
+that doesn't make sense.
+
+We do not have operator precedence (help)
+
+Rust doesn't support backtracking in macros:
+https://github.com/rust-lang/rust/issues/24827, https://github.com/rust-lang/rust/issues/42838
+so we had to inverse the direction of our ops macro
+
+Use pretty_assertions to speed up AST testing
+
+Fuzz the parser (idk why, we should just do it cause that sounds cool)
+
+Switch statement implemented as a bunch of if else
+
+This language makes no sense. For example, switch statements have a colon after
+the expression. WHY?
+
+On (physical) page 39, there is a 1, after `case "B"`, wtf
+
+Switch statement if given complex expression will compute expression at every
+check
+
 \printbibliography[heading=bibintoc]
 
 \end{document}
