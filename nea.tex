@@ -429,9 +429,8 @@ experience having used it while going through \textcite{eopl}.
 The implementation language will be rust because it is a language the author is
 familiar with and because it is a high performance language as it compiles to
 machine code. This is very important when writing an interpreter because it
-will allow to have an acceptable performance. Writing an interpreter in an
-interpreted language would accumulate performance overhead and result in bad
-performance.
+will allow to have acceptable performance. Writing an interpreter in an
+interpreted language would accumulate overhead and result in bad performance.
 
 \subsection{Language Grammar}
 
@@ -443,18 +442,22 @@ Statement ::= global Identifier = Expression\\
 Statement ::= Identifier = Expression\\
 Statement ::= array Identifier[\{Expression\}\textsuperscript{+(,)}]\\
 Statement ::= Expression\\
-Statement ::= for Identifier = Expression to Expression \{Statement\}\textsuperscript{*} next Identifier\\
-Statement ::= while Expression \{Statement\}\textsuperscript{*} endwhile\\
-Statement ::= do \{Statement\}\textsuperscript{*} until Expression\\
+Statement ::= for Identifier = Expression to Expression List-of-Statements next Identifier\\
+Statement ::= while Expression List-of-Statements endwhile\\
+Statement ::= do List-of-Statements until Expression\\
 
 \noindent
-Statement ::= if Expression then \{Statement\}\textsuperscript{*} \{elseif Expression then \{Statement\}\textsuperscript{*}\}\textsuperscript{*} \{else \{Statement\}\textsuperscript{*}\}\textsuperscript{?} endif\\
-Statement ::= switch Expression: \{case Expression: \{Statement\}\textsuperscript{*}\}\textsuperscript{*} \{default: \{Statment\}\textsuperscript{*}\}\textsuperscript{?} endswitch\\
+Statement ::= if Expression then List-of-Statements \{elseif Expression then List-of-Statements\}\textsuperscript{*} \{else List-of-Statements\}\textsuperscript{?} endif\\
+Statement ::= switch Expression: \{case Expression: List-of-Statements\}\textsuperscript{*} \{default: List-of-Statements\}\textsuperscript{?} endswitch\\
 
 \noindent
-Statement ::= function Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) \{Statement\}\textsuperscript{*} endfunction\\
-Statement ::= procedure Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) \{Statement\}\textsuperscript{*} endfunction\\
+Statement ::= function Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
+Statement ::= procedure Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
 Statement ::= return Expression\\
+
+\noindent
+List-of-Statements ::= ()\\
+List-of-Statements ::= (Statement . List-of-Statements)\\
 
 \noindent
 Expression ::= Constant\\
