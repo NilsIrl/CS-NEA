@@ -438,22 +438,22 @@ interpreted language would accumulate overhead and result in bad performance.
 Program ::= \{Statement\}\textsuperscript{*}
 
 \noindent
-Statement ::= global Identifier = Expression\\
-Statement ::= Identifier = Expression\\
-Statement ::= array Identifier[\{Expression\}\textsuperscript{+(,)}]\\
+Statement ::= \texttt{global} Identifier = Expression\\
+Statement ::= Identifier \texttt{=} Expression\\
+Statement ::= \texttt{array} Identifier\texttt{[}\{Expression\}\textsuperscript{+(\texttt{,})}\texttt{]}\\
 Statement ::= Expression\\
-Statement ::= for Identifier = Expression to Expression List-of-Statements next Identifier\\
-Statement ::= while Expression List-of-Statements endwhile\\
-Statement ::= do List-of-Statements until Expression\\
+Statement ::= \texttt{for} Identifier \texttt{=} Expression \texttt{to} Expression List-of-Statements \texttt{next} Identifier\\
+Statement ::= \texttt{while} Expression List-of-Statements \texttt{endwhile}\\
+Statement ::= \texttt{do} List-of-Statements \texttt{until} Expression\\
 
 \noindent
-Statement ::= if Expression then List-of-Statements \{elseif Expression then List-of-Statements\}\textsuperscript{*} \{else List-of-Statements\}\textsuperscript{?} endif\\
-Statement ::= switch Expression: \{case Expression: List-of-Statements\}\textsuperscript{*} \{default: List-of-Statements\}\textsuperscript{?} endswitch\\
+Statement ::= \texttt{if} Expression \texttt{then} List-of-Statements \{\texttt{elseif} Expression \texttt{then} List-of-Statements\}\textsuperscript{*} \{\texttt{else} List-of-Statements\}\textsuperscript{?} \texttt{endif}\\
+Statement ::= \texttt{switch} Expression\texttt{:} \{\texttt{case} Expression\texttt{:} List-of-Statements\}\textsuperscript{*} \{\texttt{default:} List-of-Statements\}\textsuperscript{?} \texttt{endswitch}\\
 
 \noindent
-Statement ::= function Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
-Statement ::= procedure Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
-Statement ::= return Expression\\
+Statement ::= \texttt{function} Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
+Statement ::= \texttt{procedure} Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
+Statement ::= \texttt{return} Expression\\
 
 \noindent
 List-of-Statements ::= ()\\
@@ -508,13 +508,13 @@ underscore, but first character must be letter or underscore.
 Test cases shouldn't be called '*.input' they can contain actual programs so
 that doesn't make sense.
 
-We do not have operator precedence (help)
+%We do not have operator precedence (help)
 
-Rust doesn't support backtracking in macros:
-https://github.com/rust-lang/rust/issues/24827, https://github.com/rust-lang/rust/issues/42838
+%Rust doesn't support backtracking in macros:
+%https://github.com/rust-lang/rust/issues/24827, https://github.com/rust-lang/rust/issues/42838
 so we had to inverse the direction of our ops macro
 
-Use pretty_assertions to speed up AST testing
+%Use pretty_assertions to speed up AST testing
 
 Fuzz the parser (idk why, we should just do it cause that sounds cool)
 
@@ -527,6 +527,10 @@ On (physical) page 39, there is a 1, after `case "B"`, wtf
 
 Switch statement if given complex expression will compute expression at every
 check
+
+Log:
+
+%Changed from ../ to CARGO_MANIFEST_DIR
 
 \printbibliography[heading=bibintoc]
 
