@@ -258,7 +258,7 @@ fn is_identifer_char(c: char) -> bool {
 }
 
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
-const KEYWORDS: [&str; 9] = [
+const KEYWORDS: [&str; 10] = [
     "next",
     "endwhile",
     "elseif",
@@ -268,6 +268,7 @@ const KEYWORDS: [&str; 9] = [
     "case",
     "default",
     "endfunction",
+    "endprocedure",
 ];
 
 fn identifier(input: &str) -> IResult<&str, &str> {
@@ -404,36 +405,45 @@ fn token<'a, O>(
     preceded(space0, f)
 }
 
+/// Parse a function or procedure
 fn function(input: &str) -> IResult<&str, Statement> {
-    map(
+    alt((
         delimited(
             tag("function"),
-            tuple((
-                preceded(space1, identifier),
-                delimited(
-                    token(open_bracket),
-                    separated_list0(
-                        token(comma),
-                        pair(
-                            token(identifier),
-                            map(
-                                opt(preceded(
-                                    token(char(':')),
-                                    token(alt((
-                                        value(false, tag("byVal")),
-                                        value(true, tag("byRef")),
-                                    ))),
-                                )),
-                                |opt| opt.unwrap_or_default(),
-                            ),
-                        ),
-                    ),
-                    token(close_bracket),
-                ),
-                list_of_statements,
-            )),
+            function_arguments_and_body,
             token(tag("endfunction")),
         ),
+        delimited(
+            tag("procedure"),
+            function_arguments_and_body,
+            token(tag("endprocedure")),
+        ),
+    ))(input)
+}
+
+fn function_arguments_and_body(input: &str) -> IResult<&str, Statement> {
+    map(
+        tuple((
+            preceded(space1, identifier),
+            delimited(
+                token(open_bracket),
+                separated_list0(
+                    token(comma),
+                    pair(
+                        token(identifier),
+                        map(
+                            opt(preceded(
+                                token(char(':')),
+                                token(alt((value(false, tag("byVal")), value(true, tag("byRef"))))),
+                            )),
+                            |opt| opt.unwrap_or_default(),
+                        ),
+                    ),
+                ),
+                token(close_bracket),
+            ),
+            list_of_statements,
+        )),
         |(ident, arguments, body)| Statement::Function(ident, arguments, body),
     )(input)
 }
@@ -513,4 +523,5 @@ mod tests {
     ast_test!(switch);
     ast_test!(comment1);
     ast_test!(function1);
+    ast_test!(procedure1);
 }

@@ -1,0 +1,11 @@
+Program(vec![Statement::Function(
+    "greeting",
+    vec![("name", false)],
+    vec![Statement::Expression(Expression::FunctionCall(
+        "print",
+        vec![Expression::Plus(
+            Box::new(Expression::StringLiteral("hello")),
+            Box::new(Expression::Variable("name")),
+        )],
+    ))],
+)])
