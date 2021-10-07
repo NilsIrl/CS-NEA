@@ -56,6 +56,27 @@ enum Expression<'a> {
     Not(Box<Expression<'a>>),
 }
 
+#[derive(Debug, PartialEq)]
+enum Statement<'a> {
+    Assignment(&'a str, Expression<'a>),
+    GlobalAssignment(&'a str, Expression<'a>),
+    ArrayDefinition(&'a str, Vec<usize>),
+    Expression(Expression<'a>),
+    For(
+        &'a str,
+        Expression<'a>,
+        Expression<'a>,
+        ListOfStatements<'a>,
+    ),
+    While(Expression<'a>, ListOfStatements<'a>),
+    If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
+    // asRef: bool
+    Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
+    Return(Expression<'a>),
+}
+
+type ListOfStatements<'a> = Vec<Statement<'a>>;
+
 fn open_bracket(input: &str) -> IResult<&str, char> {
     char('(')(input)
 }
@@ -216,27 +237,6 @@ fn depth1(input: &str) -> IResult<&str, Expression> {
         }),
     ))
 }
-
-#[derive(Debug, PartialEq)]
-enum Statement<'a> {
-    Assignment(&'a str, Expression<'a>),
-    GlobalAssignment(&'a str, Expression<'a>),
-    ArrayDefinition(&'a str, Vec<usize>),
-    Expression(Expression<'a>),
-    For(
-        &'a str,
-        Expression<'a>,
-        Expression<'a>,
-        ListOfStatements<'a>,
-    ),
-    While(Expression<'a>, ListOfStatements<'a>),
-    If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
-    // asRef: bool
-    Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
-    Return(Expression<'a>),
-}
-
-type ListOfStatements<'a> = Vec<Statement<'a>>;
 
 const QUOTES: [char; 3] = ['"', '“', '”'];
 
