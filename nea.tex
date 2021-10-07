@@ -1,10 +1,22 @@
 \documentclass{article}
 
+\usepackage[T1]{fontenc}
+
 \usepackage{hyperref}
 \usepackage{biblatex}
 \addbibresource{nea.bib}
 
 \usepackage{adjustbox}
+\usepackage{tikz}
+
+\usepackage{minted}
+
+\usetikzlibrary{shapes.misc}
+
+\tikzstyle{flowchartbox} = [text centered, draw, minimum width=3cm, minimum height=1cm]
+\tikzstyle{terminal} = [flowchartbox, rectangle, rounded rectangle]
+\tikzstyle{process} = [flowchartbox, rectangle]
+\tikzstyle{flowchartarrow} = [->,thick,>=stealth]
 
 \author{Nils André-Chang}
 \title{NEA: OCR Exam Reference Language as a Language, an implementation}
@@ -407,12 +419,34 @@ compiler. Additionally there are also different flavours of JIT compilers.
 We have decided to opt for an interpreter due to the language's dynamic nature
 as well as because interpreters are less complex.
 
-The task of interpreting source code can be separated into 2 major parts:
+Figure \ref{fig:interpreting_flowchart} shows the major steps of interpreting a
+program.
 
-\begin{enumerate}
-    \item{Parsing---Converting source code into an abstract syntax tree (AST)}
-    \item{Interpreting---Interpreting the abstract syntax tree}
-\end{enumerate}
+\begin{figure}
+	\centering
+	\begin{tikzpicture}[node distance=2cm]
+		\node (start) [terminal] {Start};
+		\node (parsing) [process, below of=start] {Parsing};
+		\node (interpreting) [process, below of=parsing] {Interpreting};
+		\node (end) [terminal, below of=interpreting] {End};
+		\draw [flowchartarrow] (start) -- (parsing);
+		\draw [flowchartarrow] (parsing) -- (interpreting);
+		\draw [flowchartarrow] (interpreting) -- (end);
+	\end{tikzpicture}
+	\caption{The major steps carried out by an interpreter}
+	\label{fig:interpreting_flowchart}
+\end{figure}
+
+The implementation language will be rust because it is a language the author is
+familiar with and because it is a high performance language as it compiles to
+machine code. This is very important when writing an interpreter because it
+will allow to have acceptable performance. Writing an interpreter in an
+interpreted language would accumulate overhead and result in bad performance.
+
+\subsection{Parsing}
+
+When parsing, the source code which can be gathered from various sources is
+converted into an abstract syntax tree (AST) and then the AST is interpreted.
 
 At first we were hoping to use tree-sitter as our parsing system because it
 would give us syntax highlighting inside of editors without having to write a
@@ -422,23 +456,35 @@ curve''\cite{ts_creating_parsers}.
 
 This is why we have decided to use a different method for parsing the code. We
 settled on using parser combinators with the help of the parser combinator
-framework \textcite{nom}. This library was chosen because it is the most widely used
-parsing framework for rust (our implementation language) and the author has
-experience having used it while going through \textcite{eopl}.
+framework \textcite{nom}. This library was chosen because it is the most widely
+used parsing framework for rust (our implementation language) and the author
+has experience having used it while going through \textcite{eopl}.
 
-The implementation language will be rust because it is a language the author is
-familiar with and because it is a high performance language as it compiles to
-machine code. This is very important when writing an interpreter because it
-will allow to have acceptable performance. Writing an interpreter in an
-interpreted language would accumulate overhead and result in bad performance.
+Another advantage of using parser combinators is that they allow to perform
+complex transformations during the parsing. For example, it is possible to
+transform a switch statement into if statements and else-if statements into
+if and else statements during the parsing instead of in a different pass, this
+allows to reduce the complexity of subsequent passes at the cost of increasing
+the complexity of the parser.
 
-\subsection{Language Grammar}
+This advantage comes directly from another major advantage of using a parser
+combinator based method: flexibility. The other major method would be to use a
+parser generator library, the method recommended by \textcite{eopl}, such as
+\textcite{bison}. The downside of this is that the program will have to be
+built upon the structure of the parser and will be limited by it.
+
+\subsubsection{Language Grammar}
+
+The language grammar defines all the possible different statements and
+expressions found in the language to simplify writing the parser. If we used a
+method using parser generators we would normally have given our grammar to the
+parser generator so it then generates the parser. In our case, because we are
+writing the parser ourselves in order to be able to easily keep track of
+everything that has to be implemented having a list of the statements,
+expressions and other constructs allows us to easily keep track of everything.
 
 \noindent
-Program ::= \{Statement\}\textsuperscript{*}
-
-\noindent
-Statement ::= \texttt{global} Identifier = Expression\\
+Statement ::= \texttt{global} Identifier \texttt{=} Expression\\
 Statement ::= Identifier \texttt{=} Expression\\
 Statement ::= \texttt{array} Identifier\texttt{[}\{Expression\}\textsuperscript{+(\texttt{,})}\texttt{]}\\
 Statement ::= Expression\\
@@ -451,8 +497,8 @@ Statement ::= \texttt{if} Expression \texttt{then} List-of-Statements \{\texttt{
 Statement ::= \texttt{switch} Expression\texttt{:} \{\texttt{case} Expression\texttt{:} List-of-Statements\}\textsuperscript{*} \{\texttt{default:} List-of-Statements\}\textsuperscript{?} \texttt{endswitch}\\
 
 \noindent
-Statement ::= \texttt{function} Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
-Statement ::= \texttt{procedure} Identifer(\{Identifier\{:byVal|:byRef\}\}\textsuperscript{*(,)}) List-of-Statements endfunction\\
+Statement ::= \texttt{function} Identifer\texttt{(}\{Identifier\{:byVal | :byRef\}\}\textsuperscript{*(\texttt{,})}\texttt{)} List-of-Statements \texttt{endfunction}\\
+Statement ::= \texttt{procedure} Identifer\texttt{(}\{Identifier\{:byVal | :byRef\}\}\textsuperscript{*(\texttt{,})}\texttt{)} List-of-Statements \texttt{endprocedure}\\
 Statement ::= \texttt{return} Expression\\
 
 \noindent
@@ -461,31 +507,109 @@ List-of-Statements ::= (Statement . List-of-Statements)\\
 
 \noindent
 Expression ::= Constant\\
-Expression ::= Identifer(\{Expression\}\textsuperscript{*(,)})\\
-Expression ::= Identifier.Field\\
-Expression ::= Identifier.Method(\{Expression\}\textsuperscript{*(,)})\\
+Expression ::= Identifer\texttt{(}\{Expression\}\textsuperscript{*(\texttt{,})}\texttt{)}\\
+Expression ::= Identifier\texttt{.}Field\\
+Expression ::= Identifier\texttt{.}Method\texttt{(}\{Expression\}\textsuperscript{*(\texttt{,})}\texttt{)}\\
 
 \noindent
-Expression ::= Expression AND Expression\\
-Expression ::= Expression OR Expression\\
-Expression ::= NOT Expression\\
+Expression ::= Expression \texttt{AND} Expression\\
+Expression ::= Expression \texttt{OR} Expression\\
+Expression ::= \texttt{NOT} Expression\\
 
 \noindent
-Expression ::= Expression == Expression\\
-Expression ::= Expression != Expression\\
-Expression ::= Expression \textless{} Expression\\
-Expression ::= Expression \textless= Expression\\
-Expression ::= Expression \textgreater{} Expression\\
-Expression ::= Expression \textgreater= Expression\\
+Expression ::= Expression \texttt{==} Expression\\
+Expression ::= Expression \texttt{!=} Expression\\
+Expression ::= Expression \texttt{\textless{}} Expression\\
+Expression ::= Expression \texttt{\textless=} Expression\\
+Expression ::= Expression \texttt{\textgreater{}} Expression\\
+Expression ::= Expression \texttt{\textgreater=} Expression\\
 
 \noindent
-Expression ::= Expression + Expression\\
-Expression ::= Expression - Expression\\
-Expression ::= Expression * Expression\\
-Expression ::= Expression / Expression\\
-Expression ::= Expression MOD Expression\\
-Expression ::= Expression DIV Expression\\
-Expression ::= Expression \textasciicircum{} Expression\\
+Expression ::= Expression \texttt{+} Expression\\
+Expression ::= Expression \texttt{-} Expression\\
+Expression ::= Expression \texttt{*} Expression\\
+Expression ::= Expression \texttt{/} Expression\\
+Expression ::= Expression \texttt{MOD} Expression\\
+Expression ::= Expression \texttt{DIV} Expression\\
+Expression ::= Expression \texttt{\textasciicircum{}} Expression\\
+
+\noindent
+Program ::= List-of-Statements
+
+The grammar is then used to write the parser including the structures that are
+used:
+
+\begin{minted}{rust}
+#[derive(Debug, PartialEq, Clone)]
+enum Expression<'a> {
+    StringLiteral(&'a str),
+    IntegerLiteral(i64),
+    FloatLiteral(f64),
+    BoolLiteral(bool),
+    Identifier(&'a str),
+    FunctionCall(&'a str, Vec<Expression<'a>>),
+    Variable(&'a str),
+
+    Equal(Box<Expression<'a>>, Box<Expression<'a>>),
+    NotEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+    LessThan(Box<Expression<'a>>, Box<Expression<'a>>),
+    LessThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+    GreaterThan(Box<Expression<'a>>, Box<Expression<'a>>),
+    GreaterThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+
+    Plus(Box<Expression<'a>>, Box<Expression<'a>>),
+    Minus(Box<Expression<'a>>, Box<Expression<'a>>),
+    Times(Box<Expression<'a>>, Box<Expression<'a>>),
+    Divide(Box<Expression<'a>>, Box<Expression<'a>>),
+    Modulus(Box<Expression<'a>>, Box<Expression<'a>>),
+    Quotient(Box<Expression<'a>>, Box<Expression<'a>>),
+    Power(Box<Expression<'a>>, Box<Expression<'a>>),
+
+    And(Box<Expression<'a>>, Box<Expression<'a>>),
+    Or(Box<Expression<'a>>, Box<Expression<'a>>),
+    Not(Box<Expression<'a>>),
+}
+
+#[derive(Debug, PartialEq)]
+enum Statement<'a> {
+    Assignment(&'a str, Expression<'a>),
+    GlobalAssignment(&'a str, Expression<'a>),
+    ArrayDefinition(&'a str, Vec<usize>),
+    Expression(Expression<'a>),
+    For(
+        &'a str,
+        Expression<'a>,
+        Expression<'a>,
+        ListOfStatements<'a>,
+    ),
+    While(Expression<'a>, ListOfStatements<'a>),
+    If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
+    // asRef: bool
+    Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
+    Return(Expression<'a>),
+}
+
+type ListOfStatements<'a> = Vec<Statement<'a>>;
+\end{minted}
+
+\subsection{Interpreting}
+
+\subsection{Testing}
+
+In order to test the parser we are going to use the built-in unit testing
+feature of Rust because they allow to simplify the process of testing with all
+the already existing tools provided by rust, and is less error prone than
+rolling out our own testing solution, using for example a custom script.
+
+For example, we will be able to view our code coverage, a measure of how much
+of the code is being tested by tests. Using this we will be able to add tests
+to handle the under tested cases and have a measure of how much of the code is
+tested and hence most likely to be correct.
+
+By being able to quantitatively measure our testing strategy we can assure
+ourself of the accuracy and reliability of our program.
+
+\section{NOTES NOT PART OF REPORT}
 
 Note on string literals: the unicode characters `“` and `”` seem to be used to
 delimit string literals. Is that normal??
