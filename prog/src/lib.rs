@@ -212,31 +212,35 @@ fn not_depth(input: &str) -> IResult<&str, Expression> {
 }
 
 fn depth2(input: &str) -> IResult<&str, Expression> {
-    let (input, initial) = not_depth(input)?;
-    let (input, rest) = many0(preceded(
-        preceded(space0, tag("AND")),
-        preceded(space0, not_depth),
-    ))(input)?;
-    Ok((
-        input,
-        rest.into_iter().fold(initial, |acc, current| {
-            Expression::And(Box::new(acc), Box::new(current))
-        }),
-    ))
+    map(
+        pair(
+            not_depth,
+            opt(preceded(
+                preceded(space0, tag("AND")),
+                preceded(space0, depth2),
+            )),
+        ),
+        |(lhs, rhs)| match rhs {
+            Some(rhs) => Expression::And(Box::new(lhs), Box::new(rhs)),
+            None => lhs,
+        },
+    )(input)
 }
 
 fn depth1(input: &str) -> IResult<&str, Expression> {
-    let (input, initial) = depth2(input)?;
-    let (input, rest) = many0(preceded(
-        preceded(space0, tag("OR")),
-        preceded(space0, depth2),
-    ))(input)?;
-    Ok((
-        input,
-        rest.into_iter().fold(initial, |acc, current| {
-            Expression::Or(Box::new(acc), Box::new(current))
-        }),
-    ))
+    map(
+        pair(
+            depth2,
+            opt(preceded(
+                preceded(space0, tag("OR")),
+                preceded(space0, depth1),
+            )),
+        ),
+        |(lhs, rhs)| match rhs {
+            Some(rhs) => Expression::Or(Box::new(lhs), Box::new(rhs)),
+            None => lhs,
+        },
+    )(input)
 }
 
 const QUOTES: [char; 3] = ['"', '“', '”'];
