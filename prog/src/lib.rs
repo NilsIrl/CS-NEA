@@ -7,7 +7,7 @@ use nom::{
     multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
-    IResult,
+    IResult, Parser,
 };
 
 fn comment(input: &str) -> IResult<&str, &str> {
@@ -64,6 +64,7 @@ enum Statement<'a> {
     Expression(Expression<'a>),
     For(
         &'a str,
+        Expression<'a>,
         Expression<'a>,
         Expression<'a>,
         ListOfStatements<'a>,
@@ -304,11 +305,15 @@ fn global_assignment_statement(input: &str) -> IResult<&str, Statement> {
 }
 
 fn for_loop(input: &str) -> IResult<&str, Statement> {
-    let (input, (assignment, end, body)) = delimited(
+    let (input, (assignment, end, step, body)) = delimited(
         tag("for"),
         tuple((
             preceded(space1, assignment_statement),
-            preceded(preceded(space1, tag("to")), expression),
+            preceded(pair(space1, tag("to")), expression),
+            // Maybe depending on the preceding expression, space1 could be
+            // replaced by space0
+            opt(preceded(pair(space1, tag("step")), expression))
+                .map(|step_expression| step_expression.unwrap_or(Expression::IntegerLiteral(1))),
             list_of_statements,
         )),
         preceded(space0, pair(tag("next"), identifier)),
@@ -317,7 +322,7 @@ fn for_loop(input: &str) -> IResult<&str, Statement> {
         input,
         match assignment {
             Statement::Assignment(identifier, expression) => {
-                Statement::For(identifier, expression, end, body)
+                Statement::For(identifier, expression, end, step, body)
             }
             _ => unreachable!("assignment_statement can only return Statement::Assignment"),
         },
