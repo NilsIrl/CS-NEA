@@ -1,14 +1,26 @@
 use core::cmp::min_by_key;
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_till, take_while},
+    bytes::complete::{tag, tag_no_case, take_till, take_while},
     character::complete::{self, char, i64, not_line_ending, satisfy},
     combinator::{all_consuming, map, opt, recognize, value, verify},
     multi::{many0, separated_list0},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
-    IResult, Parser,
+    Finish, IResult, Parser,
 };
+
+pub struct ParseSettings {
+    case_sensitive: bool,
+}
+
+impl Default for ParseSettings {
+    fn default() -> Self {
+        Self {
+            case_sensitive: false,
+        }
+    }
+}
 
 fn comment(input: &str) -> IResult<&str, &str> {
     recognize(pair(tag("//"), not_line_ending))(input)
@@ -90,16 +102,20 @@ fn comma(input: &str) -> IResult<&str, char> {
     char(',')(input)
 }
 
-fn function_call(input: &str) -> IResult<&str, Expression> {
-    let (input, (function_name, arguments)) = pair(
-        identifier,
-        delimited(
-            preceded(space0, open_bracket),
-            separated_list0(token(comma), expression),
-            preceded(space0, close_bracket),
-        ),
-    )(input)?;
-    Ok((input, Expression::FunctionCall(function_name, arguments)))
+fn function_call(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        let (input, (function_name, arguments)) = pair(
+            identifier,
+            delimited(
+                preceded(space0, open_bracket),
+                separated_list0(token(comma), expression(parse_settings)),
+                preceded(space0, close_bracket),
+            ),
+        )(input)?;
+        Ok((input, Expression::FunctionCall(function_name, arguments)))
+    }
 }
 
 fn number_literal(input: &str) -> IResult<&str, Expression> {
@@ -115,81 +131,122 @@ fn number_literal(input: &str) -> IResult<&str, Expression> {
     }
 }
 
-fn terminal(input: &str) -> IResult<&str, Expression> {
-    preceded(
-        space0,
-        alt((
-            map(
-                delimited(quote, take_till(is_quote), quote),
-                |string_const| Expression::StringLiteral(string_const),
-            ),
-            map(tag("true"), |_| Expression::BoolLiteral(true)),
-            map(tag("false"), |_| Expression::BoolLiteral(false)),
-            function_call,
-            map(identifier, |identifier| Expression::Variable(identifier)),
-            number_literal,
-        )),
-    )(input)
+fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        preceded(
+            space0,
+            alt((
+                map(
+                    delimited(quote, take_till(is_quote), quote),
+                    |string_const| Expression::StringLiteral(string_const),
+                ),
+                map(tag("true"), |_| Expression::BoolLiteral(true)),
+                map(tag("false"), |_| Expression::BoolLiteral(false)),
+                function_call(parse_settings),
+                map(identifier, |identifier| Expression::Variable(identifier)),
+                number_literal,
+            )),
+        )(input)
+    }
 }
 
-fn depth6(input: &str) -> IResult<&str, Expression> {
-    let (input, initial) = terminal(input)?;
-    let (input, rest) = many0(preceded(preceded(space0, tag("^")), terminal))(input)?;
-    Ok((
-        input,
-        rest.into_iter().fold(initial, |acc, current| {
-            Expression::Power(Box::new(acc), Box::new(current))
-        }),
-    ))
+fn depth6(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        let (input, initial) = terminal(parse_settings)(input)?;
+        let (input, rest) = many0(preceded(
+            preceded(space0, tag("^")),
+            terminal(parse_settings),
+        ))(input)?;
+        Ok((
+            input,
+            rest.into_iter().fold(initial, |acc, current| {
+                Expression::Power(Box::new(acc), Box::new(current))
+            }),
+        ))
+    }
 }
 
-fn depth5(input: &str) -> IResult<&str, Expression> {
-    let (input, initial) = depth6(input)?;
-    let (input, rest) = many0(pair(
-        preceded(space0, alt((tag("*"), tag("/"), tag("MOD"), tag("DIV")))),
-        preceded(space0, depth6),
-    ))(input)?;
-    Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
-                "*" => Expression::Times,
-                "/" => Expression::Divide,
-                "MOD" => Expression::Modulus,
-                "DIV" => Expression::Quotient,
-                _ => unreachable!(),
-            }
-            (Box::new(acc), Box::new(current.1)))))
+fn tag_with_settings<'a>(
+    tag_str: &'a str,
+    parse_settings: &'a ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, &str> + 'a {
+    move |input: &str| {
+        if parse_settings.case_sensitive {
+            tag(tag_str)(input)
+        } else {
+            tag_no_case(tag_str)(input)
+        }
+    }
 }
 
-fn depth4(input: &str) -> IResult<&str, Expression> {
-    let (input, initial) = depth5(input)?;
-    let (input, rest) = many0(pair(
-        preceded(space0, alt((tag("+"), tag("-")))),
-        preceded(space0, depth5),
-    ))(input)?;
-    Ok((input, rest.into_iter().fold(initial, |prev, current| match current.0 {
+fn depth5(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        let (input, initial) = depth6(parse_settings)(input)?;
+        match preceded(tag("*"), depth5(parse_settings))(input) {
+            Ok((input, rhs)) => Ok((input, Expression::Times(Box::new(initial), Box::new(rhs)))),
+            Err(_) => match preceded(tag("/"), depth5(parse_settings))(input) {
+                Ok((input, rhs)) => {
+                    Ok((input, Expression::Divide(Box::new(initial), Box::new(rhs))))
+                }
+                Err(_) => match preceded(
+                    tag_with_settings("MOD", parse_settings),
+                    depth5(parse_settings),
+                )(input)
+                {
+                    Ok((input, rhs)) => {
+                        Ok((input, Expression::Modulus(Box::new(initial), Box::new(rhs))))
+                    }
+                    Err(_) => match preceded(
+                        tag_with_settings("DIV", parse_settings),
+                        depth5(parse_settings),
+                    )(input)
+                    {
+                        Ok((input, rhs)) => Ok((
+                            input,
+                            Expression::Quotient(Box::new(initial), Box::new(rhs)),
+                        )),
+                        Err(_) => Ok((input, initial)),
+                    },
+                },
+            },
+        }
+    }
+}
+
+fn depth4(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        let (input, initial) = depth5(parse_settings)(input)?;
+        let (input, rest) = many0(pair(
+            preceded(space0, alt((tag("+"), tag("-")))),
+            preceded(space0, depth5(parse_settings)),
+        ))(input)?;
+        Ok((input, rest.into_iter().fold(initial, |prev, current| match current.0 {
                 "+" => Expression::Plus,
                 "-" => Expression::Minus,
                 _ => unreachable!(),
             }
             (Box::new(prev), Box::new(current.1)))))
+    }
 }
 
-fn depth3(input: &str) -> IResult<&str, Expression> {
-    let (input, initial) = depth4(input)?;
-    let (input, rest) = many0(pair(
-        preceded(
-            space0,
-            alt((
-                tag("=="),
-                tag("!="),
-                tag("<="),
-                tag(">="),
-                tag("<"),
-                tag(">"),
-            )),
-        ),
-        preceded(space0, depth4),
-    ))(input)?;
-    Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
+fn depth3(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        let (input, initial) = depth4(parse_settings)(input)?;
+        let (input, rest) = many0(pair(
+            preceded(
+                space0,
+                alt((
+                    tag("=="),
+                    tag("!="),
+                    tag("<="),
+                    tag(">="),
+                    tag("<"),
+                    tag(">"),
+                )),
+            ),
+            preceded(space0, depth4(parse_settings)),
+        ))(input)?;
+        Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
                 "==" => Expression::Equal,
                 "!=" => Expression::NotEqual,
                 "<=" => Expression::LessThanOrEqual,
@@ -200,47 +257,55 @@ fn depth3(input: &str) -> IResult<&str, Expression> {
             }
             (Box::new(acc), Box::new(current.1))
     )))
+    }
 }
 
-fn not_depth(input: &str) -> IResult<&str, Expression> {
-    alt((
-        map(preceded(preceded(space0, tag("NOT")), depth3), |exp| {
-            Expression::Not(Box::new(exp))
-        }),
-        depth3,
-    ))(input)
+fn not_depth(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        alt((
+            map(
+                preceded(preceded(space0, tag("NOT")), depth3(parse_settings)),
+                |exp| Expression::Not(Box::new(exp)),
+            ),
+            depth3(parse_settings),
+        ))(input)
+    }
 }
 
-fn depth2(input: &str) -> IResult<&str, Expression> {
-    map(
-        pair(
-            not_depth,
-            opt(preceded(
-                preceded(space0, tag("AND")),
-                preceded(space0, depth2),
-            )),
-        ),
-        |(lhs, rhs)| match rhs {
-            Some(rhs) => Expression::And(Box::new(lhs), Box::new(rhs)),
-            None => lhs,
-        },
-    )(input)
+fn depth2(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        map(
+            pair(
+                not_depth(parse_settings),
+                opt(preceded(
+                    preceded(space0, tag("AND")),
+                    preceded(space0, depth2(parse_settings)),
+                )),
+            ),
+            |(lhs, rhs)| match rhs {
+                Some(rhs) => Expression::And(Box::new(lhs), Box::new(rhs)),
+                None => lhs,
+            },
+        )(input)
+    }
 }
 
-fn depth1(input: &str) -> IResult<&str, Expression> {
-    map(
-        pair(
-            depth2,
-            opt(preceded(
-                preceded(space0, tag("OR")),
-                preceded(space0, depth1),
-            )),
-        ),
-        |(lhs, rhs)| match rhs {
-            Some(rhs) => Expression::Or(Box::new(lhs), Box::new(rhs)),
-            None => lhs,
-        },
-    )(input)
+fn depth1(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        map(
+            pair(
+                depth2(parse_settings),
+                opt(preceded(
+                    preceded(space0, tag("OR")),
+                    preceded(space0, depth1(parse_settings)),
+                )),
+            ),
+            |(lhs, rhs)| match rhs {
+                Some(rhs) => Expression::Or(Box::new(lhs), Box::new(rhs)),
+                None => lhs,
+            },
+        )(input)
+    }
 }
 
 const QUOTES: [char; 3] = ['"', '“', '”'];
@@ -254,8 +319,10 @@ fn quote(input: &str) -> IResult<&str, char> {
     satisfy(is_quote)(input)
 }
 
-fn expression(input: &str) -> IResult<&str, Expression> {
-    depth1(input)
+fn expression(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    depth1(parse_settings)
 }
 
 fn is_identifer_char(c: char) -> bool {
@@ -286,126 +353,167 @@ fn identifier(input: &str) -> IResult<&str, &str> {
     )(input)
 }
 
-fn assignment_statement(input: &str) -> IResult<&str, Statement> {
-    let (input, (identifier, expression)) = tuple((
-        identifier,
-        preceded(preceded(space0, char('=')), expression),
-    ))(input)?;
-    Ok((input, Statement::Assignment(identifier, expression)))
+fn assignment_statement(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, (identifier, expression)) = tuple((
+            identifier,
+            preceded(preceded(space0, char('=')), expression(parse_settings)),
+        ))(input)?;
+        Ok((input, Statement::Assignment(identifier, expression)))
+    }
 }
 
-fn global_assignment_statement(input: &str) -> IResult<&str, Statement> {
-    let (input, assignment) =
-        preceded(tag("global"), preceded(space1, assignment_statement))(input)?;
-    Ok((
-        input,
-        match assignment {
-            Statement::Assignment(identifier, expression) => {
-                Statement::GlobalAssignment(identifier, expression)
-            }
-            _ => unreachable!("assignment_statement can only return Statement::Assignment"),
-        },
-    ))
+fn global_assignment_statement(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, assignment) = preceded(
+            tag("global"),
+            preceded(space1, assignment_statement(parse_settings)),
+        )(input)?;
+        Ok((
+            input,
+            match assignment {
+                Statement::Assignment(identifier, expression) => {
+                    Statement::GlobalAssignment(identifier, expression)
+                }
+                _ => unreachable!("assignment_statement can only return Statement::Assignment"),
+            },
+        ))
+    }
 }
 
-fn for_loop(input: &str) -> IResult<&str, Statement> {
-    let (input, (assignment, end, step, body)) = delimited(
-        tag("for"),
-        tuple((
-            preceded(space1, assignment_statement),
-            preceded(pair(space1, tag("to")), expression),
-            // Maybe depending on the preceding expression, space1 could be
-            // replaced by space0
-            opt(preceded(pair(space1, tag("step")), expression))
+fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, (assignment, end, step, body)) = delimited(
+            tag("for"),
+            tuple((
+                preceded(space1, assignment_statement(parse_settings)),
+                preceded(pair(space1, tag("to")), expression(parse_settings)),
+                // Maybe depending on the preceding expression, space1 could be
+                // replaced by space0
+                opt(preceded(
+                    pair(space1, tag("step")),
+                    expression(parse_settings),
+                ))
                 .map(|step_expression| step_expression.unwrap_or(Expression::IntegerLiteral(1))),
-            list_of_statements,
-        )),
-        preceded(space0, pair(tag("next"), identifier)),
-    )(input)?;
-    Ok((
-        input,
-        match assignment {
-            Statement::Assignment(identifier, expression) => {
-                Statement::For(identifier, expression, end, step, body)
-            }
-            _ => unreachable!("assignment_statement can only return Statement::Assignment"),
-        },
-    ))
+                list_of_statements(parse_settings),
+            )),
+            preceded(space0, pair(tag("next"), identifier)),
+        )(input)?;
+        Ok((
+            input,
+            match assignment {
+                Statement::Assignment(identifier, expression) => {
+                    Statement::For(identifier, expression, end, step, body)
+                }
+                _ => unreachable!("assignment_statement can only return Statement::Assignment"),
+            },
+        ))
+    }
 }
 
-fn while_loop(input: &str) -> IResult<&str, Statement> {
-    let (input, (exp, body)) = delimited(
-        tag("while"),
-        pair(expression, list_of_statements),
-        preceded(space0, tag("endwhile")),
-    )(input)?;
-    Ok((input, Statement::While(exp, body)))
+fn while_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, (exp, body)) = delimited(
+            tag("while"),
+            pair(
+                expression(parse_settings),
+                list_of_statements(parse_settings),
+            ),
+            preceded(space0, tag("endwhile")),
+        )(input)?;
+        Ok((input, Statement::While(exp, body)))
+    }
 }
 
-fn if_statement(input: &str) -> IResult<&str, Statement> {
-    let (input, (exp, body, elseifs, else_body)) = delimited(
-        tag("if"),
-        tuple((
-            expression,
-            preceded(pair(space0, tag("then")), list_of_statements),
+fn if_statement(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, (exp, body, elseifs, else_body)) = delimited(
+            tag("if"),
+            tuple((
+                expression(parse_settings),
+                preceded(
+                    pair(space0, tag("then")),
+                    list_of_statements(parse_settings),
+                ),
+                many0(preceded(
+                    pair(space0, tag("elseif")),
+                    pair(
+                        expression(parse_settings),
+                        preceded(
+                            pair(space0, tag("then")),
+                            list_of_statements(parse_settings),
+                        ),
+                    ),
+                )),
+                opt(preceded(
+                    pair(space0, tag("else")),
+                    list_of_statements(parse_settings),
+                )),
+            )),
+            pair(space0, tag("endif")),
+        )(input)?;
+
+        Ok((
+            input,
+            Statement::If(
+                exp,
+                body,
+                elseifs
+                    .into_iter()
+                    .rev()
+                    .fold(else_body.unwrap_or_default(), |acc, (exp, body)| {
+                        vec![Statement::If(exp, body, acc)]
+                    }),
+            ),
+        ))
+    }
+}
+
+fn switch_statement(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, exp) = delimited(
+            tag("switch"),
+            expression(parse_settings),
+            pair(space0, char(':')),
+        )(input)?;
+        let (input, cases) = terminated(
             many0(preceded(
-                pair(space0, tag("elseif")),
+                space0,
                 pair(
-                    expression,
-                    preceded(pair(space0, tag("then")), list_of_statements),
+                    alt((
+                        preceded(
+                            tag("case"),
+                            map(expression(parse_settings), |rhs| {
+                                Expression::Equal(Box::new(exp.clone()), Box::new(rhs))
+                            }),
+                        ),
+                        map(tag("default"), |_| Expression::BoolLiteral(true)),
+                    )),
+                    preceded(pair(space0, char(':')), list_of_statements(parse_settings)),
                 ),
             )),
-            opt(preceded(pair(space0, tag("else")), list_of_statements)),
-        )),
-        pair(space0, tag("endif")),
-    )(input)?;
+            pair(space0, tag("endswitch")),
+        )(input)?;
 
-    Ok((
-        input,
-        Statement::If(
-            exp,
-            body,
-            elseifs
+        Ok((
+            input,
+            cases
                 .into_iter()
                 .rev()
-                .fold(else_body.unwrap_or_default(), |acc, (exp, body)| {
+                .fold(Vec::new(), |acc, (exp, body)| {
                     vec![Statement::If(exp, body, acc)]
-                }),
-        ),
-    ))
-}
-
-fn switch_statement(input: &str) -> IResult<&str, Statement> {
-    let (input, exp) = delimited(tag("switch"), expression, pair(space0, char(':')))(input)?;
-    let (input, cases) = terminated(
-        many0(preceded(
-            space0,
-            pair(
-                alt((
-                    preceded(
-                        tag("case"),
-                        map(expression, |rhs| {
-                            Expression::Equal(Box::new(exp.clone()), Box::new(rhs))
-                        }),
-                    ),
-                    map(tag("default"), |_| Expression::BoolLiteral(true)),
-                )),
-                preceded(pair(space0, char(':')), list_of_statements),
-            ),
-        )),
-        pair(space0, tag("endswitch")),
-    )(input)?;
-
-    Ok((
-        input,
-        cases
-            .into_iter()
-            .rev()
-            .fold(Vec::new(), |acc, (exp, body)| {
-                vec![Statement::If(exp, body, acc)]
-            })
-            .remove(0),
-    ))
+                })
+                .remove(0),
+        ))
+    }
 }
 
 fn token<'a, O>(
@@ -415,80 +523,114 @@ fn token<'a, O>(
 }
 
 /// Parse a function or procedure
-fn function(input: &str) -> IResult<&str, Statement> {
-    alt((
-        delimited(
-            tag("function"),
-            function_arguments_and_body,
-            token(tag("endfunction")),
-        ),
-        delimited(
-            tag("procedure"),
-            function_arguments_and_body,
-            token(tag("endprocedure")),
-        ),
-    ))(input)
+fn function(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        alt((
+            delimited(
+                tag("function"),
+                function_arguments_and_body(parse_settings),
+                token(tag("endfunction")),
+            ),
+            delimited(
+                tag("procedure"),
+                function_arguments_and_body(parse_settings),
+                token(tag("endprocedure")),
+            ),
+        ))(input)
+    }
 }
 
-fn function_arguments_and_body(input: &str) -> IResult<&str, Statement> {
-    map(
-        tuple((
-            preceded(space1, identifier),
-            delimited(
-                token(open_bracket),
-                separated_list0(
-                    token(comma),
-                    pair(
-                        token(identifier),
-                        map(
-                            opt(preceded(
-                                token(char(':')),
-                                token(alt((value(false, tag("byVal")), value(true, tag("byRef"))))),
-                            )),
-                            |opt| opt.unwrap_or_default(),
+fn function_arguments_and_body(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        map(
+            tuple((
+                preceded(space1, identifier),
+                delimited(
+                    token(open_bracket),
+                    separated_list0(
+                        token(comma),
+                        pair(
+                            token(identifier),
+                            map(
+                                opt(preceded(
+                                    token(char(':')),
+                                    token(alt((
+                                        value(false, tag("byVal")),
+                                        value(true, tag("byRef")),
+                                    ))),
+                                )),
+                                |opt| opt.unwrap_or_default(),
+                            ),
                         ),
                     ),
+                    token(close_bracket),
                 ),
-                token(close_bracket),
-            ),
-            list_of_statements,
-        )),
-        |(ident, arguments, body)| Statement::Function(ident, arguments, body),
-    )(input)
+                list_of_statements(parse_settings),
+            )),
+            |(ident, arguments, body)| Statement::Function(ident, arguments, body),
+        )(input)
+    }
 }
 
-fn return_statement(input: &str) -> IResult<&str, Statement> {
-    map(preceded(tag("return"), expression), Statement::Return)(input)
+fn return_statement(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        map(
+            preceded(tag("return"), expression(parse_settings)),
+            Statement::Return,
+        )(input)
+    }
 }
 
-fn statement(input: &str) -> IResult<&str, Statement> {
-    preceded(
-        space0,
-        alt((
-            global_assignment_statement,
-            for_loop,
-            while_loop,
-            if_statement,
-            switch_statement,
-            function,
-            return_statement,
-            assignment_statement,
-            map(expression, |expression| Statement::Expression(expression)),
-        )),
-    )(input)
+fn statement(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        preceded(
+            space0,
+            alt((
+                global_assignment_statement(parse_settings),
+                for_loop(parse_settings),
+                while_loop(parse_settings),
+                if_statement(parse_settings),
+                switch_statement(parse_settings),
+                function(parse_settings),
+                return_statement(parse_settings),
+                assignment_statement(parse_settings),
+                map(expression(parse_settings), |expression| {
+                    Statement::Expression(expression)
+                }),
+            )),
+        )(input)
+    }
 }
 
 #[derive(Debug, PartialEq)]
-struct Program<'a>(ListOfStatements<'a>);
+pub struct Program<'a>(ListOfStatements<'a>);
 
-fn list_of_statements(input: &str) -> IResult<&str, ListOfStatements> {
-    many0(statement)(input)
+fn list_of_statements(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, ListOfStatements> + '_ {
+    move |input: &str| many0(statement(parse_settings))(input)
 }
 
-fn program(input: &str) -> IResult<&str, Program> {
-    let (input, statements) = all_consuming(terminated(list_of_statements, space0))(input)?;
-    // TODO check input is empty
-    Ok((input, Program(statements)))
+fn program(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Program> + '_ {
+    move |input: &str| {
+        let (input, statements) =
+            all_consuming(terminated(list_of_statements(parse_settings), space0))(input)?;
+        // TODO check input is empty
+        Ok((input, Program(statements)))
+    }
+}
+
+pub fn parse_program<'a>(
+    input: &'a str,
+    parse_settings: &ParseSettings,
+) -> Result<Program<'a>, nom::error::Error<&'a str>> {
+    program(&parse_settings)(input)
+        .finish()
+        .map(|(_, program)| program)
 }
 
 #[cfg(test)]
@@ -501,13 +643,11 @@ mod tests {
             #[test]
             fn $function_name() {
                 assert_eq!(
-                    program(include_str!(concat!(
-                        "../tests/",
-                        stringify!($function_name),
-                        ".input"
-                    )))
-                    .unwrap()
-                    .1,
+                    parse_program(
+                        include_str!(concat!("../tests/", stringify!($function_name), ".input")),
+                        &ParseSettings::default()
+                    )
+                    .unwrap(),
                     include!(concat!("../tests/", stringify!($function_name), ".ast"))
                 );
             }
