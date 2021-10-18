@@ -685,4 +685,5 @@ mod tests {
     ast_test!(comment1);
     ast_test!(function1);
     ast_test!(procedure1);
+    ast_test!(thinking_logically);
 }
