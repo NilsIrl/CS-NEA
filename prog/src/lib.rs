@@ -124,8 +124,8 @@ fn function_call(
 }
 
 fn number_literal(input: &str) -> IResult<&str, Expression> {
-    let int = map(i64, |num_const| Expression::IntegerLiteral(num_const))(input);
-    let float = map(double, |float_const| Expression::FloatLiteral(float_const))(input);
+    let int = map(i64, Expression::IntegerLiteral)(input);
+    let float = map(double, Expression::FloatLiteral)(input);
     if int.is_err() {
         float
     } else if float.is_err() {
@@ -640,7 +640,7 @@ pub fn parse_program<'a>(
     input: &'a str,
     parse_settings: &ParseSettings,
 ) -> Result<Program<'a>, nom::error::Error<&'a str>> {
-    program(&parse_settings)(input)
+    program(parse_settings)(input)
         .finish()
         .map(|(_, program)| program)
 }
