@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 nom = "7.0.0"
+structopt = "0.3.23"
 
 [dev-dependencies]
 pretty_assertions = "0.7.2"
