@@ -27,14 +27,19 @@ fn comment(input: &str) -> IResult<&str, &str> {
 }
 
 fn space0(input: &str) -> IResult<&str, &str> {
-    recognize(tuple((
-        complete::multispace0,
-        opt(comment),
-        complete::multispace0,
+    recognize(many0(verify(
+        recognize(tuple((
+            complete::multispace0,
+            opt(comment),
+            complete::multispace0,
+        ))),
+        |s: &str| !s.is_empty(),
     )))(input)
 }
 
 fn space1(input: &str) -> IResult<&str, &str> {
+    // FIXME space0 allows no whietspace to be classified as space1
+    // The comment should not be optional
     alt((complete::multispace1, space0))(input)
 }
 
@@ -179,17 +184,24 @@ fn tag_with_settings<'a>(
     }
 }
 
+// This may look like terrible design and it probably is, however it has a few advantages
+// There is no variable that the operation is assigned to which means there is also no need to
+// check the value of the variable at a later date (something which would add an O(1) or O(n)
+// operation
+//
+// The other advantage is that the initial expression is parsed only once instead of multiple times
+// And no vector is allocated (this would happen with the many0 + fold method that was used before)
 fn depth5(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
         let (input, initial) = depth6(parse_settings)(input)?;
-        match preceded(tag("*"), depth5(parse_settings))(input) {
+        match preceded(preceded(space0, tag("*")), depth5(parse_settings))(input) {
             Ok((input, rhs)) => Ok((input, Expression::Times(Box::new(initial), Box::new(rhs)))),
-            Err(_) => match preceded(tag("/"), depth5(parse_settings))(input) {
+            Err(_) => match preceded(preceded(space0, tag("/")), depth5(parse_settings))(input) {
                 Ok((input, rhs)) => {
                     Ok((input, Expression::Divide(Box::new(initial), Box::new(rhs))))
                 }
                 Err(_) => match preceded(
-                    tag_with_settings("MOD", parse_settings),
+                    preceded(space0, tag_with_settings("MOD", parse_settings)),
                     depth5(parse_settings),
                 )(input)
                 {
@@ -197,7 +209,7 @@ fn depth5(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
                         Ok((input, Expression::Modulus(Box::new(initial), Box::new(rhs))))
                     }
                     Err(_) => match preceded(
-                        tag_with_settings("DIV", parse_settings),
+                        preceded(space0, tag_with_settings("DIV", parse_settings)),
                         depth5(parse_settings),
                     )(input)
                     {
