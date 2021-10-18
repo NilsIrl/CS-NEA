@@ -10,16 +10,11 @@ use nom::{
     Finish, IResult, Parser,
 };
 
+#[derive(Default)]
 pub struct ParseSettings {
     case_sensitive: bool,
-}
-
-impl Default for ParseSettings {
-    fn default() -> Self {
-        Self {
-            case_sensitive: false,
-        }
-    }
+    // The variable used in next must be the same as the one declared in the for loop
+    for_next_not_enforced: bool,
 }
 
 fn comment(input: &str) -> IResult<&str, &str> {
@@ -74,9 +69,12 @@ enum Expression<'a> {
 }
 
 #[derive(Debug, PartialEq)]
+struct Assignment<'a>(&'a str, Expression<'a>);
+
+#[derive(Debug, PartialEq)]
 enum Statement<'a> {
-    Assignment(&'a str, Expression<'a>),
-    GlobalAssignment(&'a str, Expression<'a>),
+    Assignment(Assignment<'a>),
+    GlobalAssignment(Assignment<'a>),
     ArrayDefinition(&'a str, Vec<usize>),
     Expression(Expression<'a>),
     For(
@@ -365,15 +363,15 @@ fn identifier(input: &str) -> IResult<&str, &str> {
     )(input)
 }
 
-fn assignment_statement(
+fn assignment(
     parse_settings: &ParseSettings,
-) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+) -> impl FnMut(&str) -> IResult<&str, Assignment> + '_ {
     move |input: &str| {
         let (input, (identifier, expression)) = tuple((
             identifier,
             preceded(preceded(space0, char('=')), expression(parse_settings)),
         ))(input)?;
-        Ok((input, Statement::Assignment(identifier, expression)))
+        Ok((input, Assignment(identifier, expression)))
     }
 }
 
@@ -381,28 +379,19 @@ fn global_assignment_statement(
     parse_settings: &ParseSettings,
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
-        let (input, assignment) = preceded(
-            tag("global"),
-            preceded(space1, assignment_statement(parse_settings)),
-        )(input)?;
-        Ok((
-            input,
-            match assignment {
-                Statement::Assignment(identifier, expression) => {
-                    Statement::GlobalAssignment(identifier, expression)
-                }
-                _ => unreachable!("assignment_statement can only return Statement::Assignment"),
-            },
-        ))
+        map(
+            preceded(tag("global"), preceded(space1, assignment(parse_settings))),
+            Statement::GlobalAssignment,
+        )(input)
     }
 }
 
 fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
-        let (input, (assignment, end, step, body)) = delimited(
-            tag("for"),
+        let (input, Assignment(variable_name, assigned_value)) =
+            preceded(pair(tag("for"), space1), assignment(parse_settings))(input)?;
+        let (input, (end_expression, step_expression, body)) = terminated(
             tuple((
-                preceded(space1, assignment_statement(parse_settings)),
                 preceded(pair(space1, tag("to")), expression(parse_settings)),
                 // Maybe depending on the preceding expression, space1 could be
                 // replaced by space0
@@ -413,16 +402,23 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                 .map(|step_expression| step_expression.unwrap_or(Expression::IntegerLiteral(1))),
                 list_of_statements(parse_settings),
             )),
-            preceded(space0, pair(tag("next"), identifier)),
+            tuple((space0, tag("next"), |input| {
+                if parse_settings.for_next_not_enforced {
+                    identifier(input)
+                } else {
+                    token(tag(variable_name))(input)
+                }
+            })),
         )(input)?;
         Ok((
             input,
-            match assignment {
-                Statement::Assignment(identifier, expression) => {
-                    Statement::For(identifier, expression, end, step, body)
-                }
-                _ => unreachable!("assignment_statement can only return Statement::Assignment"),
-            },
+            Statement::For(
+                variable_name,
+                assigned_value,
+                end_expression,
+                step_expression,
+                body,
+            ),
         ))
     }
 }
@@ -564,7 +560,7 @@ fn function_arguments_and_body(
                     separated_list0(
                         token(comma),
                         pair(
-                            token(identifier),
+                            identifier,
                             map(
                                 opt(preceded(
                                     token(char(':')),
@@ -609,7 +605,7 @@ fn statement(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
                 switch_statement(parse_settings),
                 function(parse_settings),
                 return_statement(parse_settings),
-                assignment_statement(parse_settings),
+                map(assignment(parse_settings), Statement::Assignment),
                 map(expression(parse_settings), |expression| {
                     Statement::Expression(expression)
                 }),

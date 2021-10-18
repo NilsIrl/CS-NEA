@@ -1,4 +1,4 @@
 Program(vec![
-    Statement::Assignment("x", Expression::IntegerLiteral(3)),
-    Statement::Assignment("name", Expression::StringLiteral("Bob")),
+    Statement::Assignment(Assignment("x", Expression::IntegerLiteral(3))),
+    Statement::Assignment(Assignment("name", Expression::StringLiteral("Bob"))),
 ])
