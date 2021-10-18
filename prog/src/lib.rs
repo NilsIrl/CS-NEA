@@ -10,11 +10,15 @@ use nom::{
     Finish, IResult, Parser,
 };
 
+/// Holds settings for parsing, by default all fields are set to false
 #[derive(Default)]
 pub struct ParseSettings {
-    case_sensitive: bool,
-    // The variable used in next must be the same as the one declared in the for loop
-    for_next_not_enforced: bool,
+    /// Accept keywords in a different case than they are originally defined
+    ///
+    /// Supports: mod
+    pub case_sensitive: bool,
+    /// The variable used in next must be the same as the one declared in the for loop
+    pub for_next_not_enforced: bool,
 }
 
 fn comment(input: &str) -> IResult<&str, &str> {
