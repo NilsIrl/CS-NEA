@@ -663,7 +663,7 @@ mod tests {
             #[test]
             fn $function_name() {
                 assert_eq!(
-                    parse_program(
+                    Program::from_str(
                         include_str!(concat!("../tests/", stringify!($function_name), ".input")),
                         &ParseSettings::default()
                     )
