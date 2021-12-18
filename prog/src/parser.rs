@@ -91,6 +91,7 @@ pub enum Statement<'a> {
         ListOfStatements<'a>,
     ),
     While(Expression<'a>, ListOfStatements<'a>),
+    DoUntil(ListOfStatements<'a>, Expression<'a>),
     If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
     // asRef: bool
     Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
@@ -346,7 +347,7 @@ fn is_identifer_char(c: char) -> bool {
 }
 
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
-const KEYWORDS: [&str; 10] = [
+const KEYWORDS: [&str; 11] = [
     "next",
     "endwhile",
     "elseif",
@@ -357,6 +358,7 @@ const KEYWORDS: [&str; 10] = [
     "default",
     "endfunction",
     "endprocedure",
+    "until",
 ];
 
 fn identifier(input: &str) -> IResult<&str, &str> {
@@ -440,6 +442,18 @@ fn while_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&st
             preceded(space0, tag("endwhile")),
         )(input)?;
         Ok((input, Statement::While(exp, body)))
+    }
+}
+
+fn do_until_loop(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, (exp, body)) = pair(
+            preceded(tag("do"), list_of_statements(parse_settings)),
+            preceded(pair(space0, tag("until")), expression(parse_settings)),
+        )(input)?;
+        Ok((input, Statement::DoUntil(exp, body)))
     }
 }
 
@@ -607,6 +621,7 @@ fn statement(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
                 global_assignment_statement(parse_settings),
                 for_loop(parse_settings),
                 while_loop(parse_settings),
+                do_until_loop(parse_settings),
                 if_statement(parse_settings),
                 switch_statement(parse_settings),
                 function(parse_settings),
@@ -695,4 +710,5 @@ mod tests {
     ast_test!(function1);
     ast_test!(procedure1);
     ast_test!(thinking_logically);
+    ast_test!(do_until1);
 }

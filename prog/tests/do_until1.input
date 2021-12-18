@@ -1,0 +1,3 @@
+do
+    answer=input(“What is the password?”)
+until answer==”computer”
