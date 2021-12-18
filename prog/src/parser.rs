@@ -682,6 +682,7 @@ mod tests {
     ast_test!(print);
     ast_test!(input);
     ast_test!(for_loop1);
+    ast_test!(for_loop2);
     ast_test!(comparison1);
     ast_test!(empty);
     ast_test!(maths1);
