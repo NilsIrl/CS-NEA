@@ -722,11 +722,15 @@ mod tests {
             fn $function_name() {
                 assert_eq!(
                     Program::from_str(
-                        include_str!(concat!("../tests/", stringify!($function_name), ".input")),
+                        include_str!(concat!(
+                            "../test_data/",
+                            stringify!($function_name),
+                            ".input"
+                        )),
                         &ParseSettings::default()
                     )
                     .unwrap(),
-                    include!(concat!("../tests/", stringify!($function_name), ".ast"))
+                    include!(concat!("../test_data/", stringify!($function_name), ".ast"))
                 );
             }
         };
