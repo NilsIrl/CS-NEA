@@ -30,19 +30,19 @@ Program(vec![Statement::For(
                         Box::new(Expression::IntegerLiteral(1)),
                     )),
                 ),
-                vec![Statement::Expression(Expression::FunctionCall(
+                vec![Statement::Expression(Expression::FunctionCall(Call(
                     "print",
                     vec![Expression::StringLiteral("Homer")],
-                ))],
-                vec![Statement::Expression(Expression::FunctionCall(
+                )))],
+                vec![Statement::Expression(Expression::FunctionCall(Call(
                     "print",
                     vec![Expression::StringLiteral("Marge")],
-                ))],
+                )))],
             )],
-            vec![Statement::Expression(Expression::FunctionCall(
+            vec![Statement::Expression(Expression::FunctionCall(Call(
                 "print",
                 vec![Expression::StringLiteral("Bart")],
-            ))],
+            )))],
         )],
     )],
 )])

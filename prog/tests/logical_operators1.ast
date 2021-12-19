@@ -1,4 +1,4 @@
-Program(vec![Statement::Expression(Expression::FunctionCall(
+Program(vec![Statement::Expression(Expression::FunctionCall(Call(
     "print",
     vec![Expression::Or(
         Box::new(Expression::And(
@@ -16,4 +16,4 @@ Program(vec![Statement::Expression(Expression::FunctionCall(
             Box::new(Expression::BoolLiteral(false)),
         )),
     )],
-))])
+)))])

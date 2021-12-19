@@ -5,9 +5,9 @@ Program(vec![Statement::While(
     ),
     vec![Statement::Assignment(Assignment(
         "answer",
-        Expression::FunctionCall(
+        Expression::FunctionCall(Call(
             "input",
             vec![Expression::StringLiteral("What is the password?")],
-        ),
+        )),
     ))],
 )])

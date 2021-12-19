@@ -1,0 +1,7 @@
+Program(vec![
+    Statement::Assignment(Assignment("lastname", Expression::FunctionCall(Call("input",
+    vec![Expression::StringLiteral("Enter last name: ")])))),
+    Statement::Expression(Expression::FunctionCall(Call("print",
+    vec![Expression::ObjectAttribute(Box::new(Expression::Variable("lastname")),
+    "length")]))),
+])

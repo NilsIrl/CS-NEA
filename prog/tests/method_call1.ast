@@ -1,0 +1,14 @@
+Program(vec![
+    Statement::Expression(
+        Expression::MethodCall(
+            Box::new(Expression::Variable("stringname")),
+            Call(
+                "subString",
+                vec![
+                    Expression::Variable("startingPosition"),
+                    Expression::Variable("numberOfCharacters"),
+                ]
+            )
+        )
+    )
+])

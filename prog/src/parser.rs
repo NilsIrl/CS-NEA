@@ -44,6 +44,9 @@ fn space1(input: &str) -> IResult<&str, &str> {
     alt((complete::multispace1, space0))(input)
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Call<'a>(pub &'a str, pub Vec<Expression<'a>>);
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression<'a> {
     StringLiteral(&'a str),
@@ -51,8 +54,11 @@ pub enum Expression<'a> {
     FloatLiteral(f64),
     BoolLiteral(bool),
     Identifier(&'a str),
-    FunctionCall(&'a str, Vec<Expression<'a>>),
+    FunctionCall(Call<'a>),
     Variable(&'a str),
+
+    MethodCall(Box<Expression<'a>>, Call<'a>),
+    ObjectAttribute(Box<Expression<'a>>, &'a str),
 
     Equal(Box<Expression<'a>>, Box<Expression<'a>>),
     NotEqual(Box<Expression<'a>>, Box<Expression<'a>>),
@@ -112,9 +118,7 @@ fn comma(input: &str) -> IResult<&str, char> {
     char(',')(input)
 }
 
-fn function_call(
-    parse_settings: &ParseSettings,
-) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+fn call(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Call> + '_ {
     move |input: &str| {
         let (input, (function_name, arguments)) = pair(
             identifier,
@@ -124,7 +128,7 @@ fn function_call(
                 preceded(space0, close_bracket),
             ),
         )(input)?;
-        Ok((input, Expression::FunctionCall(function_name, arguments)))
+        Ok((input, Call(function_name, arguments)))
     }
 }
 
@@ -152,8 +156,8 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                 ),
                 map(tag("true"), |_| Expression::BoolLiteral(true)),
                 map(tag("false"), |_| Expression::BoolLiteral(false)),
-                function_call(parse_settings),
-                map(identifier, |identifier| Expression::Variable(identifier)),
+                map(call(parse_settings), Expression::FunctionCall),
+                map(identifier, Expression::Variable),
                 number_literal,
             )),
         )(input)
@@ -339,7 +343,29 @@ fn quote(input: &str) -> IResult<&str, char> {
 fn expression(
     parse_settings: &ParseSettings,
 ) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
-    depth1(parse_settings)
+    move |input: &str| {
+        let (input, expression) = depth1(parse_settings)(input)?;
+        Ok(
+            match preceded(
+                char('.'),
+                alt((
+                    map(call(parse_settings), Expression::FunctionCall),
+                    map(identifier, Expression::Variable),
+                )),
+            )(input)
+            {
+                Ok((input, Expression::FunctionCall(call))) => {
+                    (input, Expression::MethodCall(Box::new(expression), call))
+                }
+                Ok((input, Expression::Variable(identifier))) => (
+                    input,
+                    Expression::ObjectAttribute(Box::new(expression), identifier),
+                ),
+                Ok((..)) => unreachable!("Can only return FunctionCall or Variable"),
+                Err(_) => (input, expression),
+            },
+        )
+    }
 }
 
 fn is_identifer_char(c: char) -> bool {
@@ -711,4 +737,6 @@ mod tests {
     ast_test!(procedure1);
     ast_test!(thinking_logically);
     ast_test!(do_until1);
+    ast_test!(attribute1);
+    ast_test!(method_call1);
 }

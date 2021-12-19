@@ -4,7 +4,7 @@ use std::{
     ops::{Add, AddAssign, Div, Rem},
 };
 
-use super::parser::{Expression, ListOfStatements, Statement};
+use super::parser::{Call, Expression, ListOfStatements, Statement};
 
 #[derive(Debug)]
 pub struct Error {}
@@ -244,7 +244,7 @@ fn eval(expression: &Expression, variables: &mut Environment) -> Value {
             let rhs = eval(rhs, variables);
             lhs / rhs
         }
-        Expression::FunctionCall(function_name, arguments) => {
+        Expression::FunctionCall(Call(function_name, arguments)) => {
             let arguments = arguments.iter().map(|arg| eval(arg, variables));
             match *function_name {
                 "print" => {

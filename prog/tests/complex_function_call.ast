@@ -1,33 +1,33 @@
-Program(vec![Statement::Expression(Expression::FunctionCall(
+Program(vec![Statement::Expression(Expression::FunctionCall(Call(
     "statement",
     vec![
-        Expression::FunctionCall(
+        Expression::FunctionCall(Call(
             "preceded",
             vec![
                 Expression::Variable("multispace0"),
-                Expression::FunctionCall(
+                Expression::FunctionCall(Call(
                     "alt",
                     vec![
                         Expression::Variable("assignment_statement"),
                         Expression::Variable("global_assignment_statement"),
-                        Expression::FunctionCall(
+                        Expression::FunctionCall(Call(
                             "map",
                             vec![
                                 Expression::Variable("exprsesion"),
                                 Expression::Variable("expression"),
-                                Expression::FunctionCall(
+                                Expression::FunctionCall(Call(
                                     "statement_expression",
                                     vec![Expression::Variable("expression")],
-                                ),
+                                )),
                             ],
-                        ),
+                        )),
                     ],
-                ),
+                )),
                 Expression::IntegerLiteral(3),
                 Expression::StringLiteral("3409"),
                 Expression::FloatLiteral(3.455),
             ],
-        ),
+        )),
         Expression::Variable("input"),
     ],
-))])
+)))])

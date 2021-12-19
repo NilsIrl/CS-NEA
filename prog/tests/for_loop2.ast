@@ -3,8 +3,8 @@ Program(vec![Statement::For(
     Expression::IntegerLiteral(90),
     Expression::IntegerLiteral(94),
     Expression::IntegerLiteral(1),
-    vec![Statement::Expression(Expression::FunctionCall(
+    vec![Statement::Expression(Expression::FunctionCall(Call(
         "print",
         vec![Expression::StringLiteral("Hello")],
-    ))],
+    )))],
 )])

@@ -3,25 +3,25 @@ Program(vec![Statement::If(
         Box::new(Expression::Variable("entry")),
         Box::new(Expression::StringLiteral("A")),
     ),
-    vec![Statement::Expression(Expression::FunctionCall(
+    vec![Statement::Expression(Expression::FunctionCall(Call(
         "print",
         vec![Expression::StringLiteral("You selected A")],
-    ))],
+    )))],
     vec![Statement::If(
         Expression::Equal(
             Box::new(Expression::Variable("entry")),
             Box::new(Expression::StringLiteral("B")),
         ),
-        vec![Statement::Expression(Expression::FunctionCall(
+        vec![Statement::Expression(Expression::FunctionCall(Call(
             "print",
             vec![Expression::StringLiteral("You selected B")],
-        ))],
+        )))],
         vec![Statement::If(
             Expression::BoolLiteral(true),
-            vec![Statement::Expression(Expression::FunctionCall(
+            vec![Statement::Expression(Expression::FunctionCall(Call(
                 "print",
                 vec![Expression::StringLiteral("Unrecognised selection")],
-            ))],
+            )))],
             vec![],
         )],
     )],
