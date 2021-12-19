@@ -1,15 +1,16 @@
+use clap::Parser;
 use prog::{ParseSettings, Program};
 use std::{fs, io::Read, path::PathBuf};
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
-struct Opt {
+#[derive(Parser)]
+#[clap(about, version, author)]
+struct Args {
     file: Option<PathBuf>,
 }
 
 fn main() {
-    let opt = Opt::from_args();
-    let source = match opt.file {
+    let args = Args::parse();
+    let source = match args.file {
         Some(filename) => fs::read_to_string(filename).expect("TODO: file doesn't exist and stuff"),
         None => {
             let mut source = String::new();
