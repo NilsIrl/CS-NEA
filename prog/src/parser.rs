@@ -58,6 +58,7 @@ pub enum Expression<'a> {
 
     MethodCall(Box<Expression<'a>>, Call<'a>),
     ObjectAttribute(Box<Expression<'a>>, &'a str),
+    New(Call<'a>),
 
     Equal(Box<Expression<'a>>, Box<Expression<'a>>),
     NotEqual(Box<Expression<'a>>, Box<Expression<'a>>),
@@ -169,8 +170,19 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                     delimited(quote, take_till(is_quote), quote),
                     |string_const| Expression::StringLiteral(string_const),
                 ),
-                map(tag("true"), |_| Expression::BoolLiteral(true)),
-                map(tag("false"), |_| Expression::BoolLiteral(false)),
+                map(tag_with_settings("true", parse_settings), |_| {
+                    Expression::BoolLiteral(true)
+                }),
+                map(tag_with_settings("false", parse_settings), |_| {
+                    Expression::BoolLiteral(false)
+                }),
+                map(
+                    preceded(
+                        pair(tag_with_settings("new", parse_settings), space1),
+                        call(parse_settings),
+                    ),
+                    Expression::New,
+                ),
                 map(call(parse_settings), Expression::FunctionCall),
                 map(identifier(parse_settings), Expression::Variable),
                 number_literal,
@@ -849,4 +861,5 @@ mod tests {
     ast_test!(method_call1);
     ast_test!(array_declaration1);
     ast_test!(class1);
+    ast_test!(new_object);
 }

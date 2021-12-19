@@ -1,0 +1,8 @@
+Program(vec![
+    Statement::Assignment(
+        Assignment("myDog", Expression::New(Call("Dog", vec![
+            Expression::StringLiteral("Fido"),
+            Expression::StringLiteral("Scottish Terrier"),
+        ])))
+    )
+])
