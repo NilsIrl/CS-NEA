@@ -83,10 +83,26 @@ pub enum Expression<'a> {
 struct Assignment<'a>(&'a str, Expression<'a>);
 
 #[derive(Debug, PartialEq)]
+struct FunctionDeclaration<'a> {
+    name: &'a str,
+    // asRef: bool
+    args: Vec<(&'a str, bool)>,
+    body: ListOfStatements<'a>,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Statement<'a> {
     Assignment(Assignment<'a>),
     GlobalAssignment(Assignment<'a>),
     ArrayDeclaration(&'a str, Vec<Expression<'a>>),
+    ClassDeclaration {
+        name: &'a str,
+        superclass: Option<&'a str>,
+        // isPrivate: bool
+        fields: Vec<(bool, &'a str)>,
+        // isPrivate: bool
+        methods: Vec<(bool, FunctionDeclaration<'a>)>,
+    },
     Expression(Expression<'a>),
     For(
         &'a str,
@@ -99,7 +115,7 @@ pub enum Statement<'a> {
     DoUntil(ListOfStatements<'a>, Expression<'a>),
     If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
     // asRef: bool
-    Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
+    Function(FunctionDeclaration<'a>),
     Return(Expression<'a>),
 }
 
@@ -374,17 +390,20 @@ fn is_identifer_char(c: char) -> bool {
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
 /// Sorted list of keywords that cannot be used as identifiers.
 /// This list must be kept sorted otherwise binary search will fail.
-const KEYWORDS: [&str; 11] = [
+const KEYWORDS: [&str; 14] = [
     "case",
     "default",
     "else",
     "elseif",
+    "endclass",
     "endfunction",
     "endif",
     "endprocedure",
     "endswitch",
     "endwhile",
+    "function",
     "next",
+    "procedure",
     "until",
 ];
 
@@ -437,6 +456,46 @@ fn array_declaration(
                 ),
             ),
             |(name, dimension)| Statement::ArrayDeclaration(name, dimension),
+        )(input)
+    }
+}
+
+fn class_declaration(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        map(
+            delimited(
+                tag_with_settings("class", parse_settings),
+                tuple((
+                    identifier(parse_settings),
+                    opt(preceded(
+                        pair(space1, tag("inherits")),
+                        identifier(parse_settings),
+                    )),
+                    many0(pair(
+                        token(alt((
+                            value(false, tag_with_settings("public", parse_settings)),
+                            value(true, tag_with_settings("private", parse_settings)),
+                        ))),
+                        preceded(space1, identifier(parse_settings)),
+                    )),
+                    many0(pair(
+                        token(alt((
+                            value(false, tag_with_settings("public", parse_settings)),
+                            value(true, tag_with_settings("private", parse_settings)),
+                        ))),
+                        preceded(space1, function(parse_settings)),
+                    )),
+                )),
+                token(tag_with_settings("endclass", parse_settings)),
+            ),
+            |(name, superclass, fields, methods)| Statement::ClassDeclaration {
+                name,
+                superclass,
+                fields,
+                methods,
+            },
         )(input)
     }
 }
@@ -609,7 +668,9 @@ fn token<'a, O>(
 }
 
 /// Parse a function or procedure
-fn function(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+fn function(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, FunctionDeclaration> + '_ {
     move |input: &str| {
         alt((
             delimited(
@@ -628,7 +689,7 @@ fn function(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
 
 fn function_arguments_and_body(
     parse_settings: &ParseSettings,
-) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+) -> impl FnMut(&str) -> IResult<&str, FunctionDeclaration> + '_ {
     move |input: &str| {
         map(
             tuple((
@@ -655,7 +716,11 @@ fn function_arguments_and_body(
                 ),
                 list_of_statements(parse_settings),
             )),
-            |(ident, arguments, body)| Statement::Function(ident, arguments, body),
+            |(ident, arguments, body)| FunctionDeclaration {
+                name: ident,
+                args: arguments,
+                body,
+            },
         )(input)
     }
 }
@@ -677,13 +742,14 @@ fn statement(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
             space0,
             alt((
                 array_declaration(parse_settings),
+                class_declaration(parse_settings),
                 global_assignment_statement(parse_settings),
                 for_loop(parse_settings),
                 while_loop(parse_settings),
                 do_until_loop(parse_settings),
                 if_statement(parse_settings),
                 switch_statement(parse_settings),
-                function(parse_settings),
+                map(function(parse_settings), Statement::Function),
                 return_statement(parse_settings),
                 map(assignment(parse_settings), Statement::Assignment),
                 map(expression(parse_settings), |expression| {
@@ -782,4 +848,5 @@ mod tests {
     ast_test!(attribute1);
     ast_test!(method_call1);
     ast_test!(array_declaration1);
+    ast_test!(class1);
 }

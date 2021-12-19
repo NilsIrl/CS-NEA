@@ -1,0 +1,52 @@
+Program(vec![
+    Statement::ClassDeclaration {
+        name: "Pet",
+        superclass: None,
+        fields: vec![
+            (true, "name"),
+        ],
+        methods: vec![
+            (
+                false,
+                FunctionDeclaration {
+                    name: "new",
+                    args: vec![
+                        ("givenName", false)
+                    ],
+                    body: vec![
+                        Statement::Assignment(Assignment("name", Expression::Variable("givenName")))
+                    ]
+                }
+            )
+        ],
+    },
+    Statement::ClassDeclaration {
+        name: "Dog",
+        superclass: Some("Pet"),
+        fields: vec![
+            (true, "breed"),
+        ],
+        methods: vec![
+            (
+                false,
+                FunctionDeclaration {
+                    name: "new",
+                    args: vec![
+                        ("givenName", false),
+                        ("givenBreed", false),
+                    ],
+                    body: vec![
+                        Statement::Expression(Expression::MethodCall(
+                            Box::new(Expression::Variable("super")),
+                            Call("new", vec![Expression::Variable("givenName")])
+                        )),
+                        Statement::Assignment(Assignment(
+                            "breed",
+                            Expression::Variable("givenBreed"),
+                        )),
+                    ]
+                }
+            )
+        ]
+    }
+])
