@@ -121,7 +121,7 @@ fn comma(input: &str) -> IResult<&str, char> {
 fn call(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Call> + '_ {
     move |input: &str| {
         let (input, (function_name, arguments)) = pair(
-            identifier,
+            identifier(parse_settings),
             delimited(
                 preceded(space0, open_bracket),
                 separated_list0(token(comma), expression(parse_settings)),
@@ -157,7 +157,7 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                 map(tag("true"), |_| Expression::BoolLiteral(true)),
                 map(tag("false"), |_| Expression::BoolLiteral(false)),
                 map(call(parse_settings), Expression::FunctionCall),
-                map(identifier, Expression::Variable),
+                map(identifier(parse_settings), Expression::Variable),
                 number_literal,
             )),
         )(input)
@@ -350,7 +350,7 @@ fn expression(
                 char('.'),
                 alt((
                     map(call(parse_settings), Expression::FunctionCall),
-                    map(identifier, Expression::Variable),
+                    map(identifier(parse_settings), Expression::Variable),
                 )),
             )(input)
             {
@@ -373,28 +373,40 @@ fn is_identifer_char(c: char) -> bool {
 }
 
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
+/// Sorted list of keywords that cannot be used as identifiers.
+/// This list must be kept sorted otherwise binary search will fail.
 const KEYWORDS: [&str; 11] = [
-    "next",
-    "endwhile",
-    "elseif",
-    "else",
-    "endif",
-    "endswitch",
     "case",
     "default",
+    "else",
+    "elseif",
     "endfunction",
+    "endif",
     "endprocedure",
+    "endswitch",
+    "endwhile",
+    "next",
     "until",
 ];
 
-fn identifier(input: &str) -> IResult<&str, &str> {
-    verify(
-        token(recognize(pair(
-            satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
-            take_while(is_identifer_char),
-        ))),
-        |ident: &str| !KEYWORDS.contains(&ident),
-    )(input)
+fn identifier(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, &str> + '_ {
+    move |input: &str| {
+        verify(
+            token(recognize(pair(
+                satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
+                take_while(is_identifer_char),
+            ))),
+            |ident: &str| {
+                !if parse_settings.case_sensitive {
+                    KEYWORDS.binary_search(&ident).is_ok()
+                } else {
+                    KEYWORDS
+                        .binary_search(&ident.to_lowercase().as_str())
+                        .is_ok()
+                }
+            },
+        )(input)
+    }
 }
 
 fn assignment(
@@ -402,7 +414,7 @@ fn assignment(
 ) -> impl FnMut(&str) -> IResult<&str, Assignment> + '_ {
     move |input: &str| {
         let (input, (identifier, expression)) = tuple((
-            identifier,
+            identifier(parse_settings),
             preceded(preceded(space0, char('=')), expression(parse_settings)),
         ))(input)?;
         Ok((input, Assignment(identifier, expression)))
@@ -438,7 +450,7 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
             )),
             tuple((space0, tag("next"), |input| {
                 if parse_settings.for_next_not_enforced {
-                    identifier(input)
+                    identifier(parse_settings)(input)
                 } else {
                     token(tag(variable_name))(input)
                 }
@@ -600,13 +612,13 @@ fn function_arguments_and_body(
     move |input: &str| {
         map(
             tuple((
-                preceded(space1, identifier),
+                preceded(space1, identifier(parse_settings)),
                 delimited(
                     token(open_bracket),
                     separated_list0(
                         token(comma),
                         pair(
-                            identifier,
+                            identifier(parse_settings),
                             map(
                                 opt(preceded(
                                     token(char(':')),
@@ -698,6 +710,11 @@ fn list_of_statements(
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn keywords_sorted() {
+        assert!(KEYWORDS.is_sorted());
+    }
 
     macro_rules! ast_test {
         ( $function_name:ident ) => {
