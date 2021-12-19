@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::{tag, tag_no_case, take_till, take_while},
     character::complete::{self, char, i64, not_line_ending, satisfy},
     combinator::{all_consuming, map, opt, recognize, value, verify},
-    multi::{many0, separated_list0},
+    multi::{many0, separated_list0, separated_list1},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
     Finish, IResult, Parser,
@@ -53,7 +53,6 @@ pub enum Expression<'a> {
     IntegerLiteral(i64),
     FloatLiteral(f64),
     BoolLiteral(bool),
-    Identifier(&'a str),
     FunctionCall(Call<'a>),
     Variable(&'a str),
 
@@ -87,7 +86,7 @@ struct Assignment<'a>(&'a str, Expression<'a>);
 pub enum Statement<'a> {
     Assignment(Assignment<'a>),
     GlobalAssignment(Assignment<'a>),
-    ArrayDefinition(&'a str, Vec<usize>),
+    ArrayDeclaration(&'a str, Vec<Expression<'a>>),
     Expression(Expression<'a>),
     For(
         &'a str,
@@ -421,6 +420,27 @@ fn assignment(
     }
 }
 
+fn array_declaration(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        map(
+            pair(
+                preceded(
+                    pair(tag_with_settings("array", parse_settings), space1),
+                    identifier(parse_settings),
+                ),
+                delimited(
+                    token(char('[')),
+                    separated_list1(token(comma), expression(parse_settings)),
+                    token(char(']')),
+                ),
+            ),
+            |(name, dimension)| Statement::ArrayDeclaration(name, dimension),
+        )(input)
+    }
+}
+
 fn global_assignment_statement(
     parse_settings: &ParseSettings,
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
@@ -656,6 +676,7 @@ fn statement(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
         preceded(
             space0,
             alt((
+                array_declaration(parse_settings),
                 global_assignment_statement(parse_settings),
                 for_loop(parse_settings),
                 while_loop(parse_settings),
@@ -760,4 +781,5 @@ mod tests {
     ast_test!(do_until1);
     ast_test!(attribute1);
     ast_test!(method_call1);
+    ast_test!(array_declaration1);
 }

@@ -1,0 +1,15 @@
+Program(vec![
+    Statement::ArrayDeclaration(
+        "names",
+        vec![
+            Expression::IntegerLiteral(5)
+        ] 
+    ),
+    Statement::ArrayDeclaration(
+        "board",
+        vec![
+            Expression::IntegerLiteral(8),
+            Expression::IntegerLiteral(8),
+        ] 
+    ),
+])
