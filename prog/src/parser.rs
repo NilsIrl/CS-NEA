@@ -7,10 +7,10 @@ use nom::{
     multi::{many0, separated_list0, separated_list1},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
-    Finish, IResult, Parser,
+    IResult, Parser,
 };
 
-use super::interpreter;
+use super::interpreter::Program;
 
 /// Holds settings for parsing, by default all fields are set to false
 #[derive(Default)]
@@ -45,7 +45,7 @@ fn space1(input: &str) -> IResult<&str, &str> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Call<'a>(pub &'a str, pub Vec<Expression<'a>>);
+pub struct Call<'a>(pub String, pub Vec<Expression<'a>>);
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression<'a> {
@@ -54,10 +54,10 @@ pub enum Expression<'a> {
     FloatLiteral(f64),
     BoolLiteral(bool),
     FunctionCall(Call<'a>),
-    Variable(&'a str),
+    Variable(String),
 
     MethodCall(Box<Expression<'a>>, Call<'a>),
-    ObjectAttribute(Box<Expression<'a>>, &'a str),
+    ObjectAttribute(Box<Expression<'a>>, String),
     New(Call<'a>),
 
     Equal(Box<Expression<'a>>, Box<Expression<'a>>),
@@ -81,32 +81,32 @@ pub enum Expression<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-struct Assignment<'a>(&'a str, Expression<'a>);
+pub struct Assignment<'a>(pub String, pub Expression<'a>);
 
 #[derive(Debug, PartialEq)]
-struct FunctionDeclaration<'a> {
-    name: &'a str,
+pub struct FunctionDeclaration<'a> {
+    pub name: String,
     // asRef: bool
-    args: Vec<(&'a str, bool)>,
-    body: ListOfStatements<'a>,
+    pub args: Vec<(String, bool)>,
+    pub body: ListOfStatements<'a>,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Statement<'a> {
     Assignment(Assignment<'a>),
     GlobalAssignment(Assignment<'a>),
-    ArrayDeclaration(&'a str, Vec<Expression<'a>>),
+    ArrayDeclaration(String, Vec<Expression<'a>>),
     ClassDeclaration {
-        name: &'a str,
-        superclass: Option<&'a str>,
+        name: String,
+        superclass: Option<String>,
         // isPrivate: bool
-        fields: Vec<(bool, &'a str)>,
+        fields: Vec<(bool, String)>,
         // isPrivate: bool
         methods: Vec<(bool, FunctionDeclaration<'a>)>,
     },
     Expression(Expression<'a>),
     For(
-        &'a str,
+        String,
         Expression<'a>,
         Expression<'a>,
         Expression<'a>,
@@ -419,20 +419,29 @@ const KEYWORDS: [&str; 14] = [
     "until",
 ];
 
-fn identifier(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, &str> + '_ {
+fn identifier(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, String> + '_ {
     move |input: &str| {
-        verify(
-            token(recognize(pair(
-                satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
-                take_while(is_identifer_char),
-            ))),
-            |ident: &str| {
-                !if parse_settings.case_sensitive {
-                    KEYWORDS.binary_search(&ident).is_ok()
+        map(
+            verify(
+                token(recognize(pair(
+                    satisfy(|c| is_identifer_char(c) && !c.is_ascii_digit()),
+                    take_while(is_identifer_char),
+                ))),
+                |ident: &str| {
+                    !if parse_settings.case_sensitive {
+                        KEYWORDS.binary_search(&ident).is_ok()
+                    } else {
+                        KEYWORDS
+                            .binary_search(&ident.to_lowercase().as_str())
+                            .is_ok()
+                    }
+                },
+            ),
+            |ident| {
+                if parse_settings.case_sensitive {
+                    ident.to_string()
                 } else {
-                    KEYWORDS
-                        .binary_search(&ident.to_lowercase().as_str())
-                        .is_ok()
+                    ident.to_lowercase()
                 }
             },
         )(input)
@@ -541,9 +550,10 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
             )),
             tuple((space0, tag("next"), |input| {
                 if parse_settings.for_next_not_enforced {
-                    identifier(parse_settings)(input)
+                    // recognize used to bypass differing types between branches
+                    recognize(identifier(parse_settings))(input)
                 } else {
-                    token(tag(variable_name))(input)
+                    token(tag(variable_name.as_str()))(input)
                 }
             })),
         )(input)?;
@@ -772,30 +782,11 @@ fn statement(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Program<'a>(ListOfStatements<'a>);
-
-fn program(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Program> + '_ {
+pub fn program(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Program> + '_ {
     move |input: &str| {
         let (input, statements) =
             all_consuming(terminated(list_of_statements(parse_settings), space0))(input)?;
         Ok((input, Program(statements)))
-    }
-}
-
-impl Program<'_> {
-    pub fn from_str<'a>(
-        input: &'a str,
-        parse_settings: &ParseSettings,
-    ) -> Result<Program<'a>, nom::error::Error<&'a str>> {
-        program(parse_settings)(input)
-            .finish()
-            .map(|(_, program)| program)
-    }
-
-    pub fn interpret(&self) {
-        let mut variables = interpreter::Environment::new();
-        interpreter::execute_statements(&self.0, &mut variables);
     }
 }
 

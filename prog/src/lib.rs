@@ -3,4 +3,5 @@
 mod interpreter;
 mod parser;
 
-pub use parser::{ParseSettings, Program};
+pub use interpreter::Program;
+pub use parser::ParseSettings;
