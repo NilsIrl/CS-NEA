@@ -656,6 +656,32 @@ Log:
 
 %Changed from ../ to CARGO_MANIFEST_DIR
 
+alt((
+	value(x, x),
+	value(x, x),
+	value(x, x),
+	value(x, x),
+))
+
+was failing to compile. So I had to report it to the authors.
+
+There is no "break" statement for loops.
+
+Array is defined as "array" and "Array" in the spec...
+
+Fields in classes must be defined before methods.
+
+For loops will rewrite the counter variable, so the user can change it.
+Pascal prevents compilation of programs where the variable is changed so I
+think that's a fine behaviour.
+
+\subsection{Where to find example code}
+
+\begin{itemize}
+	\item In the specification
+	\item Unit 10 Computational thinking, Homework 4 Thinking logically
+\end{itemize}
+
 \printbibliography[heading=bibintoc]
 
 \end{document}
