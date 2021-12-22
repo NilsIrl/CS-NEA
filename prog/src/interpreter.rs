@@ -3,7 +3,7 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     convert::TryInto,
-    ops::{Add, AddAssign, Div, Rem},
+    ops::{Add, Div, Rem},
     rc::Rc,
 };
 
@@ -21,18 +21,6 @@ pub enum Value {
     Boolean(bool),
     String(String),
     NoVal,
-}
-
-impl Add for Value {
-    type Output = Value;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs + rhs),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs + rhs),
-            (lhs, rhs) => panic!("can't add {:?} and {:?}", lhs, rhs),
-        }
-    }
 }
 
 impl Add for &Value {
@@ -97,7 +85,7 @@ pub enum ProgError {
 
 type Environment<'a> = Vec<HashMap<&'a str, DenotedValue>>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DenotedValue(Rc<RefCell<Value>>);
 
 impl From<bool> for DenotedValue {
@@ -145,17 +133,6 @@ impl Add for DenotedValue {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::from(&*self.0.borrow() + &*rhs.0.borrow())
-    }
-}
-
-impl AddAssign for DenotedValue {
-    fn add_assign(&mut self, rhs: Self) {
-        match (&*self.0.borrow_mut(), &*rhs.0.borrow()) {
-            (&Value::Integer(mut lhs), Value::Integer(rhs)) => lhs += rhs,
-            (&Value::Float(mut lhs), Value::Float(rhs)) => lhs += rhs,
-            // TODO: errors for each type
-            _ => panic!("Can't add non-numeric values"),
-        }
     }
 }
 
@@ -237,7 +214,8 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, variables: &mut Environme
                 execute_statements(body, variables);
                 // This clone is sheep because it is an Rc<_>
                 // However I feel like there must be a better solution
-                counter += step.clone();
+                counter = counter + step.clone();
+                //counter += step.clone();
             }
         }
         Statement::If(exp, if_body, else_body) => {
@@ -317,8 +295,8 @@ mod tests {
     #[test]
     fn add_assign_test1() {
         let mut val1 = DenotedValue::from(Value::Integer(2));
-        let mut val2 = DenotedValue::from(Value::Integer(5));
-        val1 += val2;
+        let val2 = DenotedValue::from(Value::Integer(5));
+        val1 = val1 + val2;
         assert_eq!(val1, DenotedValue::from(Value::Integer(7)));
     }
 }

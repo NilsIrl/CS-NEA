@@ -1,13 +1,13 @@
 Program(vec![Statement::Expression(Expression::FunctionCall(Call(
-    "print",
+    "print".to_string(),
     vec![Expression::Or(
         Box::new(Expression::And(
             Box::new(Expression::LessThanOrEqual(
-                Box::new(Expression::Variable("x")),
+                Box::new(Expression::Variable("x".to_string())),
                 Box::new(Expression::IntegerLiteral(5)),
             )),
             Box::new(Expression::Equal(
-                Box::new(Expression::Variable("flag")),
+                Box::new(Expression::Variable("flag".to_string())),
                 Box::new(Expression::BoolLiteral(false)),
             )),
         )),

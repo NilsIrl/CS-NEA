@@ -1,8 +1,8 @@
 Program(vec![Statement::Function(FunctionDeclaration {
-    name: "triple",
-    args: vec![("number", false)],
+    name: "triple".to_string(),
+    args: vec![("number".to_string(), false)],
     body: vec![Statement::Return(Expression::Times(
-        Box::new(Expression::Variable("number")),
+        Box::new(Expression::Variable("number".to_string())),
         Box::new(Expression::IntegerLiteral(3)),
     ))],
 })])

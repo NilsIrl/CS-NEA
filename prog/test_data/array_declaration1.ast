@@ -1,12 +1,12 @@
 Program(vec![
     Statement::ArrayDeclaration(
-        "names",
+        "names".to_string(),
         vec![
             Expression::IntegerLiteral(5)
         ] 
     ),
     Statement::ArrayDeclaration(
-        "board",
+        "board".to_string(),
         vec![
             Expression::IntegerLiteral(8),
             Expression::IntegerLiteral(8),

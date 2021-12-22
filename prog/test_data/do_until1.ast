@@ -1,13 +1,13 @@
 Program(vec![Statement::DoUntil(
     vec![Statement::Assignment(Assignment(
-        "answer",
+        "answer".to_string(),
         Expression::FunctionCall(Call(
-            "input",
+            "input".to_string(),
             vec![Expression::StringLiteral("What is the password?")],
         )),
     ))],
     Expression::Equal(
-        Box::new(Expression::Variable("answer")),
+        Box::new(Expression::Variable("answer".to_string())),
         Box::new(Expression::StringLiteral("computer")),
     ),
 )])

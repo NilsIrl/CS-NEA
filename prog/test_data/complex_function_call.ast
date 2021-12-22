@@ -1,23 +1,23 @@
 Program(vec![Statement::Expression(Expression::FunctionCall(Call(
-    "statement",
+    "statement".to_string(),
     vec![
         Expression::FunctionCall(Call(
-            "preceded",
+            "preceded".to_string(),
             vec![
-                Expression::Variable("multispace0"),
+                Expression::Variable("multispace0".to_string()),
                 Expression::FunctionCall(Call(
-                    "alt",
+                    "alt".to_string(),
                     vec![
-                        Expression::Variable("assignment_statement"),
-                        Expression::Variable("global_assignment_statement"),
+                        Expression::Variable("assignment_statement".to_string()),
+                        Expression::Variable("global_assignment_statement".to_string()),
                         Expression::FunctionCall(Call(
-                            "map",
+                            "map".to_string(),
                             vec![
-                                Expression::Variable("exprsesion"),
-                                Expression::Variable("expression"),
+                                Expression::Variable("exprsesion".to_string()),
+                                Expression::Variable("expression".to_string()),
                                 Expression::FunctionCall(Call(
-                                    "statement_expression",
-                                    vec![Expression::Variable("expression")],
+                                    "statement_expression".to_string(),
+                                    vec![Expression::Variable("expression".to_string())],
                                 )),
                             ],
                         )),
@@ -28,6 +28,6 @@ Program(vec![Statement::Expression(Expression::FunctionCall(Call(
                 Expression::FloatLiteral(3.455),
             ],
         )),
-        Expression::Variable("input"),
+        Expression::Variable("input".to_string()),
     ],
 )))])

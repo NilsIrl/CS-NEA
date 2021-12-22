@@ -1,23 +1,23 @@
 Program(vec![Statement::If(
     Expression::Equal(
-        Box::new(Expression::Variable("entry")),
+        Box::new(Expression::Variable("entry".to_string())),
         Box::new(Expression::StringLiteral("a")),
     ),
     vec![Statement::Expression(Expression::FunctionCall(Call(
-        "print",
+        "print".to_string(),
         vec![Expression::StringLiteral("You selected A")],
     )))],
     vec![Statement::If(
         Expression::Equal(
-            Box::new(Expression::Variable("entry")),
+            Box::new(Expression::Variable("entry".to_string())),
             Box::new(Expression::StringLiteral("b")),
         ),
         vec![Statement::Expression(Expression::FunctionCall(Call(
-            "print",
+            "print".to_string(),
             vec![Expression::StringLiteral("You selected B")],
         )))],
         vec![Statement::Expression(Expression::FunctionCall(Call(
-            "print",
+            "print".to_string(),
             vec![Expression::StringLiteral("Unrecognised selection")],
         )))],
     )],

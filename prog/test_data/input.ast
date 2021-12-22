@@ -1,7 +1,7 @@
 Program(vec![Statement::Assignment(Assignment(
-    "name",
+    "name".to_string(),
     Expression::FunctionCall(Call(
-        "input",
+        "input".to_string(),
         vec![Expression::StringLiteral("Please enter your name")],
     )),
 ))])

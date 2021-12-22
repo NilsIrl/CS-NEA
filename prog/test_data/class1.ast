@@ -1,48 +1,50 @@
 Program(vec![
     Statement::ClassDeclaration {
-        name: "Pet",
+        name: "Pet".to_string(),
         superclass: None,
         fields: vec![
-            (true, "name"),
+            (true, "name".to_string()),
         ],
         methods: vec![
             (
                 false,
                 FunctionDeclaration {
-                    name: "new",
+                    name: "new".to_string(),
                     args: vec![
-                        ("givenName", false)
+                        ("givenName".to_string(), false)
                     ],
                     body: vec![
-                        Statement::Assignment(Assignment("name", Expression::Variable("givenName")))
+                        Statement::Assignment(Assignment("name".to_string(),
+						Expression::Variable("givenName".to_string())))
                     ]
                 }
             )
         ],
     },
     Statement::ClassDeclaration {
-        name: "Dog",
-        superclass: Some("Pet"),
+        name: "Dog".to_string(),
+        superclass: Some("Pet".to_string()),
         fields: vec![
-            (true, "breed"),
+            (true, "breed".to_string()),
         ],
         methods: vec![
             (
                 false,
                 FunctionDeclaration {
-                    name: "new",
+                    name: "new".to_string(),
                     args: vec![
-                        ("givenName", false),
-                        ("givenBreed", false),
+                        ("givenName".to_string(), false),
+                        ("givenBreed".to_string(), false),
                     ],
                     body: vec![
                         Statement::Expression(Expression::MethodCall(
-                            Box::new(Expression::Variable("super")),
-                            Call("new", vec![Expression::Variable("givenName")])
+                            Box::new(Expression::Variable("super".to_string())),
+                            Call("new".to_string(),
+							vec![Expression::Variable("givenName".to_string())])
                         )),
                         Statement::Assignment(Assignment(
-                            "breed",
-                            Expression::Variable("givenBreed"),
+                            "breed".to_string(),
+                            Expression::Variable("givenBreed".to_string()),
                         )),
                     ]
                 }

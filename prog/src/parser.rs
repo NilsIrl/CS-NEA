@@ -12,8 +12,6 @@ use nom::{
 
 use super::interpreter::Program;
 
-/// Holds settings for parsing, by default all fields are set to false
-#[derive(Default)]
 pub struct ParseSettings {
     /// Accept keywords in a different case than they are originally defined
     ///
@@ -21,6 +19,15 @@ pub struct ParseSettings {
     pub case_sensitive: bool,
     /// The variable used in next must be the same as the one declared in the for loop
     pub for_next_not_enforced: bool,
+}
+
+impl Default for ParseSettings {
+    fn default() -> Self {
+        Self {
+            case_sensitive: false,
+            for_next_not_enforced: false,
+        }
+    }
 }
 
 fn comment(input: &str) -> IResult<&str, &str> {
@@ -806,8 +813,18 @@ mod tests {
         assert!(KEYWORDS.is_sorted());
     }
 
+    const CASE_SENSITIVE: ParseSettings = ParseSettings {
+        case_sensitive: true,
+        for_next_not_enforced: false,
+    };
+
+    const CASE_INSENSITIVE: ParseSettings = ParseSettings {
+        case_sensitive: false,
+        for_next_not_enforced: false,
+    };
+
     macro_rules! ast_test {
-        ( $function_name:ident ) => {
+        ( $function_name:ident, $parse_settings:expr ) => {
             #[test]
             fn $function_name() {
                 assert_eq!(
@@ -817,7 +834,7 @@ mod tests {
                             stringify!($function_name),
                             ".input"
                         )),
-                        &ParseSettings::default()
+                        $parse_settings
                     )
                     .unwrap(),
                     include!(concat!("../test_data/", stringify!($function_name), ".ast"))
@@ -826,31 +843,31 @@ mod tests {
         };
     }
 
-    ast_test!(variable);
-    ast_test!(variable_quotes);
-    ast_test!(variable_whitespace);
-    ast_test!(function_call);
-    ast_test!(complex_function_call);
-    ast_test!(print);
-    ast_test!(input);
-    ast_test!(for_loop1);
-    ast_test!(for_loop2);
-    ast_test!(comparison1);
-    ast_test!(empty);
-    ast_test!(maths1);
-    ast_test!(logical_operators1);
-    ast_test!(not1);
-    ast_test!(while1);
-    ast_test!(if1);
-    ast_test!(switch);
-    ast_test!(comment1);
-    ast_test!(function1);
-    ast_test!(procedure1);
-    ast_test!(thinking_logically);
-    ast_test!(do_until1);
-    ast_test!(attribute1);
-    ast_test!(method_call1);
-    ast_test!(array_declaration1);
-    ast_test!(class1);
-    ast_test!(new_object);
+    ast_test!(variable, &CASE_SENSITIVE);
+    ast_test!(variable_quotes, &CASE_SENSITIVE);
+    ast_test!(variable_whitespace, &CASE_SENSITIVE);
+    ast_test!(function_call, &CASE_SENSITIVE);
+    ast_test!(complex_function_call, &CASE_SENSITIVE);
+    ast_test!(print, &CASE_SENSITIVE);
+    ast_test!(input, &CASE_SENSITIVE);
+    ast_test!(for_loop1, &CASE_SENSITIVE);
+    ast_test!(for_loop2, &CASE_SENSITIVE);
+    ast_test!(comparison1, &CASE_SENSITIVE);
+    ast_test!(empty, &CASE_SENSITIVE);
+    ast_test!(maths1, &CASE_SENSITIVE);
+    ast_test!(logical_operators1, &CASE_SENSITIVE);
+    ast_test!(not1, &CASE_SENSITIVE);
+    ast_test!(while1, &CASE_SENSITIVE);
+    ast_test!(if1, &CASE_SENSITIVE);
+    ast_test!(switch, &CASE_SENSITIVE);
+    ast_test!(comment1, &CASE_SENSITIVE);
+    ast_test!(function1, &CASE_SENSITIVE);
+    ast_test!(procedure1, &CASE_SENSITIVE);
+    ast_test!(thinking_logically, &CASE_INSENSITIVE);
+    ast_test!(do_until1, &CASE_SENSITIVE);
+    ast_test!(attribute1, &CASE_SENSITIVE);
+    ast_test!(method_call1, &CASE_SENSITIVE);
+    ast_test!(array_declaration1, &CASE_SENSITIVE);
+    ast_test!(class1, &CASE_SENSITIVE);
+    ast_test!(new_object, &CASE_SENSITIVE);
 }

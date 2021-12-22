@@ -1,46 +1,46 @@
 Program(vec![Statement::For(
-    "a",
+    "a".to_string(),
     Expression::IntegerLiteral(8),
     Expression::IntegerLiteral(19),
     Expression::IntegerLiteral(4),
     vec![Statement::For(
-        "b",
+        "b".to_string(),
         Expression::IntegerLiteral(1),
         Expression::IntegerLiteral(3),
         Expression::IntegerLiteral(1),
         vec![Statement::If(
             Expression::GreaterThanOrEqual(
                 Box::new(Expression::Modulus(
-                    Box::new(Expression::Variable("a")),
-                    Box::new(Expression::Variable("b")),
+                    Box::new(Expression::Variable("a".to_string())),
+                    Box::new(Expression::Variable("b".to_string())),
                 )),
                 Box::new(Expression::Divide(
-                    Box::new(Expression::Variable("b")),
+                    Box::new(Expression::Variable("b".to_string())),
                     Box::new(Expression::IntegerLiteral(3)),
                 )),
             ),
             vec![Statement::If(
                 Expression::LessThanOrEqual(
                     Box::new(Expression::Divide(
-                        Box::new(Expression::Variable("a")),
+                        Box::new(Expression::Variable("a".to_string())),
                         Box::new(Expression::IntegerLiteral(4)),
                     )),
                     Box::new(Expression::Plus(
-                        Box::new(Expression::Variable("b")),
+                        Box::new(Expression::Variable("b".to_string())),
                         Box::new(Expression::IntegerLiteral(1)),
                     )),
                 ),
                 vec![Statement::Expression(Expression::FunctionCall(Call(
-                    "print",
+                    "print".to_string(),
                     vec![Expression::StringLiteral("Homer")],
                 )))],
                 vec![Statement::Expression(Expression::FunctionCall(Call(
-                    "print",
+                    "print".to_string(),
                     vec![Expression::StringLiteral("Marge")],
                 )))],
             )],
             vec![Statement::Expression(Expression::FunctionCall(Call(
-                "print",
+                "print".to_string(),
                 vec![Expression::StringLiteral("Bart")],
             )))],
         )],

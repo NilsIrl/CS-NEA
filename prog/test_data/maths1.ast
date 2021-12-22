@@ -1,48 +1,48 @@
 Program(vec![
     Statement::Assignment(Assignment(
-        "x",
+        "x".to_string(),
         Expression::Plus(
             Box::new(Expression::IntegerLiteral(6)),
             Box::new(Expression::IntegerLiteral(5)),
         ),
     )),
     Statement::Assignment(Assignment(
-        "x",
+        "x".to_string(),
         Expression::Minus(
             Box::new(Expression::IntegerLiteral(6)),
             Box::new(Expression::IntegerLiteral(5)),
         ),
     )),
     Statement::Assignment(Assignment(
-        "x",
+        "x".to_string(),
         Expression::Times(
             Box::new(Expression::IntegerLiteral(12)),
             Box::new(Expression::IntegerLiteral(2)),
         ),
     )),
     Statement::Assignment(Assignment(
-        "x",
+        "x".to_string(),
         Expression::Divide(
             Box::new(Expression::IntegerLiteral(12)),
             Box::new(Expression::IntegerLiteral(2)),
         ),
     )),
     Statement::Assignment(Assignment(
-        "x",
+        "x".to_string(),
         Expression::Modulus(
             Box::new(Expression::IntegerLiteral(12)),
             Box::new(Expression::IntegerLiteral(5)),
         ),
     )),
     Statement::Assignment(Assignment(
-        "x",
+        "x".to_string(),
         Expression::Quotient(
             Box::new(Expression::IntegerLiteral(17)),
             Box::new(Expression::IntegerLiteral(5)),
         ),
     )),
     Statement::Assignment(Assignment(
-        "x",
+        "x".to_string(),
         Expression::Power(
             Box::new(Expression::IntegerLiteral(3)),
             Box::new(Expression::IntegerLiteral(4)),

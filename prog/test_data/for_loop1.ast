@@ -1,10 +1,10 @@
 Program(vec![Statement::For(
-    "i",
+    "i".to_string(),
     Expression::IntegerLiteral(0),
     Expression::IntegerLiteral(7),
     Expression::IntegerLiteral(1),
     vec![Statement::Expression(Expression::FunctionCall(Call(
-        "print",
+        "print".to_string(),
         vec![Expression::StringLiteral("Hello")],
     )))],
 )])

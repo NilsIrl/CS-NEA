@@ -1,11 +1,11 @@
 Program(vec![Statement::Function(FunctionDeclaration {
-    name: "greeting",
-    args: vec![("name", false)],
+    name: "greeting".to_string(),
+    args: vec![("name".to_string(), false)],
     body: vec![Statement::Expression(Expression::FunctionCall(Call(
-        "print",
+        "print".to_string(),
         vec![Expression::Plus(
             Box::new(Expression::StringLiteral("hello")),
-            Box::new(Expression::Variable("name")),
+            Box::new(Expression::Variable("name".to_string())),
         )],
     )))],
 })])
