@@ -3,7 +3,7 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     convert::TryInto,
-    ops::{Add, Div, Rem},
+    ops::{Add, Div, Mul, Rem, Sub},
     rc::Rc,
 };
 
@@ -35,6 +35,18 @@ impl Add for &Value {
     }
 }
 
+impl Sub for &Value {
+    type Output = Value;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs - rhs),
+            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs - rhs),
+            (lhs, rhs) => panic!("can't substract {:?} and {:?}", lhs, rhs),
+        }
+    }
+}
+
 impl Rem for &Value {
     type Output = Value;
 
@@ -46,12 +58,24 @@ impl Rem for &Value {
     }
 }
 
+impl Mul for &Value {
+    type Output = Value;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs * rhs),
+            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs * rhs),
+            (lhs, rhs) => panic!("Can't multiply {:?} and {:?}", lhs, rhs),
+        }
+    }
+}
+
 impl Div for &Value {
     type Output = Value;
 
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs / rhs),
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Float(*lhs as f64 / *rhs as f64),
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs / rhs),
             (lhs, rhs) => panic!("Can't divide {:?} and {:?}", lhs, rhs),
         }
@@ -121,7 +145,7 @@ impl From<Value> for DenotedValue {
 impl TryInto<bool> for DenotedValue {
     type Error = ProgError;
     fn try_into(self) -> Result<bool, Self::Error> {
-        match *self.0.borrow() {
+        match *(*self.0).borrow() {
             Value::Boolean(b) => Ok(b),
             _ => Err(ProgError::IsNotBool),
         }
@@ -136,11 +160,27 @@ impl Add for DenotedValue {
     }
 }
 
+impl Sub for DenotedValue {
+    type Output = DenotedValue;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::from(&*self.0.borrow() - &*rhs.0.borrow())
+    }
+}
+
 impl Rem for DenotedValue {
     type Output = Self;
 
     fn rem(self, rhs: Self) -> Self::Output {
         Self::from(&*self.0.borrow() % &*rhs.0.borrow())
+    }
+}
+
+impl Mul for DenotedValue {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self::from(&*self.0.borrow() * &*rhs.0.borrow())
     }
 }
 
@@ -155,7 +195,7 @@ impl Div for DenotedValue {
 impl PartialEq for DenotedValue {
     fn eq(&self, other: &Self) -> bool {
         match (&*self.0.borrow(), &*other.0.borrow()) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => lhs == rhs,
+            (Value::Integer(ref lhs), Value::Integer(ref rhs)) => lhs == rhs,
             (Value::Float(lhs), Value::Float(rhs)) => lhs == rhs,
             (Value::Boolean(lhs), Value::Boolean(rhs)) => lhs == rhs,
             (Value::String(lhs), Value::String(rhs)) => lhs == rhs,
@@ -260,15 +300,58 @@ fn eval(expression: &Expression, variables: &mut Environment) -> DenotedValue {
             let rhs = eval(&*rhs, variables);
             lhs + rhs
         }
+        Expression::Minus(lhs, rhs) => {
+            let lhs = eval(&*lhs, variables);
+            let rhs = eval(&*rhs, variables);
+            lhs - rhs
+        }
         Expression::Modulus(lhs, rhs) => {
             let lhs = eval(&*lhs, variables);
             let rhs = eval(&*rhs, variables);
             lhs % rhs
         }
+        Expression::Times(lhs, rhs) => {
+            let lhs = eval(&*lhs, variables);
+            let rhs = eval(&*rhs, variables);
+
+            lhs * rhs
+        }
         Expression::Divide(lhs, rhs) => {
             let lhs = eval(&*lhs, variables);
             let rhs = eval(&*rhs, variables);
             lhs / rhs
+        }
+        Expression::Quotient(lhs, rhs) => {
+            let lhs = eval(&*lhs, variables);
+            let rhs = eval(&*rhs, variables);
+
+            let x = DenotedValue::from(match (&*lhs.0.borrow(), &*rhs.0.borrow()) {
+                (Value::Integer(lhs), Value::Integer(rhs)) => lhs / rhs,
+                _ => panic!("Can't calculate the quotient of {:?} and {:?}", lhs, rhs),
+            });
+            x
+        }
+        Expression::Power(base, exponent) => {
+            let base = eval(&*base, variables);
+            let exponent = eval(&*exponent, variables);
+
+            let x = match (&*base.0.borrow(), &*exponent.0.borrow()) {
+                (Value::Integer(lhs), Value::Integer(rhs)) => {
+                    if *rhs < 0 {
+                        DenotedValue::from((*lhs as f64).powi(*rhs as i32))
+                    } else {
+                        DenotedValue::from(lhs.pow(*rhs as u32))
+                    }
+                }
+                (Value::Integer(base), Value::Float(exponent)) => {
+                    DenotedValue::from((*base as f64).powf(*exponent))
+                }
+                (Value::Float(base), Value::Float(exponent)) => {
+                    DenotedValue::from(base.powf(*exponent))
+                }
+                (base, exponent) => panic!("Cannot take {:?} to the {:?}", base, exponent),
+            };
+            x
         }
         // TODO: what to do if variable doesn't exist
         Expression::Variable(name) => apply_env(variables, name.as_str()),
@@ -298,5 +381,15 @@ mod tests {
         let val2 = DenotedValue::from(Value::Integer(5));
         val1 = val1 + val2;
         assert_eq!(val1, DenotedValue::from(Value::Integer(7)));
+    }
+
+    #[test]
+    fn maths1_output_test() {
+        Program::from_str(
+            include_str!("../test_data/maths1.input"),
+            &ParseSettings::default(),
+        )
+        .unwrap()
+        .interpret()
     }
 }
