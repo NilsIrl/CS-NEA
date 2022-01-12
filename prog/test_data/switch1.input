@@ -1,0 +1,10 @@
+entry = "B"
+
+switch entry:
+    case "A":
+        print("You selected A")
+    case "B":
+        print("You selected B")
+    default:
+        print("default or smth")
+endswitch

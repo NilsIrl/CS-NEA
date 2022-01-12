@@ -301,6 +301,12 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
     match expression {
         Expression::IntegerLiteral(integer) => DenotedValue::from(*integer),
         Expression::StringLiteral(str) => DenotedValue::from(*str),
+        Expression::Equal(lhs, rhs) => {
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
+
+            DenotedValue::from(lhs == rhs)
+        }
         Expression::GreaterThanOrEqual(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
@@ -440,4 +446,5 @@ mod tests {
     }
 
     output_test!(comment1);
+    output_test!(switch1);
 }
