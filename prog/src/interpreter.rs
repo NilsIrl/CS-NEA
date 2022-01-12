@@ -3,6 +3,7 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     convert::TryInto,
+    io,
     ops::{Add, Div, Mul, Rem, Sub},
     rc::Rc,
 };
@@ -96,9 +97,19 @@ impl Program<'_> {
     }
 
     pub fn interpret(self) {
-        let mut variables = Environment::with_capacity(1);
-        variables.resize_with(1, Default::default);
-        execute_statements(&self.0, &mut variables);
+        let mut context = Context {
+            environment: vec![Default::default()],
+            stdout: io::stdout(),
+        };
+        execute_statements(&self.0, &mut context);
+    }
+
+    pub fn interpret_with_write(self, stdout: impl io::Write) {
+        let mut context = Context {
+            environment: vec![Default::default()],
+            stdout,
+        };
+        execute_statements(&self.0, &mut context);
     }
 }
 
@@ -108,6 +119,11 @@ pub enum ProgError {
 }
 
 type Environment<'a> = Vec<HashMap<&'a str, DenotedValue>>;
+
+struct Context<'a, W: io::Write> {
+    environment: Environment<'a>,
+    stdout: W,
+}
 
 #[derive(Clone, Debug)]
 pub struct DenotedValue(Rc<RefCell<Value>>);
@@ -226,32 +242,32 @@ fn apply_env(env: &mut Environment, name: &str) -> DenotedValue {
     }
 }
 
-pub fn execute_statements<'a>(
+fn execute_statements<'a>(
     statements: &'a ListOfStatements<'a>,
-    variables: &mut Environment<'a>,
+    context: &mut Context<'a, impl io::Write>,
 ) {
     for statement in statements {
-        execute_statement(&statement, variables);
+        execute_statement(&statement, context);
     }
 }
 
-fn execute_statement<'a>(statement: &'a Statement<'a>, variables: &mut Environment<'a>) {
+fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a, impl io::Write>) {
     match statement {
         Statement::Assignment(Assignment(ref name, value)) => {
-            let value = eval(value, variables);
-            extend_env(variables, name, value);
+            let value = eval(value, context);
+            extend_env(&mut context.environment, name, value);
         }
         Statement::For(var, beginning, end, step, body) => {
-            let mut counter = eval(beginning, variables);
-            let end = eval(end, variables);
-            let step = eval(step, variables);
+            let mut counter = eval(beginning, context);
+            let end = eval(end, context);
+            let step = eval(step, context);
 
             while {
                 step >= DenotedValue::from(0) && counter <= end
                     || step < DenotedValue::from(0) && counter >= end
             } {
-                extend_env(variables, &var, counter.clone());
-                execute_statements(body, variables);
+                extend_env(&mut context.environment, &var, counter.clone());
+                execute_statements(body, context);
                 // This clone is sheep because it is an Rc<_>
                 // However I feel like there must be a better solution
                 counter = counter + step.clone();
@@ -259,71 +275,71 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, variables: &mut Environme
             }
         }
         Statement::If(exp, if_body, else_body) => {
-            if eval(exp, variables).try_into().unwrap() {
-                execute_statements(if_body, variables);
+            if eval(exp, context).try_into().unwrap() {
+                execute_statements(if_body, context);
             } else {
-                execute_statements(else_body, variables);
+                execute_statements(else_body, context);
             }
         }
         Statement::Expression(exp) => {
-            eval(exp, variables);
+            eval(exp, context);
         }
         unimplemented_statement => todo!("Statement {:?} unimplemented", unimplemented_statement),
     }
 }
 
-fn print(args: impl Iterator<Item = DenotedValue>) {
+fn print(args: &[DenotedValue], write: &mut impl io::Write) {
     for arg in args {
         match &*arg.0.borrow() {
-            Value::String(string) => println!("{}", string),
+            Value::String(string) => writeln!(write, "{}", string).unwrap(),
             val => unimplemented!("Printing {:?} unimplemented", val),
         }
     }
 }
 
-fn eval(expression: &Expression, variables: &mut Environment) -> DenotedValue {
+fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> DenotedValue {
     match expression {
         Expression::IntegerLiteral(integer) => DenotedValue::from(*integer),
         Expression::StringLiteral(str) => DenotedValue::from(*str),
         Expression::GreaterThanOrEqual(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
             DenotedValue::from(lhs >= rhs)
         }
         Expression::LessThanOrEqual(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
             DenotedValue::from(lhs <= rhs)
         }
         Expression::Plus(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
             lhs + rhs
         }
         Expression::Minus(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
             lhs - rhs
         }
         Expression::Modulus(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
             lhs % rhs
         }
         Expression::Times(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
 
             lhs * rhs
         }
         Expression::Divide(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
             lhs / rhs
         }
         Expression::Quotient(lhs, rhs) => {
-            let lhs = eval(&*lhs, variables);
-            let rhs = eval(&*rhs, variables);
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
 
             let x = DenotedValue::from(match (&*lhs.0.borrow(), &*rhs.0.borrow()) {
                 (Value::Integer(lhs), Value::Integer(rhs)) => lhs / rhs,
@@ -332,8 +348,8 @@ fn eval(expression: &Expression, variables: &mut Environment) -> DenotedValue {
             x
         }
         Expression::Power(base, exponent) => {
-            let base = eval(&*base, variables);
-            let exponent = eval(&*exponent, variables);
+            let base = eval(&*base, context);
+            let exponent = eval(&*exponent, context);
 
             let x = match (&*base.0.borrow(), &*exponent.0.borrow()) {
                 (Value::Integer(lhs), Value::Integer(rhs)) => {
@@ -354,12 +370,15 @@ fn eval(expression: &Expression, variables: &mut Environment) -> DenotedValue {
             x
         }
         // TODO: what to do if variable doesn't exist
-        Expression::Variable(name) => apply_env(variables, name.as_str()),
+        Expression::Variable(name) => apply_env(&mut context.environment, name.as_str()),
         Expression::FunctionCall(Call(function_name, arguments)) => {
-            let arguments = arguments.into_iter().map(|arg| eval(arg, variables));
+            let arguments: Vec<_> = arguments
+                .into_iter()
+                .map(|arg| eval(arg, context))
+                .collect();
             match function_name.as_str() {
                 "print" => {
-                    print(arguments);
+                    print(&arguments, &mut context.stdout);
                     DenotedValue::from(Value::NoVal)
                 }
                 _ => todo!("Implement functions"),
@@ -391,5 +410,17 @@ mod tests {
         )
         .unwrap()
         .interpret()
+    }
+
+    #[test]
+    fn comment1_test() {
+        let mut stdout = Vec::new();
+        Program::from_str(
+            include_str!("../test_data/comment1.input"),
+            &ParseSettings::default(),
+        )
+        .unwrap()
+        .interpret_with_write(&mut stdout);
+        assert_eq!(stdout, include_bytes!("../test_data/comment1.output"));
     }
 }
