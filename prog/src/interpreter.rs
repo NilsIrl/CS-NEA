@@ -412,15 +412,32 @@ mod tests {
         .interpret()
     }
 
-    #[test]
-    fn comment1_test() {
-        let mut stdout = Vec::new();
-        Program::from_str(
-            include_str!("../test_data/comment1.input"),
-            &ParseSettings::default(),
-        )
-        .unwrap()
-        .interpret_with_write(&mut stdout);
-        assert_eq!(stdout, include_bytes!("../test_data/comment1.output"));
+    macro_rules! output_test {
+        ( $function_name:ident ) => {
+            #[test]
+            fn $function_name() {
+                let mut stdout = Vec::new();
+                Program::from_str(
+                    include_str!(concat!(
+                        "../test_data/",
+                        stringify!($function_name),
+                        ".input"
+                    )),
+                    &ParseSettings::default(),
+                )
+                .unwrap()
+                .interpret_with_write(&mut stdout);
+                assert_eq!(
+                    stdout,
+                    include_bytes!(concat!(
+                        "../test_data/",
+                        stringify!($function_name),
+                        ".output"
+                    ))
+                );
+            }
+        };
     }
+
+    output_test!(comment1);
 }
