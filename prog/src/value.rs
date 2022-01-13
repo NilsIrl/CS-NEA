@@ -185,8 +185,11 @@ impl PartialEq for DenotedValue {
 impl PartialOrd for DenotedValue {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (&*self.0.borrow(), &*other.0.borrow()) {
-            (Value::Integer(lhs), Value::Integer(ref rhs)) => lhs.partial_cmp(rhs),
-            (Value::Float(lhs), Value::Float(ref rhs)) => lhs.partial_cmp(rhs),
+            (Value::Integer(lhs), Value::Integer(rhs)) => lhs.partial_cmp(rhs),
+            (Value::Float(lhs), Value::Float(rhs)) => lhs.partial_cmp(rhs),
+            (Value::Integer(lhs), Value::Float(rhs)) => (*lhs as f64).partial_cmp(rhs),
+            (Value::Float(lhs), Value::Integer(rhs)) => lhs.partial_cmp(&(*rhs as f64)),
+
             _ => None,
         }
     }

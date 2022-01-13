@@ -248,6 +248,7 @@ mod tests {
                 )
                 .unwrap()
                 .interpret_with_write(&mut stdout);
+                print!("{}", std::str::from_utf8(&stdout).unwrap());
                 assert_eq!(
                     stdout,
                     include_bytes!(concat!(
@@ -262,4 +263,5 @@ mod tests {
 
     output_test!(comment1);
     output_test!(switch1);
+    output_test!(thinking_logically);
 }
