@@ -694,6 +694,11 @@ comparing the 2 hasn't explicitly been defined.
 This behaviour is different than what python does. Python will happily compare
 an integer and a string, always returning False.
 
+Another way in which the behaviour is away from python is that when we print a
+float, if it doesn't have any decimal place it shows like an int. This is
+because we use the rust formatter. Although we have said we try to emulate
+python behaviour, we will probably use rust behaviour before.
+
 \subsection{Where to find example code}
 
 \begin{itemize}

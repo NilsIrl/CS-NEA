@@ -1,6 +1,7 @@
 use std::{
     cell::{Ref, RefCell},
     convert::TryInto,
+    fmt::Display,
     ops::{Add, Div, Mul, Rem, Sub},
     rc::Rc,
 };
@@ -74,6 +75,17 @@ impl Div for &Value {
             (Value::Integer(lhs), Value::Integer(rhs)) => Value::Float(*lhs as f64 / *rhs as f64),
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs / rhs),
             (lhs, rhs) => panic!("Can't divide {:?} and {:?}", lhs, rhs),
+        }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Integer(int) => write!(f, "{}", int),
+            Self::Float(float) => write!(f, "{}", float),
+            Self::String(str) => f.write_str(str),
+            v => panic!("Cannot display {:?}", v),
         }
     }
 }

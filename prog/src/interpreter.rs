@@ -105,10 +105,9 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
 
 fn print(args: &[DenotedValue], write: &mut impl io::Write) {
     for arg in args {
-        match &*arg.borrow() {
-            Value::String(string) => writeln!(write, "{}", string).unwrap(),
-            val => unimplemented!("Printing {:?} unimplemented", val),
-        }
+        // FIXME: Don't use format string here, we can just format and print directly
+        // Using to_string
+        writeln!(write, "{}", &*arg.borrow()).unwrap();
     }
 }
 
@@ -264,4 +263,5 @@ mod tests {
     output_test!(comment1);
     output_test!(switch1);
     output_test!(thinking_logically);
+    output_test!(maths1_print);
 }
