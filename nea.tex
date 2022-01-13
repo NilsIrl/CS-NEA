@@ -676,12 +676,23 @@ Pascal prevents compilation of programs where the variable is changed so I
 think that's a fine behaviour.
 
 For dealing with when to return a float or integer, we are following python's
-behaviour. E.g. division always returns float
+behaviour. E.g. division always returns float (exception, thinking logically
+seems to have issues with the new code) (update: so I asked Mrs Zeshan to show
+me the solution to the homework to be 100\% of the correct. Turns out what I
+had was correct. So the issue is with the interpreter or PG Online having
+terrible questions/mark schemes.
 
 Power return integer or other depending on various things
 
 Problem, test with stdout
 Solution: allow to write to other places than stdout
+
+Problem: numerical values can be ints or floats.
+Solution: fail no silently whenever types are somewhat not similar and
+comparing the 2 hasn't explicitly been defined.
+
+This behaviour is different than what python does. Python will happily compare
+an integer and a string, always returning False.
 
 \subsection{Where to find example code}
 

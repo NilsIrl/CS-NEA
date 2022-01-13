@@ -177,7 +177,7 @@ impl PartialEq for DenotedValue {
             //(Value::Integer(lhs), Value::Float(rhs)) => *lhs as f64 == *rhs,
             //(Value::Float(lhs), Value::Integer(rhs)) => *lhs == *rhs as f64,
             // TODO: How should we consider NoVal?
-            _ => false,
+            (lhs, rhs) => panic!("Cannot compare {:?} and {:?}", lhs, rhs),
         }
     }
 }
@@ -190,7 +190,7 @@ impl PartialOrd for DenotedValue {
             (Value::Integer(lhs), Value::Float(rhs)) => (*lhs as f64).partial_cmp(rhs),
             (Value::Float(lhs), Value::Integer(rhs)) => lhs.partial_cmp(&(*rhs as f64)),
 
-            _ => None,
+            (lhs, rhs) => panic!("Cannot compare {:?} and {:?}", lhs, rhs),
         }
     }
 }
