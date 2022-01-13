@@ -83,7 +83,7 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
             } {
                 extend_env(&mut context.environment, &var, counter.clone());
                 execute_statements(body, context);
-                // This clone is sheep because it is an Rc<_>
+                // This clone is cheap because it is an Rc<_>
                 // However I feel like there must be a better solution
                 counter = counter + step.clone();
                 //counter += step.clone();
