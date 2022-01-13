@@ -1,87 +1,13 @@
 use nom::Finish;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    convert::TryInto,
-    io,
-    ops::{Add, Div, Mul, Rem, Sub},
-    rc::Rc,
-};
+use std::{collections::HashMap, convert::TryInto, io};
 
-use super::parser::{
-    program, Assignment, Call, Expression, ListOfStatements, ParseSettings, Statement,
+use super::{
+    parser::{program, Assignment, Call, Expression, ListOfStatements, ParseSettings, Statement},
+    value::{DenotedValue, Value},
 };
 
 #[derive(Debug)]
 pub struct Error {}
-
-#[derive(PartialEq, Clone, Debug)]
-pub enum Value {
-    Integer(i64),
-    Float(f64),
-    Boolean(bool),
-    String(String),
-    NoVal,
-}
-
-impl Add for &Value {
-    type Output = Value;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs + rhs),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs + rhs),
-            (lhs, rhs) => panic!("can't add {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
-
-impl Sub for &Value {
-    type Output = Value;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs - rhs),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs - rhs),
-            (lhs, rhs) => panic!("can't substract {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
-
-impl Rem for &Value {
-    type Output = Value;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs % rhs),
-            (lhs, rhs) => panic!("can't calculate the remainder of {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
-
-impl Mul for &Value {
-    type Output = Value;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs * rhs),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs * rhs),
-            (lhs, rhs) => panic!("Can't multiply {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
-
-impl Div for &Value {
-    type Output = Value;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Float(*lhs as f64 / *rhs as f64),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs / rhs),
-            (lhs, rhs) => panic!("Can't divide {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
 
 #[derive(Debug, PartialEq)]
 pub struct Program<'a>(pub ListOfStatements<'a>);
@@ -113,122 +39,11 @@ impl Program<'_> {
     }
 }
 
-#[derive(Debug)]
-pub enum ProgError {
-    IsNotBool,
-}
-
 type Environment<'a> = Vec<HashMap<&'a str, DenotedValue>>;
 
 struct Context<'a, W: io::Write> {
     environment: Environment<'a>,
     stdout: W,
-}
-
-#[derive(Clone, Debug)]
-pub struct DenotedValue(Rc<RefCell<Value>>);
-
-impl From<bool> for DenotedValue {
-    fn from(v: bool) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::Boolean(v))))
-    }
-}
-
-impl From<i64> for DenotedValue {
-    fn from(v: i64) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::Integer(v))))
-    }
-}
-
-impl From<f64> for DenotedValue {
-    fn from(v: f64) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::Float(v))))
-    }
-}
-
-impl From<&str> for DenotedValue {
-    fn from(v: &str) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::String(v.to_string()))))
-    }
-}
-
-impl From<Value> for DenotedValue {
-    fn from(v: Value) -> Self {
-        DenotedValue(Rc::new(RefCell::new(v)))
-    }
-}
-
-impl TryInto<bool> for DenotedValue {
-    type Error = ProgError;
-    fn try_into(self) -> Result<bool, Self::Error> {
-        match *(*self.0).borrow() {
-            Value::Boolean(b) => Ok(b),
-            _ => Err(ProgError::IsNotBool),
-        }
-    }
-}
-
-impl Add for DenotedValue {
-    type Output = DenotedValue;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() + &*rhs.0.borrow())
-    }
-}
-
-impl Sub for DenotedValue {
-    type Output = DenotedValue;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() - &*rhs.0.borrow())
-    }
-}
-
-impl Rem for DenotedValue {
-    type Output = Self;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() % &*rhs.0.borrow())
-    }
-}
-
-impl Mul for DenotedValue {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() * &*rhs.0.borrow())
-    }
-}
-
-impl Div for DenotedValue {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() / &*rhs.0.borrow())
-    }
-}
-
-impl PartialEq for DenotedValue {
-    fn eq(&self, other: &Self) -> bool {
-        match (&*self.0.borrow(), &*other.0.borrow()) {
-            (Value::Integer(ref lhs), Value::Integer(ref rhs)) => lhs == rhs,
-            (Value::Float(lhs), Value::Float(rhs)) => lhs == rhs,
-            (Value::Boolean(lhs), Value::Boolean(rhs)) => lhs == rhs,
-            (Value::String(lhs), Value::String(rhs)) => lhs == rhs,
-            // TODO: How should we consider NoVal?
-            _ => false,
-        }
-    }
-}
-
-impl PartialOrd for DenotedValue {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match (&*self.0.borrow(), &*other.0.borrow()) {
-            (Value::Integer(lhs), Value::Integer(ref rhs)) => lhs.partial_cmp(rhs),
-            (Value::Float(lhs), Value::Float(ref rhs)) => lhs.partial_cmp(rhs),
-            _ => None,
-        }
-    }
 }
 
 fn extend_env<'a>(env: &mut Environment<'a>, name: &'a str, value: DenotedValue) {
@@ -290,7 +105,7 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
 
 fn print(args: &[DenotedValue], write: &mut impl io::Write) {
     for arg in args {
-        match &*arg.0.borrow() {
+        match &*arg.borrow() {
             Value::String(string) => writeln!(write, "{}", string).unwrap(),
             val => unimplemented!("Printing {:?} unimplemented", val),
         }
@@ -347,7 +162,7 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
 
-            let x = DenotedValue::from(match (&*lhs.0.borrow(), &*rhs.0.borrow()) {
+            let x = DenotedValue::from(match (&*lhs.borrow(), &*rhs.borrow()) {
                 (Value::Integer(lhs), Value::Integer(rhs)) => lhs / rhs,
                 _ => panic!("Can't calculate the quotient of {:?} and {:?}", lhs, rhs),
             });
@@ -357,7 +172,7 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
             let base = eval(&*base, context);
             let exponent = eval(&*exponent, context);
 
-            let x = match (&*base.0.borrow(), &*exponent.0.borrow()) {
+            let x = match (&*base.borrow(), &*exponent.borrow()) {
                 (Value::Integer(lhs), Value::Integer(rhs)) => {
                     if *rhs < 0 {
                         DenotedValue::from((*lhs as f64).powi(*rhs as i32))
