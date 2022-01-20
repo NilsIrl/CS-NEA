@@ -99,6 +99,11 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
         Statement::Expression(exp) => {
             eval(exp, context);
         }
+        Statement::While(condition, body) => {
+            while eval(condition, context).try_into().unwrap() {
+                execute_statements(body, context);
+            }
+        }
         unimplemented_statement => todo!("Statement {:?} unimplemented", unimplemented_statement),
     }
 }
@@ -115,6 +120,7 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
     match expression {
         Expression::IntegerLiteral(integer) => DenotedValue::from(*integer),
         Expression::StringLiteral(str) => DenotedValue::from(*str),
+        Expression::BoolLiteral(bool) => DenotedValue::from(*bool),
         Expression::Equal(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
