@@ -24,10 +24,7 @@ impl io::Write for WebsiteOutput<'_> {
                 ))
             }
         };
-        // I should investiage more, but these seem to be expensive operations
-        let mut existing_output = self.output_element.value();
-        existing_output.push_str(string);
-        self.output_element.set_value(&existing_output);
+        self.output_element.append_with_str_1(string).unwrap();
         Ok(string.len())
     }
 

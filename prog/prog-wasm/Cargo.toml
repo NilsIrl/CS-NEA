@@ -13,7 +13,8 @@ prog = { path = ".." }
 [dependencies.web-sys]
 version = "0.3.56"
 features = [
+    "Document",
+    "Element",
     "HtmlOutputElement",
     "Window",
-    "Document"
 ]
