@@ -10,5 +10,4 @@ crate-type = [ "cdylib" ]
 prog = { path = "../prog" }
 
 wasm-bindgen = "0.2.79"
-
 console_error_panic_hook = "0.1.7"

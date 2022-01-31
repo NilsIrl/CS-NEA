@@ -1,14 +1,9 @@
 use prog::{ParseSettings, Program};
-use std::{
-    io::{self, BufWriter},
-    str,
-};
+use std::{io, str};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 extern "C" {
-    pub type Terminal;
-
     #[wasm_bindgen]
     fn postMessage(data: &[u8]);
 }
@@ -23,11 +18,6 @@ impl io::Write for WorkerOutput {
 
     /// Does nothing, the writer doesn't have a buffer, so nothing can be flushed or not
     fn flush(&mut self) -> std::io::Result<()> {
-        // Things tried
-        // * request_animation_frame
-        // * set_timeout with empty string
-        // * display none, display block
-        // * https://stackoverflow.com/a/21665117/11748992
         Ok(())
     }
 }
