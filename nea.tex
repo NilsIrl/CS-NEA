@@ -705,6 +705,19 @@ issues with stuff being copied.
 Fixed performance issue potentially (idk didn't benchmark) but we still have
 the problem that the dom won't redraw in this infinite loop...
 
+Tried using xterm js, reached a problem where the input was corrupted. This was
+solved by using .slice(): https://github.com/rustwasm/wasm-bindgen/issues/1668
+
+The problem is that even with xterm js the output doesn't show.
+
+Last solution: using a background worker.
+
+Couldn't load web worker. Turns out it's because Firefox doesn't support web
+workers as modules.
+
+The solution is to load it dynamically or smth now it works. It's weird how we
+have to receive the message first before we can load the module.
+
 \subsection{Where to find example code}
 
 \begin{itemize}

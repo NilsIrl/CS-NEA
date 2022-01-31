@@ -10,3 +10,5 @@
 *.toc
 *.out
 _minted-nea
+
+.DS_Store

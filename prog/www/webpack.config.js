@@ -1,7 +1,7 @@
+const path = require("path");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin")
 
 module.exports = {
-  mode: "development",
   entry: "./js/index.ts",
   experiments: {
     asyncWebAssembly: true,
@@ -13,11 +13,15 @@ module.exports = {
         use: "ts-loader",
         exclude: /node_modules/,
       },
+      {
+        test: /\.css$/,
+        use: ["style-loader", "css-loader"],
+      },
     ]
   },
   plugins: [
     new WasmPackPlugin({
-      crateDirectory: __dirname,
+      crateDirectory: path.resolve(__dirname, "../prog-wasm"),
     })
   ],
   resolve: {

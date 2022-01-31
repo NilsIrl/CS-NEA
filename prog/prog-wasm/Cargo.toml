@@ -7,14 +7,8 @@ edition = "2021"
 crate-type = [ "cdylib" ]
 
 [dependencies]
-wasm-bindgen = "0.2.79"
-prog = { path = ".." }
+prog = { path = "../prog" }
 
-[dependencies.web-sys]
-version = "0.3.56"
-features = [
-    "Document",
-    "Element",
-    "HtmlOutputElement",
-    "Window",
-]
+wasm-bindgen = "0.2.79"
+
+console_error_panic_hook = "0.1.7"

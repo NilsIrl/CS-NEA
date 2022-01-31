@@ -1,48 +1,41 @@
 use prog::{ParseSettings, Program};
-use std::{io, str};
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
-use web_sys::{window, HtmlOutputElement};
+use std::{
+    io::{self, BufWriter},
+    str,
+};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 extern "C" {
-    fn append_to_output(s: &str);
-    fn clear_output();
+    pub type Terminal;
+
+    #[wasm_bindgen]
+    fn postMessage(data: &[u8]);
 }
 
-struct WebsiteOutput<'a> {
-    output_element: &'a HtmlOutputElement,
-}
+struct WorkerOutput;
 
-impl io::Write for WebsiteOutput<'_> {
+impl io::Write for WorkerOutput {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let string = match str::from_utf8(buf) {
-            Ok(string) => string,
-            Err(_) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "Failed to convert output to UTF8",
-                ))
-            }
-        };
-        self.output_element.append_with_str_1(string).unwrap();
-        Ok(string.len())
+        postMessage(buf);
+        Ok(buf.len())
     }
 
     /// Does nothing, the writer doesn't have a buffer, so nothing can be flushed or not
     fn flush(&mut self) -> std::io::Result<()> {
+        // Things tried
+        // * request_animation_frame
+        // * set_timeout with empty string
+        // * display none, display block
+        // * https://stackoverflow.com/a/21665117/11748992
         Ok(())
     }
 }
 
 #[wasm_bindgen]
 pub fn run(source: &str) {
+    console_error_panic_hook::set_once();
+
     let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
-    let window = window().unwrap();
-    let document = window.document().unwrap();
-    let element = document.get_element_by_id("output").unwrap();
-    let output = element.dyn_ref::<HtmlOutputElement>().unwrap();
-    output.set_value("");
-    ast.interpret_with_write(WebsiteOutput {
-        output_element: output,
-    });
+    ast.interpret_with_write(WorkerOutput);
 }
