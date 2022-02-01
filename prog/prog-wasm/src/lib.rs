@@ -2,17 +2,17 @@ use prog::{ParseSettings, Program};
 use std::{io, str};
 use wasm_bindgen::prelude::wasm_bindgen;
 
-#[wasm_bindgen]
+#[wasm_bindgen(inline_js = "export function print(data) { postMessage(data.slice()); }")]
 extern "C" {
     #[wasm_bindgen]
-    fn postMessage(data: &[u8]);
+    fn print(data: &[u8]);
 }
 
 struct WorkerOutput;
 
 impl io::Write for WorkerOutput {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        postMessage(buf);
+        print(buf);
         Ok(buf.len())
     }
 
