@@ -270,4 +270,5 @@ mod tests {
     output_test!(switch1);
     output_test!(thinking_logically);
     output_test!(maths1_print);
+    output_test!(fizzbuzz);
 }
