@@ -1,0 +1,9 @@
+Program(
+    vec![
+        Statement::Expression(
+            Expression::IntegerLiteral(
+                -1,
+            ),
+        ),
+    ],
+)

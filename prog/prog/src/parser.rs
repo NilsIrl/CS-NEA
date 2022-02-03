@@ -183,6 +183,7 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                 map(tag_with_settings("false", parse_settings), |_| {
                     Expression::BoolLiteral(false)
                 }),
+                number_literal,
                 map(
                     preceded(
                         pair(tag_with_settings("new", parse_settings), space1),
@@ -192,7 +193,6 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                 ),
                 map(call(parse_settings), Expression::FunctionCall),
                 map(identifier(parse_settings), Expression::Variable),
-                number_literal,
             )),
         )(input)
     }
@@ -870,4 +870,5 @@ mod tests {
     ast_test!(array_declaration1, &CASE_SENSITIVE);
     ast_test!(class1, &CASE_SENSITIVE);
     ast_test!(new_object, &CASE_SENSITIVE);
+    ast_test!(minus_one_literal, &CASE_SENSITIVE);
 }
