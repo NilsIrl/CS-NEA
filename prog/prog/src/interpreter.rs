@@ -124,6 +124,19 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
         Expression::StringLiteral(str) => DenotedValue::from(*str),
         Expression::BoolLiteral(bool) => DenotedValue::from(*bool),
         Expression::FloatLiteral(float) => DenotedValue::from(*float),
+        Expression::And(lhs, rhs) => {
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
+
+            DenotedValue::from(lhs.try_into().unwrap() && rhs.try_into().unwrap())
+        }
+        Expression::Or(lhs, rhs) => {
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
+
+            DenotedValue::from(lhs.try_into().unwrap() || rhs.try_into().unwrap())
+        }
+        Expression::Not(exp) => !eval(&*exp, context),
         Expression::Equal(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
@@ -231,9 +244,6 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
         }
         Expression::New(..) | Expression::MethodCall(..) | Expression::ObjectAttribute(..) => {
             todo!("Object oriented features")
-        }
-        unimplemented_expression => {
-            todo!("Expression {:?} unimplemented", unimplemented_expression)
         }
     }
 }

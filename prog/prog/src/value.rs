@@ -2,7 +2,7 @@ use std::{
     cell::{Ref, RefCell},
     convert::TryInto,
     fmt::Display,
-    ops::{Add, Div, Mul, Rem, Sub},
+    ops::{Add, Div, Mul, Not, Rem, Sub},
     rc::Rc,
 };
 
@@ -18,6 +18,18 @@ pub enum Value {
     Boolean(bool),
     String(String),
     NoVal,
+}
+
+impl Not for &Value {
+    type Output = Value;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Value::Boolean(true) => Value::Boolean(false),
+            Value::Boolean(false) => Value::Boolean(true),
+            _ => panic!("Cannot compute logical negation of {:?}", self),
+        }
+    }
 }
 
 impl Add for &Value {
@@ -136,6 +148,14 @@ impl TryInto<bool> for DenotedValue {
             Value::Boolean(b) => Ok(b),
             _ => Err(ProgError::IsNotBool),
         }
+    }
+}
+
+impl Not for DenotedValue {
+    type Output = DenotedValue;
+
+    fn not(self) -> Self::Output {
+        Self::from(!&*self.0.borrow())
     }
 }
 
