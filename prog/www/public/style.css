@@ -13,6 +13,10 @@ body {
     width: 100%;
 }
 
+#actions {
+    display: flex;
+}
+
 #code-monaco {
     width: 100%;
     flex-grow: 1;

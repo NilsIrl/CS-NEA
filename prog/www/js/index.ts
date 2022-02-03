@@ -32,19 +32,38 @@ term.onKey((e: {key: string, domEvent: KeyboardEvent }) => {
 });
 
 const runButton = document.getElementById("run-button");
+const printAstButton = document.getElementById("print-ast");
+
 const textarea = <HTMLTextAreaElement>document.getElementById("code-textarea");
+
+printAstButton.addEventListener("click", e => {
+    term.clear();
+    const worker = new Worker(
+        new URL('worker.ts', import.meta.url),
+    );
+    worker.addEventListener("message", e => {
+        switch (e.data.type) {
+            case "print":
+                term.write(e.data.inner);
+                break;
+        }
+    });
+    worker.postMessage({
+        type: "ast",
+        inner: editor.getValue(),
+    });
+});
 
 runButton.addEventListener("click", e => {
     if (runButton.innerText === "Stop") {
         terminate_worker();
         return;
     }
-    //e.preventDefault();
     term.clear();
     scriptRunner = new Worker(
         new URL('worker.ts', import.meta.url),
     );
-    scriptRunner.addEventListener("message", function(e) {
+    scriptRunner.addEventListener("message", e => {
         switch (e.data.type) {
             case "close":
                 terminate_worker();
@@ -59,5 +78,4 @@ runButton.addEventListener("click", e => {
         inner: editor.getValue(),
     });
     runButton.innerText = "Stop";
-    console.log("post message");
 })

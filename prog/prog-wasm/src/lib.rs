@@ -1,5 +1,5 @@
 use prog::{ParseSettings, Program};
-use std::{io, str};
+use std::{io::Write, str};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen(module = "/js/utils.js")]
@@ -10,7 +10,7 @@ extern "C" {
 
 struct WorkerOutput;
 
-impl io::Write for WorkerOutput {
+impl Write for WorkerOutput {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         print(buf);
         Ok(buf.len())
@@ -28,4 +28,12 @@ pub fn run(source: &str) {
 
     let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
     ast.interpret_with_write(WorkerOutput);
+}
+
+#[wasm_bindgen]
+pub fn ast(source: &str) {
+    console_error_panic_hook::set_once();
+
+    let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
+    writeln!(WorkerOutput, "{:#?}", ast).unwrap();
 }
