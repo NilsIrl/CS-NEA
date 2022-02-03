@@ -1,0 +1,13 @@
+a = 1
+while a < 21
+    if a MOD 15 == 0 then
+        print("FizzBuzz")
+    elseif a MOD 3 == 0 then
+        print("Fizz")
+    elseif a MOD 5 == 0 then
+        print("Buzz")
+    else
+        print(a)
+    endif
+    a = a + 1
+endwhile

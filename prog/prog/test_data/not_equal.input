@@ -1,0 +1,14 @@
+i = "Name"
+if i != "Name" then
+    print("that was not a name")
+else
+    print("that was a name")
+endif
+
+// Shadow
+i = "Address"
+if i == "Address" then
+    print("that was an address")
+else
+    print("that was not an address")
+endif

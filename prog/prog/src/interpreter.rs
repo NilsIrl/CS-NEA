@@ -76,10 +76,11 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
             let mut counter = eval(beginning, context);
             let end = eval(end, context);
             let step = eval(step, context);
+            let step_is_positive_or_zero = step >= DenotedValue::from(0);
 
             while {
-                step >= DenotedValue::from(0) && counter <= end
-                    || step < DenotedValue::from(0) && counter >= end
+                step_is_positive_or_zero && counter <= end
+                    || !step_is_positive_or_zero && counter >= end
             } {
                 extend_env(&mut context.environment, &var, counter.clone());
                 execute_statements(body, context);
@@ -88,6 +89,7 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
                 counter = counter + step.clone();
                 //counter += step.clone();
             }
+            // We should probably remove the variable from the environment once we are done
         }
         Statement::If(exp, if_body, else_body) => {
             if eval(exp, context).try_into().unwrap() {
@@ -128,10 +130,26 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
 
             DenotedValue::from(lhs == rhs)
         }
+        Expression::NotEqual(lhs, rhs) => {
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
+
+            DenotedValue::from(lhs != rhs)
+        }
+        Expression::GreaterThan(lhs, rhs) => {
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
+            DenotedValue::from(lhs > rhs)
+        }
         Expression::GreaterThanOrEqual(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
             DenotedValue::from(lhs >= rhs)
+        }
+        Expression::LessThan(lhs, rhs) => {
+            let lhs = eval(&*lhs, context);
+            let rhs = eval(&*rhs, context);
+            DenotedValue::from(lhs < rhs)
         }
         Expression::LessThanOrEqual(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
@@ -211,6 +229,9 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
                 _ => todo!("Implement functions"),
             }
         }
+        Expression::New(..) | Expression::MethodCall(..) | Expression::ObjectAttribute(..) => {
+            todo!("Object oriented features")
+        }
         unimplemented_expression => {
             todo!("Expression {:?} unimplemented", unimplemented_expression)
         }
@@ -273,4 +294,8 @@ mod tests {
     output_test!(maths1_print);
     output_test!(fizzbuzz);
     output_test!(print_float1);
+    output_test!(not_equal);
+    output_test!(fizzbuzz_while_loop);
+    output_test!(countdown_while_loop);
+    output_test!(countdown_for_loop);
 }
