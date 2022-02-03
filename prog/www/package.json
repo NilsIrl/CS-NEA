@@ -1,4 +1,5 @@
 {
+  "name": "prog-www",
   "scripts": {
     "serve": "webpack serve"
   },
@@ -13,6 +14,8 @@
     "webpack-dev-server": "^4.7.3"
   },
   "dependencies": {
-    "xterm": "^4.16.0"
+    "monaco-editor": "^0.31.1",
+    "xterm": "^4.16.0",
+    "xterm-addon-fit": "^0.5.0"
   }
 }

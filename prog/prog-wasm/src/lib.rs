@@ -2,7 +2,7 @@ use prog::{ParseSettings, Program};
 use std::{io, str};
 use wasm_bindgen::prelude::wasm_bindgen;
 
-#[wasm_bindgen(inline_js = "export function print(data) { postMessage(data.slice()); }")]
+#[wasm_bindgen(module = "/js/utils.js")]
 extern "C" {
     #[wasm_bindgen]
     fn print(data: &[u8]);
