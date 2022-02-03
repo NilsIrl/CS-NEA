@@ -121,6 +121,7 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
         Expression::IntegerLiteral(integer) => DenotedValue::from(*integer),
         Expression::StringLiteral(str) => DenotedValue::from(*str),
         Expression::BoolLiteral(bool) => DenotedValue::from(*bool),
+        Expression::FloatLiteral(float) => DenotedValue::from(*float),
         Expression::Equal(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
@@ -271,4 +272,5 @@ mod tests {
     output_test!(thinking_logically);
     output_test!(maths1_print);
     output_test!(fizzbuzz);
+    output_test!(print_float1);
 }
