@@ -2,7 +2,7 @@ use std::{
     cell::{Ref, RefCell},
     convert::TryInto,
     fmt::Display,
-    ops::{Add, Div, Mul, Not, Rem, Sub},
+    ops::{Add, AddAssign, Div, Mul, Not, Rem, Sub},
     rc::Rc,
 };
 
@@ -29,6 +29,16 @@ impl Not for &Value {
             Value::Boolean(false) => Value::Boolean(true),
             _ => panic!("Cannot compute logical negation of {:?}", self),
         }
+    }
+}
+
+impl AddAssign for Value {
+    fn add_assign(&mut self, other: Self) {
+        match (self, other) {
+            (Value::Integer(lhs), Value::Integer(rhs)) => *lhs += rhs,
+            (Value::Float(lhs), Value::Float(rhs)) => *lhs += rhs,
+            (lhs, rhs) => panic!("can't add_assign {:?} and {:?}", lhs, rhs),
+        };
     }
 }
 
@@ -156,6 +166,12 @@ impl Not for DenotedValue {
 
     fn not(self) -> Self::Output {
         Self::from(!&*self.0.borrow())
+    }
+}
+
+impl AddAssign for DenotedValue {
+    fn add_assign(&mut self, other: Self) {
+        *self.0.borrow_mut() += other.borrow().clone();
     }
 }
 

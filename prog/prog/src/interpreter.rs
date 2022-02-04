@@ -77,19 +77,20 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
             let end = eval(end, context);
             let step = eval(step, context);
             let step_is_positive_or_zero = step >= DenotedValue::from(0);
+            extend_env(&mut context.environment, &var, counter.clone());
 
             while {
                 step_is_positive_or_zero && counter <= end
                     || !step_is_positive_or_zero && counter >= end
             } {
-                extend_env(&mut context.environment, &var, counter.clone());
                 execute_statements(body, context);
                 // This clone is cheap because it is an Rc<_>
                 // However I feel like there must be a better solution
-                counter = counter + step.clone();
-                //counter += step.clone();
+                //
+                // The counter is also updated in the environment because the clone is an Rc
+                counter += step.clone();
             }
-            // We should probably remove the variable from the environment once we are done
+            // TODO: We should probably remove the variable from the environment once we are done
         }
         Statement::If(exp, if_body, else_body) => {
             if eval(exp, context).try_into().unwrap() {
