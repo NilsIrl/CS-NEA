@@ -3,11 +3,11 @@ Program(vec![Statement::Expression(Expression::FunctionCall(Call(
     vec![Expression::Or(
         Box::new(Expression::And(
             Box::new(Expression::LessThanOrEqual(
-                Box::new(Expression::Variable("x".to_string())),
+                Box::new(Expression::Reference(Reference::Identifier("x".to_string()))),
                 Box::new(Expression::IntegerLiteral(5)),
             )),
             Box::new(Expression::Equal(
-                Box::new(Expression::Variable("flag".to_string())),
+                Box::new(Expression::Reference(Reference::Identifier("flag".to_string()))),
                 Box::new(Expression::BoolLiteral(false)),
             )),
         )),

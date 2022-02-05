@@ -1,6 +1,6 @@
 Program(vec![Statement::If(
     Expression::Equal(
-        Box::new(Expression::Variable("entry".to_string())),
+        Box::new(Expression::Reference(Reference::Identifier("entry".to_string()))),
         Box::new(Expression::StringLiteral("a")),
     ),
     vec![Statement::Expression(Expression::FunctionCall(Call(
@@ -9,7 +9,7 @@ Program(vec![Statement::If(
     )))],
     vec![Statement::If(
         Expression::Equal(
-            Box::new(Expression::Variable("entry".to_string())),
+            Box::new(Expression::Reference(Reference::Identifier("entry".to_string()))),
             Box::new(Expression::StringLiteral("b")),
         ),
         vec![Statement::Expression(Expression::FunctionCall(Call(

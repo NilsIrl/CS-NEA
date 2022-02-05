@@ -1,5 +1,5 @@
 Program(vec![Statement::Assignment(Assignment(
-    "name".to_string(),
+    Reference::Identifier("name".to_string()),
     Expression::FunctionCall(Call(
         "input".to_string(),
         vec![Expression::StringLiteral("Please enter your name")],

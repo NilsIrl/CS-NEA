@@ -1,32 +1,30 @@
 Program(vec![Statement::For(
-    "a".to_string(),
-    Expression::IntegerLiteral(8),
+    Assignment(Reference::Identifier("a".to_string()), Expression::IntegerLiteral(8)),
     Expression::IntegerLiteral(19),
     Expression::IntegerLiteral(4),
     vec![Statement::For(
-        "b".to_string(),
-        Expression::IntegerLiteral(1),
+        Assignment(Reference::Identifier("b".to_string()), Expression::IntegerLiteral(1)),
         Expression::IntegerLiteral(3),
         Expression::IntegerLiteral(1),
         vec![Statement::If(
             Expression::GreaterThanOrEqual(
                 Box::new(Expression::Modulus(
-                    Box::new(Expression::Variable("a".to_string())),
-                    Box::new(Expression::Variable("b".to_string())),
+                    Box::new(Expression::Reference(Reference::Identifier("a".to_string()))),
+                    Box::new(Expression::Reference(Reference::Identifier("b".to_string()))),
                 )),
                 Box::new(Expression::Divide(
-                    Box::new(Expression::Variable("b".to_string())),
+                    Box::new(Expression::Reference(Reference::Identifier("b".to_string()))),
                     Box::new(Expression::IntegerLiteral(3)),
                 )),
             ),
             vec![Statement::If(
                 Expression::LessThanOrEqual(
                     Box::new(Expression::Divide(
-                        Box::new(Expression::Variable("a".to_string())),
+                        Box::new(Expression::Reference(Reference::Identifier("a".to_string()))),
                         Box::new(Expression::IntegerLiteral(4)),
                     )),
                     Box::new(Expression::Plus(
-                        Box::new(Expression::Variable("b".to_string())),
+                        Box::new(Expression::Reference(Reference::Identifier("b".to_string()))),
                         Box::new(Expression::IntegerLiteral(1)),
                     )),
                 ),

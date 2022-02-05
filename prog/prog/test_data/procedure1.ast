@@ -5,7 +5,7 @@ Program(vec![Statement::Function(FunctionDeclaration {
         "print".to_string(),
         vec![Expression::Plus(
             Box::new(Expression::StringLiteral("hello")),
-            Box::new(Expression::Variable("name".to_string())),
+            Box::new(Expression::Reference(Reference::Identifier("name".to_string()))),
         )],
     )))],
 })])

@@ -1,10 +1,10 @@
 Program(vec![Statement::While(
     Expression::NotEqual(
-        Box::new(Expression::Variable("answer".to_string())),
+        Box::new(Expression::Reference(Reference::Identifier("answer".to_string()))),
         Box::new(Expression::StringLiteral("computer")),
     ),
     vec![Statement::Assignment(Assignment(
-        "answer".to_string(),
+        Reference::Identifier("answer".to_string()),
         Expression::FunctionCall(Call(
             "input".to_string(),
             vec![Expression::StringLiteral("What is the password?")],

@@ -1,5 +1,5 @@
 use std::{
-    cell::{Ref, RefCell},
+    cell::{Ref, RefCell, RefMut},
     convert::TryInto,
     fmt::Display,
     ops::{Add, AddAssign, Div, Mul, Not, Rem, Sub},
@@ -8,7 +8,9 @@ use std::{
 
 #[derive(Debug)]
 pub enum ProgError {
-    IsNotBool,
+    NotBool,
+    NotPositiveInteger,
+    NotArray,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -17,6 +19,12 @@ pub enum Value {
     Float(f64),
     Boolean(bool),
     String(String),
+    Array(Vec<DenotedValue>),
+
+    // When a value is uninitialized
+    Undefined,
+
+    // to deal with functions vs procedures
     NoVal,
 }
 
@@ -116,8 +124,35 @@ impl Display for Value {
 pub struct DenotedValue(Rc<RefCell<Value>>);
 
 impl DenotedValue {
+    pub fn new_array_from_dimensions(dimensions: &[usize]) -> Self {
+        match dimensions {
+            [] => Self::from(Value::Undefined),
+            [x, xs @ ..] => Self::from(Value::Array(vec![Self::new_array_from_dimensions(xs); *x])),
+        }
+    }
+
     pub fn borrow(&self) -> Ref<'_, Value> {
         self.0.borrow()
+    }
+
+    pub fn borrow_mut(&self) -> RefMut<'_, Value> {
+        self.0.borrow_mut()
+    }
+
+    pub fn get_value_at_index(&self, index: DenotedValue) -> DenotedValue {
+        let index: usize = index.try_into().unwrap();
+        match &*self.0.borrow() {
+            Value::Array(v) => v[index].clone(),
+            _ => panic!("Cannot index {:?}", self),
+        }
+    }
+
+    pub fn set_value_at_index(&self, index: DenotedValue, value: DenotedValue) {
+        let index: usize = index.try_into().unwrap();
+        match *self.0.borrow_mut() {
+            Value::Array(ref mut v) => v[index] = value,
+            _ => panic!("Cannot index {:?}", self),
+        }
     }
 }
 
@@ -154,9 +189,26 @@ impl From<Value> for DenotedValue {
 impl TryInto<bool> for DenotedValue {
     type Error = ProgError;
     fn try_into(self) -> Result<bool, Self::Error> {
-        match *(*self.0).borrow() {
+        match *self.0.borrow() {
             Value::Boolean(b) => Ok(b),
-            _ => Err(ProgError::IsNotBool),
+            _ => Err(ProgError::NotBool),
+        }
+    }
+}
+
+impl TryInto<usize> for DenotedValue {
+    type Error = ProgError;
+    fn try_into(self) -> Result<usize, Self::Error> {
+        TryInto::<i64>::try_into(self).map(|v| v as usize)
+    }
+}
+
+impl TryInto<i64> for DenotedValue {
+    type Error = ProgError;
+    fn try_into(self) -> Result<i64, Self::Error> {
+        match *self.0.borrow() {
+            Value::Integer(s) => Ok(s),
+            _ => Err(ProgError::NotPositiveInteger),
         }
     }
 }
@@ -240,5 +292,32 @@ impl PartialOrd for DenotedValue {
 
             (lhs, rhs) => panic!("Cannot compare {:?} and {:?}", lhs, rhs),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_assign_test1() {
+        let mut val1 = DenotedValue::from(Value::Integer(2));
+        let val2 = DenotedValue::from(Value::Integer(5));
+        val1 = val1 + val2.clone();
+        assert_eq!(val1, DenotedValue::from(Value::Integer(7)));
+        val1 += val2;
+        assert_eq!(val1, DenotedValue::from(Value::Integer(12)));
+    }
+
+    #[test]
+    fn new_array_test() {
+        let array = DenotedValue::new_array_from_dimensions(&[10]);
+        array.set_value_at_index(DenotedValue::from(3), DenotedValue::from(4));
+        array.set_value_at_index(DenotedValue::from(4), DenotedValue::from(5));
+        let val_at_index_3: i64 = array
+            .get_value_at_index(DenotedValue::from(3))
+            .try_into()
+            .unwrap();
+        assert_eq!(val_at_index_3, 4);
     }
 }

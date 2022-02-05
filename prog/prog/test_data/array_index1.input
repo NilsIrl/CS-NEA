@@ -1,0 +1,8 @@
+array colours[5]
+colours[0] = "Blue"
+colours[1] = "Red"
+colours[2] = "Green"
+colours[3] = "White"
+colours[4] = "Black"
+
+print(colours[2])

@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case, take_till, take_while},
     character::complete::{self, char, i64, not_line_ending, satisfy},
-    combinator::{all_consuming, map, opt, recognize, value, verify},
+    combinator::{all_consuming, map, map_opt, opt, recognize, value, verify},
     multi::{many0, separated_list0, separated_list1},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -61,10 +61,10 @@ pub enum Expression<'a> {
     FloatLiteral(f64),
     BoolLiteral(bool),
     FunctionCall(Call<'a>),
-    Variable(String),
+    Reference(Reference<'a>),
 
     MethodCall(Box<Expression<'a>>, Call<'a>),
-    ObjectAttribute(Box<Expression<'a>>, String),
+    ObjectAttribute(Box<Expression<'a>>, Box<Reference<'a>>),
     New(Call<'a>),
 
     Equal(Box<Expression<'a>>, Box<Expression<'a>>),
@@ -87,8 +87,14 @@ pub enum Expression<'a> {
     Not(Box<Expression<'a>>),
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum Reference<'a> {
+    Identifier(String),
+    Index(Box<Reference<'a>>, Box<Expression<'a>>),
+}
+
 #[derive(Debug, PartialEq)]
-pub struct Assignment<'a>(pub String, pub Expression<'a>);
+pub struct Assignment<'a>(pub Reference<'a>, pub Expression<'a>);
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionDeclaration<'a> {
@@ -101,7 +107,7 @@ pub struct FunctionDeclaration<'a> {
 #[derive(Debug, PartialEq)]
 pub enum Statement<'a> {
     Assignment(Assignment<'a>),
-    GlobalAssignment(Assignment<'a>),
+    GlobalAssignment(String, Expression<'a>),
     ArrayDeclaration(String, Vec<Expression<'a>>),
     ClassDeclaration {
         name: String,
@@ -113,8 +119,7 @@ pub enum Statement<'a> {
     },
     Expression(Expression<'a>),
     For(
-        String,
-        Expression<'a>,
+        Assignment<'a>,
         Expression<'a>,
         Expression<'a>,
         ListOfStatements<'a>,
@@ -192,7 +197,9 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                     Expression::New,
                 ),
                 map(call(parse_settings), Expression::FunctionCall),
-                map(identifier(parse_settings), Expression::Variable),
+                map(reference(parse_settings), |reference| {
+                    Expression::Reference(reference)
+                }),
             )),
         )(input)
     }
@@ -384,16 +391,18 @@ fn expression(
                 char('.'),
                 alt((
                     map(call(parse_settings), Expression::FunctionCall),
-                    map(identifier(parse_settings), Expression::Variable),
+                    map(reference(parse_settings), |reference| {
+                        Expression::Reference(reference)
+                    }),
                 )),
             )(input)
             {
                 Ok((input, Expression::FunctionCall(call))) => {
                     (input, Expression::MethodCall(Box::new(expression), call))
                 }
-                Ok((input, Expression::Variable(identifier))) => (
+                Ok((input, Expression::Reference(reference))) => (
                     input,
-                    Expression::ObjectAttribute(Box::new(expression), identifier),
+                    Expression::ObjectAttribute(Box::new(expression), Box::new(reference)),
                 ),
                 Ok((..)) => unreachable!("Can only return FunctionCall or Variable"),
                 Err(_) => (input, expression),
@@ -455,15 +464,47 @@ fn identifier(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&st
     }
 }
 
+fn reference(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Reference> + '_ {
+    move |input: &str| {
+        let (input, identifier) = map(identifier(parse_settings), Reference::Identifier)(input)?;
+        let (input, indexes) = many0(delimited(
+            token(char('[')),
+            // FIXME: This allocation is avoidable
+            separated_list1(token(comma), expression(parse_settings)),
+            token(char(']')),
+        ))(input)?;
+        Ok((
+            input,
+            indexes.into_iter().fold(identifier, |id2, dimensions| {
+                dimensions.into_iter().fold(id2, |id3, index| {
+                    Reference::Index(Box::new(id3), Box::new(index))
+                })
+            }),
+        ))
+    }
+}
+
 fn assignment(
     parse_settings: &ParseSettings,
 ) -> impl FnMut(&str) -> IResult<&str, Assignment> + '_ {
     move |input: &str| {
-        let (input, (identifier, expression)) = tuple((
-            identifier(parse_settings),
+        let (input, (reference, expression)) = tuple((
+            reference(parse_settings),
             preceded(preceded(space0, char('=')), expression(parse_settings)),
         ))(input)?;
-        Ok((input, Assignment(identifier, expression)))
+        Ok((input, Assignment(reference, expression)))
+    }
+}
+
+fn global_assignment_statement(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, (identifier, expression)) = tuple((
+            preceded(pair(tag("global"), space1), identifier(parse_settings)),
+            preceded(preceded(space0, char('=')), expression(parse_settings)),
+        ))(input)?;
+        Ok((input, Statement::GlobalAssignment(identifier, expression)))
     }
 }
 
@@ -528,21 +569,18 @@ fn class_declaration(
     }
 }
 
-fn global_assignment_statement(
-    parse_settings: &ParseSettings,
-) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
-    move |input: &str| {
-        map(
-            preceded(tag("global"), preceded(space1, assignment(parse_settings))),
-            Statement::GlobalAssignment,
-        )(input)
-    }
-}
-
 fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
-        let (input, Assignment(variable_name, assigned_value)) =
-            preceded(pair(tag("for"), space1), assignment(parse_settings))(input)?;
+        let (input, (variable_name, assigned_value)) = preceded(
+            pair(tag("for"), space1),
+            map_opt(
+                assignment(parse_settings),
+                |Assignment(variable_name, assigned_value)| match variable_name {
+                    Reference::Identifier(variable_name) => Some((variable_name, assigned_value)),
+                    _ => None,
+                },
+            ),
+        )(input)?;
         let (input, (end_expression, step_expression, body)) = terminated(
             tuple((
                 preceded(pair(space1, tag("to")), expression(parse_settings)),
@@ -567,8 +605,7 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
         Ok((
             input,
             Statement::For(
-                variable_name,
-                assigned_value,
+                Assignment(Reference::Identifier(variable_name), assigned_value),
                 end_expression,
                 step_expression,
                 body,

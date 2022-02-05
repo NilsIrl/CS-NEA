@@ -1,41 +1,41 @@
 Program(vec![
     Statement::Assignment(Assignment(
-        "equal".to_string(),
+        Reference::Identifier("equal".to_string()),
         Expression::Equal(
             Box::new(Expression::StringLiteral("a")),
             Box::new(Expression::StringLiteral("b")),
         ),
     )),
     Statement::Assignment(Assignment(
-        "not_equal".to_string(),
+        Reference::Identifier("not_equal".to_string()),
         Expression::NotEqual(
             Box::new(Expression::StringLiteral("a")),
             Box::new(Expression::StringLiteral("b")),
         ),
     )),
     Statement::Assignment(Assignment(
-        "less_than".to_string(),
+        Reference::Identifier("less_than".to_string()),
         Expression::LessThan(
             Box::new(Expression::StringLiteral("a")),
             Box::new(Expression::StringLiteral("b")),
         ),
     )),
     Statement::Assignment(Assignment(
-        "less_than_or_eqal_to".to_string(),
+        Reference::Identifier("less_than_or_eqal_to".to_string()),
         Expression::LessThanOrEqual(
             Box::new(Expression::StringLiteral("a")),
             Box::new(Expression::StringLiteral("b")),
         ),
     )),
     Statement::Assignment(Assignment(
-        "greater_than".to_string(),
+        Reference::Identifier("greater_than".to_string()),
         Expression::GreaterThan(
             Box::new(Expression::StringLiteral("a")),
             Box::new(Expression::StringLiteral("b")),
         ),
     )),
     Statement::Assignment(Assignment(
-        "greater_than_or_less".to_string(),
+        Reference::Identifier("greater_than_or_less".to_string()),
         Expression::GreaterThanOrEqual(
             Box::new(Expression::StringLiteral("a")),
             Box::new(Expression::StringLiteral("b")),

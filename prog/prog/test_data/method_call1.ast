@@ -1,12 +1,12 @@
 Program(vec![
     Statement::Expression(
         Expression::MethodCall(
-            Box::new(Expression::Variable("stringname".to_string())),
+            Box::new(Expression::Reference(Reference::Identifier("stringname".to_string()))),
             Call(
                 "subString".to_string(),
                 vec![
-                    Expression::Variable("startingPosition".to_string()),
-                    Expression::Variable("numberOfCharacters".to_string()),
+                    Expression::Reference(Reference::Identifier("startingPosition".to_string())),
+                    Expression::Reference(Reference::Identifier("numberOfCharacters".to_string())),
                 ]
             )
         )

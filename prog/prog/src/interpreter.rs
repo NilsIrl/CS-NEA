@@ -2,7 +2,10 @@ use nom::Finish;
 use std::{collections::HashMap, convert::TryInto, io};
 
 use super::{
-    parser::{program, Assignment, Call, Expression, ListOfStatements, ParseSettings, Statement},
+    parser::{
+        program, Assignment, Call, Expression, ListOfStatements, ParseSettings, Reference,
+        Statement,
+    },
     value::{DenotedValue, Value},
 };
 
@@ -46,15 +49,49 @@ struct Context<'a, W: io::Write> {
     stdout: W,
 }
 
-fn extend_env<'a>(env: &mut Environment<'a>, name: &'a str, value: DenotedValue) {
-    env.last_mut().unwrap().insert(name, value);
+fn apply_env<'a>(reference: &Reference, context: &mut Context<'a, impl io::Write>) -> DenotedValue {
+    let env = &context.environment;
+    match reference {
+        Reference::Identifier(var_name) => env
+            .last()
+            .unwrap()
+            .get(var_name.as_str())
+            .or_else(|| env[0].get(var_name.as_str()))
+            .expect(&format!("Variable `{}` undefined", var_name))
+            .clone(),
+        Reference::Index(reference, index) => {
+            let array = apply_env(reference, context);
+            let index = eval(index, context);
+            array.get_value_at_index(index)
+        }
+    }
 }
 
-fn apply_env(env: &mut Environment, name: &str) -> DenotedValue {
-    match env.last().unwrap().get(name) {
-        Some(val) => val.clone(),
-        None => env[0].get(name).unwrap().clone(),
-    }
+fn extend_env<'a>(
+    reference: &'a Reference,
+    value: DenotedValue,
+    context: &mut Context<'a, impl io::Write>,
+) {
+    match reference {
+        Reference::Identifier(var_name) => match context
+            .environment
+            .first_mut()
+            .unwrap()
+            .get_mut(var_name.as_str())
+        {
+            Some(global_val) => *global_val = value,
+            None => {
+                context
+                    .environment
+                    .last_mut()
+                    .unwrap()
+                    .insert(var_name.as_str(), value);
+            }
+        },
+        Reference::Index(reference, index) => {
+            apply_env(reference, context).set_value_at_index(eval(index, context), value);
+        }
+    };
 }
 
 fn execute_statements<'a>(
@@ -68,16 +105,31 @@ fn execute_statements<'a>(
 
 fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a, impl io::Write>) {
     match statement {
-        Statement::Assignment(Assignment(ref name, value)) => {
+        Statement::Assignment(Assignment(reference, value)) => {
             let value = eval(value, context);
-            extend_env(&mut context.environment, name, value);
+            extend_env(reference, value, context);
         }
-        Statement::For(var, beginning, end, step, body) => {
-            let mut counter = eval(beginning, context);
+        Statement::GlobalAssignment(name, value) => {
+            let value = eval(value, context);
+            context.environment[0].insert(name, value);
+        }
+        Statement::ArrayDeclaration(ref name, dimensions) => {
+            let dimensions: Vec<_> = dimensions
+                .iter()
+                .map(|size| eval(size, context).try_into().unwrap())
+                .collect();
+            context
+                .environment
+                .last_mut()
+                .unwrap()
+                .insert(name, DenotedValue::new_array_from_dimensions(&dimensions));
+        }
+        Statement::For(Assignment(var, begin), end, step, body) => {
+            let mut counter = eval(begin, context);
             let end = eval(end, context);
             let step = eval(step, context);
             let step_is_positive_or_zero = step >= DenotedValue::from(0);
-            extend_env(&mut context.environment, &var, counter.clone());
+            extend_env(var, counter.clone(), context);
 
             while {
                 step_is_positive_or_zero && counter <= end
@@ -112,6 +164,7 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
 }
 
 fn print(args: &[DenotedValue], write: &mut impl io::Write) {
+    // TODO: print on the same line
     for arg in args {
         // FIXME: Don't use format string here, we can just format and print directly
         // Using to_string
@@ -119,6 +172,8 @@ fn print(args: &[DenotedValue], write: &mut impl io::Write) {
     }
 }
 
+// We should probably change this to return Value instead of DenotedValue
+// This will prevent assigning to a non trivial expression as a thing
 fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> DenotedValue {
     match expression {
         Expression::IntegerLiteral(integer) => DenotedValue::from(*integer),
@@ -229,7 +284,7 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
             x
         }
         // TODO: what to do if variable doesn't exist
-        Expression::Variable(name) => apply_env(&mut context.environment, name.as_str()),
+        Expression::Reference(reference) => apply_env(reference, context),
         Expression::FunctionCall(Call(function_name, arguments)) => {
             let arguments: Vec<_> = arguments
                 .into_iter()
@@ -252,14 +307,6 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn add_assign_test1() {
-        let mut val1 = DenotedValue::from(Value::Integer(2));
-        let val2 = DenotedValue::from(Value::Integer(5));
-        val1 = val1 + val2;
-        assert_eq!(val1, DenotedValue::from(Value::Integer(7)));
-    }
 
     #[test]
     fn maths1_output_test() {
@@ -309,4 +356,5 @@ mod tests {
     output_test!(fizzbuzz_while_loop);
     output_test!(countdown_while_loop);
     output_test!(countdown_for_loop);
+    output_test!(array_index1);
 }

@@ -1,6 +1,5 @@
 Program(vec![Statement::For(
-    "i".to_string(),
-    Expression::IntegerLiteral(0),
+    Assignment(Reference::Identifier("i".to_string()), Expression::IntegerLiteral(0)),
     Expression::IntegerLiteral(7),
     Expression::IntegerLiteral(1),
     vec![Statement::Expression(Expression::FunctionCall(Call(

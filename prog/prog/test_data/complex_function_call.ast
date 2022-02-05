@@ -4,20 +4,20 @@ Program(vec![Statement::Expression(Expression::FunctionCall(Call(
         Expression::FunctionCall(Call(
             "preceded".to_string(),
             vec![
-                Expression::Variable("multispace0".to_string()),
+                Expression::Reference(Reference::Identifier("multispace0".to_string())),
                 Expression::FunctionCall(Call(
                     "alt".to_string(),
                     vec![
-                        Expression::Variable("assignment_statement".to_string()),
-                        Expression::Variable("global_assignment_statement".to_string()),
+                        Expression::Reference(Reference::Identifier("assignment_statement".to_string())),
+                        Expression::Reference(Reference::Identifier("global_assignment_statement".to_string())),
                         Expression::FunctionCall(Call(
                             "map".to_string(),
                             vec![
-                                Expression::Variable("exprsesion".to_string()),
-                                Expression::Variable("expression".to_string()),
+                                Expression::Reference(Reference::Identifier("exprsesion".to_string())),
+                                Expression::Reference(Reference::Identifier("expression".to_string())),
                                 Expression::FunctionCall(Call(
                                     "statement_expression".to_string(),
-                                    vec![Expression::Variable("expression".to_string())],
+                                    vec![Expression::Reference(Reference::Identifier("expression".to_string()))],
                                 )),
                             ],
                         )),
@@ -28,6 +28,6 @@ Program(vec![Statement::Expression(Expression::FunctionCall(Call(
                 Expression::FloatLiteral(3.455),
             ],
         )),
-        Expression::Variable("input".to_string()),
+        Expression::Reference(Reference::Identifier("input".to_string())),
     ],
 )))])

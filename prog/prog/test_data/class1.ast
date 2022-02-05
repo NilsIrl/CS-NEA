@@ -14,8 +14,8 @@ Program(vec![
                         ("givenName".to_string(), false)
                     ],
                     body: vec![
-                        Statement::Assignment(Assignment("name".to_string(),
-						Expression::Variable("givenName".to_string())))
+                        Statement::Assignment(Assignment(Reference::Identifier("name".to_string()),
+						Expression::Reference(Reference::Identifier("givenName".to_string()))))
                     ]
                 }
             )
@@ -38,13 +38,13 @@ Program(vec![
                     ],
                     body: vec![
                         Statement::Expression(Expression::MethodCall(
-                            Box::new(Expression::Variable("super".to_string())),
+                            Box::new(Expression::Reference(Reference::Identifier("super".to_string()))),
                             Call("new".to_string(),
-							vec![Expression::Variable("givenName".to_string())])
+							vec![Expression::Reference(Reference::Identifier("givenName".to_string()))])
                         )),
                         Statement::Assignment(Assignment(
-                            "breed".to_string(),
-                            Expression::Variable("givenBreed".to_string()),
+                            Reference::Identifier("breed".to_string()),
+                            Expression::Reference(Reference::Identifier("givenBreed".to_string())),
                         )),
                     ]
                 }

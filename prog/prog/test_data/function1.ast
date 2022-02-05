@@ -2,7 +2,7 @@ Program(vec![Statement::Function(FunctionDeclaration {
     name: "triple".to_string(),
     args: vec![("number".to_string(), false)],
     body: vec![Statement::Return(Expression::Times(
-        Box::new(Expression::Variable("number".to_string())),
+        Box::new(Expression::Reference(Reference::Identifier("number".to_string()))),
         Box::new(Expression::IntegerLiteral(3)),
     ))],
 })])
