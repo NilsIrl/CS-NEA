@@ -159,7 +159,12 @@ fn execute_statement<'a>(statement: &'a Statement<'a>, context: &mut Context<'a,
                 execute_statements(body, context);
             }
         }
-        unimplemented_statement => todo!("Statement {:?} unimplemented", unimplemented_statement),
+        Statement::DoUntil(body, condition) => loop {
+            execute_statements(body, context);
+            if eval(condition, context).try_into().unwrap() {
+                break;
+            }
+        }, //unimplemented_statement => todo!("Statement {:?} unimplemented", unimplemented_statement),
     }
 }
 
