@@ -1,0 +1,11 @@
+// page 35: https://www.ocr.org.uk/Images/170844-specification-accredited-a-level-gce-computer-science-h446.pdf
+
+array names[5]
+
+names[0]=”Ahmad”
+names[1]=”Ben”
+names[2]=”Catherine”
+names[3]=”Dana”
+names[4]=”Elijah”
+
+print(names[3])

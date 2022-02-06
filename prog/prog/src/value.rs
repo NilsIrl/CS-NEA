@@ -2,6 +2,7 @@ use std::{
     cell::{Ref, RefCell, RefMut},
     convert::TryInto,
     fmt::Display,
+    iter,
     ops::{Add, AddAssign, Div, Mul, Not, Rem, Sub},
     rc::Rc,
 };
@@ -57,6 +58,7 @@ impl Add for &Value {
         match (self, rhs) {
             (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs + rhs),
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs + rhs),
+            (Value::String(lhs), Value::String(rhs)) => Value::String(format!("{}{}", lhs, rhs)),
             (lhs, rhs) => panic!("can't add {:?} and {:?}", lhs, rhs),
         }
     }
@@ -127,7 +129,11 @@ impl DenotedValue {
     pub fn new_array_from_dimensions(dimensions: &[usize]) -> Self {
         match dimensions {
             [] => Self::from(Value::Undefined),
-            [x, xs @ ..] => Self::from(Value::Array(vec![Self::new_array_from_dimensions(xs); *x])),
+            [x, xs @ ..] => Self::from(Value::Array(
+                iter::from_fn(|| Some(Self::new_array_from_dimensions(xs)))
+                    .take(*x)
+                    .collect(),
+            )),
         }
     }
 

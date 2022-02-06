@@ -357,4 +357,6 @@ mod tests {
     output_test!(countdown_while_loop);
     output_test!(countdown_for_loop);
     output_test!(array_index1);
+    output_test!(array_ocr_alevel_example);
+    output_test!(chess_board_print);
 }
