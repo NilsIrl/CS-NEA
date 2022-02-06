@@ -860,6 +860,17 @@ mod tests {
         for_next_not_enforced: false,
     };
 
+    #[test]
+    fn chess_different_index_syntax() {
+        let program_str = include_str!("../test_data/chess_board_print.input");
+        let program_str_with_double_bracket =
+            include_str!("../test_data/chess_board_print_double_bracket.input");
+        assert_eq!(
+            Program::from_str(program_str, &CASE_SENSITIVE).unwrap(),
+            Program::from_str(program_str_with_double_bracket, &CASE_SENSITIVE).unwrap()
+        );
+    }
+
     macro_rules! ast_test {
         ( $function_name:ident, $parse_settings:expr ) => {
             #[test]

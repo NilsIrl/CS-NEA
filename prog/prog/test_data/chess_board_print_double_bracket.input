@@ -1,0 +1,86 @@
+array board[8, 8]
+
+WHITE_CHESS_KING = "♔"
+WHITE_CHESS_QUEEN = "♕"
+WHITE_CHESS_ROOK = "♖"
+WHITE_CHESS_BISHOP = "♗"
+WHITE_CHESS_KNIGHT = "♘"
+WHITE_CHESS_PAWN = "♙"
+BLACK_CHESS_KING = "♚"
+BLACK_CHESS_QUEEN = "♛"
+BLACK_CHESS_ROOK = "♜"
+BLACK_CHESS_BISHOP = "♝"
+BLACK_CHESS_KNIGHT = "♞"
+BLACK_CHESS_PAWN = "♟︎"
+
+// Fill in the empty stuff
+for i = 2 to 5
+    for j = 0 to 7
+        board[i][j] = "EMPTY"
+    next j
+next i
+
+for i = 0 to 7
+    board[1][i] = "WHITE_PAWN"
+next i
+
+for i = 0 to 7
+    board[6][i] = "BLACK_PAWN"
+next i
+
+board[0][0] = "WHITE_ROOK"
+board[0][1] = "WHITE_KNIGHT"
+board[0][2] = "WHITE_BISHOP"
+board[0][3] = "WHITE_KING"
+board[0][4] = "WHITE_QUEEN"
+board[0][5] = "WHITE_BISHOP"
+board[0][6] = "WHITE_KNIGHT"
+board[0][7] = "WHITE_ROOK"
+
+board[7][0] = "BLACK_ROOK"
+board[7][1] = "BLACK_KNIGHT"
+board[7][2] = "BLACK_BISHOP"
+board[7][3] = "BLACK_KING"
+board[7][4] = "BLACK_QUEEN"
+board[7][5] = "BLACK_BISHOP"
+board[7][6] = "BLACK_KNIGHT"
+board[7][7] = "BLACK_ROOK"
+
+for i = 0 to 7
+    row = ""
+
+    for j = 0 to 7
+        switch board[i][j]:
+            case "BLACK_ROOK":
+                row = row + "♜"
+            case "BLACK_KNIGHT":
+                row = row + "♞"
+            case "BLACK_BISHOP":
+                row = row + "♝"
+            case "BLACK_KING":
+                row = row + "♚"
+            case "BLACK_QUEEN":
+                row = row + "♛"
+            case "BLACK_PAWN":
+                row = row + "♟︎"
+
+            case "WHITE_ROOK":
+                row = row + "♖"
+            case "WHITE_KNIGHT":
+                row = row + "♘"
+            case "WHITE_BISHOP":
+                row = row + "♗"
+            case "WHITE_KING":
+                row = row + "♔"
+            case "WHITE_QUEEN":
+                row = row + "♕"
+            case "WHITE_PAWN":
+                row = row + "♙"
+
+            case "EMPTY":
+                row = row + " "
+        endswitch
+    next j
+
+    print(row)
+next i
