@@ -1,0 +1,25 @@
+class Pet
+    private name
+
+    public procedure new(givenName)
+        name=givenName
+    endprocedure
+
+    public procedure call()
+        print("My name is " + name)
+    endprocedure
+endclass
+
+class Dog inherits Pet
+
+    private breed
+
+    public procedure new(givenName, givenBreed)
+        super.new(givenName)
+        breed=givenBreed
+    endprocedure
+endclass
+
+my_first_pet = new Pet("Kira")
+my_first_pet.call()
+

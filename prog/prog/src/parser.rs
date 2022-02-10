@@ -93,10 +93,10 @@ pub enum Reference<'a> {
     Index(Box<Reference<'a>>, Box<Expression<'a>>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Assignment<'a>(pub Reference<'a>, pub Expression<'a>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FunctionDeclaration<'a> {
     pub name: String,
     // asRef: bool
@@ -104,7 +104,7 @@ pub struct FunctionDeclaration<'a> {
     pub body: ListOfStatements<'a>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement<'a> {
     Assignment(Assignment<'a>),
     GlobalAssignment(String, Expression<'a>),

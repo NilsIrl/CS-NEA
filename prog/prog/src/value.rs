@@ -22,6 +22,9 @@ pub enum Value {
     String(String),
     Array(Vec<DenotedValue>),
 
+    // FIXME: change this to a reference instead of a String
+    Object(String, Vec<DenotedValue>),
+
     // When a value is uninitialized
     Undefined,
 
@@ -61,6 +64,18 @@ impl Add for &Value {
             (Value::String(lhs), Value::String(rhs)) => Value::String(format!("{}{}", lhs, rhs)),
             (lhs, rhs) => panic!("can't add {:?} and {:?}", lhs, rhs),
         }
+    }
+}
+
+impl From<bool> for Value {
+    fn from(v: bool) -> Self {
+        Self::Boolean(v)
+    }
+}
+
+impl From<&str> for Value {
+    fn from(v: &str) -> Self {
+        Self::String(v.to_string())
     }
 }
 
@@ -123,7 +138,7 @@ impl Display for Value {
 }
 
 #[derive(Clone, Debug)]
-pub struct DenotedValue(Rc<RefCell<Value>>);
+pub struct DenotedValue(pub Rc<RefCell<Value>>);
 
 impl DenotedValue {
     pub fn new_array_from_dimensions(dimensions: &[usize]) -> Self {
@@ -135,6 +150,10 @@ impl DenotedValue {
                     .collect(),
             )),
         }
+    }
+
+    pub fn copy(&self) -> Self {
+        Self::from(self.borrow().clone())
     }
 
     pub fn borrow(&self) -> Ref<'_, Value> {
@@ -159,6 +178,16 @@ impl DenotedValue {
             Value::Array(ref mut v) => v[index] = value,
             _ => panic!("Cannot index {:?}", self),
         }
+    }
+
+    pub fn replace(&self, v: Value) {
+        self.0.replace(v);
+    }
+}
+
+impl Default for DenotedValue {
+    fn default() -> Self {
+        DenotedValue::from(Value::Undefined)
     }
 }
 
