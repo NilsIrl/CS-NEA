@@ -46,13 +46,22 @@ pub struct ParseSettings {
     pub case_sensitive: bool,
     /// The variable used in next must be the same as the one declared in the for loop
     pub for_next_not_enforced: bool,
+    pub reject_single_quote_as_quote: bool,
 }
 
-impl Default for ParseSettings {
-    fn default() -> Self {
+impl ParseSettings {
+    pub const fn reject_single_quote() -> Self {
+        Self {
+            reject_single_quote_as_quote: true,
+            ..Self::default()
+        }
+    }
+
+    pub const fn default() -> Self {
         Self {
             case_sensitive: false,
             for_next_not_enforced: false,
+            reject_single_quote_as_quote: false,
         }
     }
 }
@@ -194,7 +203,11 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
             alt((
                 delimited(open_bracket, expression(parse_settings), close_bracket),
                 map(
-                    delimited(quote, take_till(is_quote), quote),
+                    delimited(
+                        quote(parse_settings),
+                        take_till(is_quote(parse_settings)),
+                        quote(parse_settings),
+                    ),
                     |string_const| Expression::StringLiteral(string_const),
                 ),
                 map(tag_with_settings("true", parse_settings), |_| {
@@ -443,13 +456,14 @@ fn depth1(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
 
 const QUOTES: [char; 3] = ['"', '“', '”'];
 
-fn is_quote(c: char) -> bool {
-    QUOTES.contains(&c)
+fn is_quote(parse_settings: &ParseSettings) -> impl Fn(char) -> bool + '_ {
+    move |input: char| {
+        QUOTES.contains(&input) || (!parse_settings.reject_single_quote_as_quote && (input == '\''))
+    }
 }
 
-fn quote(input: &str) -> IResult<&str, char> {
-    // TODO: quotes are hardcoded
-    satisfy(is_quote)(input)
+fn quote(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, char> + '_ {
+    move |input: &str| satisfy(is_quote(parse_settings))(input)
 }
 
 // depth added to deal with references
@@ -881,14 +895,16 @@ mod tests {
         assert!(KEYWORDS.is_sorted());
     }
 
+    const DEFAULT: ParseSettings = ParseSettings::default();
+
     const CASE_SENSITIVE: ParseSettings = ParseSettings {
         case_sensitive: true,
-        for_next_not_enforced: false,
+        ..ParseSettings::default()
     };
 
-    const CASE_INSENSITIVE: ParseSettings = ParseSettings {
-        case_sensitive: false,
-        for_next_not_enforced: false,
+    const REJECT_SINGLE_QUOTE: ParseSettings = ParseSettings {
+        reject_single_quote_as_quote: true,
+        ..ParseSettings::default()
     };
 
     #[test]
@@ -942,7 +958,7 @@ mod tests {
     ast_test!(comment1, &CASE_SENSITIVE);
     ast_test!(function1, &CASE_SENSITIVE);
     ast_test!(procedure1, &CASE_SENSITIVE);
-    ast_test!(thinking_logically, &CASE_INSENSITIVE);
+    ast_test!(thinking_logically, &DEFAULT);
     ast_test!(do_until1, &CASE_SENSITIVE);
     ast_test!(attribute1, &CASE_SENSITIVE);
     ast_test!(method_call1, &CASE_SENSITIVE);

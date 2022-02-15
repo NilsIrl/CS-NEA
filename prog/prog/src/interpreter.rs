@@ -554,6 +554,9 @@ mod tests {
 
     macro_rules! output_test {
         ( $function_name:ident ) => {
+            output_test!($function_name, &ParseSettings::default());
+        };
+        ( $function_name:ident, $parse_settings:expr ) => {
             #[test]
             fn $function_name() {
                 let mut stdout = Vec::new();
@@ -563,7 +566,7 @@ mod tests {
                         stringify!($function_name),
                         ".input"
                     )),
-                    &ParseSettings::default(),
+                    $parse_settings,
                 )
                 .unwrap()
                 .interpret_with_write(&mut stdout);
@@ -588,8 +591,8 @@ mod tests {
     output_test!(print_float1);
     output_test!(not_equal);
     output_test!(fizzbuzz_while_loop);
-    output_test!(countdown_while_loop);
-    output_test!(countdown_for_loop);
+    output_test!(countdown_while_loop, &ParseSettings::reject_single_quote());
+    output_test!(countdown_for_loop, &ParseSettings::reject_single_quote());
     output_test!(array_index1);
     output_test!(array_ocr_alevel_example);
     output_test!(chess_board_print);
