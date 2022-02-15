@@ -37,9 +37,8 @@ Program(vec![
                         ("givenBreed".to_string(), false),
                     ],
                     body: vec![
-                        Statement::Expression(Expression::MethodCall(
-                            Box::new(Expression::Reference(Reference::Identifier("super".to_string()))),
-                            Call("new".to_string(),
+                        Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::ObjectAttribute(Box::new(Expression::Reference(Reference::Identifier("super".to_string()))),
+                        "new".to_string()))),
 							vec![Expression::Reference(Reference::Identifier("givenName".to_string()))])
                         )),
                         Statement::Assignment(Assignment(

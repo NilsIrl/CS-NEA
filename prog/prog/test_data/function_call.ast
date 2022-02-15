@@ -1,5 +1,5 @@
 Program(vec![
-    Statement::Expression(Expression::FunctionCall(Call("str".to_string(), vec![Expression::IntegerLiteral(3)]))),
-    Statement::Expression(Expression::FunctionCall(Call("int".to_string(), vec![Expression::StringLiteral("3")]))),
-    Statement::Expression(Expression::FunctionCall(Call("float".to_string(), vec![Expression::StringLiteral("3.14")]))),
+    Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier("str".to_string()))), vec![Expression::IntegerLiteral(3)]))),
+    Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier("int".to_string()))), vec![Expression::StringLiteral("3")]))),
+    Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier("float".to_string()))), vec![Expression::StringLiteral("3.14")]))),
 ])

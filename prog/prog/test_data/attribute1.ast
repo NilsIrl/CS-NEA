@@ -1,8 +1,8 @@
 Program(vec![
     Statement::Assignment(Assignment(Reference::Identifier("lastname".to_string()),
-	Expression::FunctionCall(Call("input".to_string(),
+	Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier("input".to_string()))),
     vec![Expression::StringLiteral("Enter last name: ")])))),
-    Statement::Expression(Expression::FunctionCall(Call("print".to_string(),
-    vec![Expression::ObjectAttribute(Box::new(Expression::Reference(Reference::Identifier("lastname".to_string()))),
-    Box::new(Reference::Identifier("length".to_string())))]))),
+    Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier("print".to_string()))),
+    vec![Expression::Reference(Reference::ObjectAttribute(Box::new(Expression::Reference(Reference::Identifier("lastname".to_string()))),
+    "length".to_string()))]))),
 ])

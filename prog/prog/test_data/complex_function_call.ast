@@ -1,33 +1,33 @@
-Program(vec![Statement::Expression(Expression::FunctionCall(Call(
-    "statement".to_string(),
+Program(vec![Statement::Expression(Expression::Call(Call(
+    Box::new(Expression::Reference(Reference::Identifier("statement".to_string()))),
     vec![
-        Expression::FunctionCall(Call(
-            "preceded".to_string(),
+    Expression::Call(Call(
+            Box::new(Expression::Reference(Reference::Identifier("preceded".to_string()))),
             vec![
-                Expression::Reference(Reference::Identifier("multispace0".to_string())),
-                Expression::FunctionCall(Call(
-                    "alt".to_string(),
+            Expression::Reference(Reference::Identifier("multispace0".to_string())),
+            Expression::Call(Call(
+                    Box::new(Expression::Reference(Reference::Identifier("alt".to_string()))),
                     vec![
-                        Expression::Reference(Reference::Identifier("assignment_statement".to_string())),
-                        Expression::Reference(Reference::Identifier("global_assignment_statement".to_string())),
-                        Expression::FunctionCall(Call(
-                            "map".to_string(),
+                    Expression::Reference(Reference::Identifier("assignment_statement".to_string())),
+                    Expression::Reference(Reference::Identifier("global_assignment_statement".to_string())),
+                    Expression::Call(Call(
+                            Box::new(Expression::Reference(Reference::Identifier("map".to_string()))),
                             vec![
-                                Expression::Reference(Reference::Identifier("exprsesion".to_string())),
-                                Expression::Reference(Reference::Identifier("expression".to_string())),
-                                Expression::FunctionCall(Call(
-                                    "statement_expression".to_string(),
+                            Expression::Reference(Reference::Identifier("exprsesion".to_string())),
+                            Expression::Reference(Reference::Identifier("expression".to_string())),
+                            Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+                                                "statement_expression".to_string()))),
                                     vec![Expression::Reference(Reference::Identifier("expression".to_string()))],
-                                )),
+                                    )),
                             ],
-                        )),
+                            )),
                     ],
-                )),
-                Expression::IntegerLiteral(3),
-                Expression::StringLiteral("3409"),
-                Expression::FloatLiteral(3.455),
+                    )),
+            Expression::IntegerLiteral(3),
+            Expression::StringLiteral("3409"),
+            Expression::FloatLiteral(3.455),
             ],
-        )),
+            )),
         Expression::Reference(Reference::Identifier("input".to_string())),
     ],
 )))])

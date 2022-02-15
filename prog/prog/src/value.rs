@@ -32,6 +32,22 @@ pub enum Value {
     NoVal,
 }
 
+impl Value {
+    pub fn get_value_at_index(&self, index: Value) -> DenotedValue {
+        let index: usize = index.try_into().unwrap();
+        match self {
+            Value::Array(v) => v[index].clone(),
+            _ => panic!("Cannot index {:?}", self),
+        }
+    }
+}
+
+impl Default for Value {
+    fn default() -> Self {
+        Self::Undefined
+    }
+}
+
 impl Not for &Value {
     type Output = Value;
 
@@ -44,8 +60,8 @@ impl Not for &Value {
     }
 }
 
-impl AddAssign for Value {
-    fn add_assign(&mut self, other: Self) {
+impl AddAssign<&Value> for Value {
+    fn add_assign(&mut self, other: &Self) {
         match (self, other) {
             (Value::Integer(lhs), Value::Integer(rhs)) => *lhs += rhs,
             (Value::Float(lhs), Value::Float(rhs)) => *lhs += rhs,
@@ -54,7 +70,7 @@ impl AddAssign for Value {
     }
 }
 
-impl Add for &Value {
+impl Add for Value {
     type Output = Value;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -79,7 +95,47 @@ impl From<&str> for Value {
     }
 }
 
-impl Sub for &Value {
+impl From<f64> for Value {
+    fn from(v: f64) -> Self {
+        Self::Float(v)
+    }
+}
+
+impl From<i64> for Value {
+    fn from(v: i64) -> Self {
+        Self::Integer(v)
+    }
+}
+
+impl TryInto<bool> for Value {
+    type Error = ProgError;
+
+    fn try_into(self) -> Result<bool, Self::Error> {
+        match self {
+            Value::Boolean(b) => Ok(b),
+            _ => Err(ProgError::NotBool),
+        }
+    }
+}
+
+impl TryInto<i64> for Value {
+    type Error = ProgError;
+    fn try_into(self) -> Result<i64, Self::Error> {
+        match self {
+            Value::Integer(s) => Ok(s),
+            _ => Err(ProgError::NotPositiveInteger),
+        }
+    }
+}
+
+impl TryInto<usize> for Value {
+    type Error = ProgError;
+    fn try_into(self) -> Result<usize, Self::Error> {
+        TryInto::<i64>::try_into(self).map(|v| v as usize)
+    }
+}
+
+impl Sub for Value {
     type Output = Value;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -91,7 +147,7 @@ impl Sub for &Value {
     }
 }
 
-impl Rem for &Value {
+impl Rem for Value {
     type Output = Value;
 
     fn rem(self, rhs: Self) -> Self::Output {
@@ -102,7 +158,7 @@ impl Rem for &Value {
     }
 }
 
-impl Mul for &Value {
+impl Mul for Value {
     type Output = Value;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -114,12 +170,12 @@ impl Mul for &Value {
     }
 }
 
-impl Div for &Value {
+impl Div for Value {
     type Output = Value;
 
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Float(*lhs as f64 / *rhs as f64),
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Float(lhs as f64 / rhs as f64),
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs / rhs),
             (lhs, rhs) => panic!("Can't divide {:?} and {:?}", lhs, rhs),
         }
@@ -164,7 +220,7 @@ impl DenotedValue {
         self.0.borrow_mut()
     }
 
-    pub fn get_value_at_index(&self, index: DenotedValue) -> DenotedValue {
+    pub fn get_value_at_index(&self, index: Value) -> DenotedValue {
         let index: usize = index.try_into().unwrap();
         match &*self.0.borrow() {
             Value::Array(v) => v[index].clone(),
@@ -172,7 +228,7 @@ impl DenotedValue {
         }
     }
 
-    pub fn set_value_at_index(&self, index: DenotedValue, value: DenotedValue) {
+    pub fn set_value_at_index(&self, index: Value, value: DenotedValue) {
         let index: usize = index.try_into().unwrap();
         match *self.0.borrow_mut() {
             Value::Array(ref mut v) => v[index] = value,
@@ -231,23 +287,6 @@ impl TryInto<bool> for DenotedValue {
     }
 }
 
-impl TryInto<usize> for DenotedValue {
-    type Error = ProgError;
-    fn try_into(self) -> Result<usize, Self::Error> {
-        TryInto::<i64>::try_into(self).map(|v| v as usize)
-    }
-}
-
-impl TryInto<i64> for DenotedValue {
-    type Error = ProgError;
-    fn try_into(self) -> Result<i64, Self::Error> {
-        match *self.0.borrow() {
-            Value::Integer(s) => Ok(s),
-            _ => Err(ProgError::NotPositiveInteger),
-        }
-    }
-}
-
 impl Not for DenotedValue {
     type Output = DenotedValue;
 
@@ -256,49 +295,9 @@ impl Not for DenotedValue {
     }
 }
 
-impl AddAssign for DenotedValue {
-    fn add_assign(&mut self, other: Self) {
-        *self.0.borrow_mut() += other.borrow().clone();
-    }
-}
-
-impl Add for DenotedValue {
-    type Output = DenotedValue;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() + &*rhs.0.borrow())
-    }
-}
-
-impl Sub for DenotedValue {
-    type Output = DenotedValue;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() - &*rhs.0.borrow())
-    }
-}
-
-impl Rem for DenotedValue {
-    type Output = Self;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() % &*rhs.0.borrow())
-    }
-}
-
-impl Mul for DenotedValue {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() * &*rhs.0.borrow())
-    }
-}
-
-impl Div for DenotedValue {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        Self::from(&*self.0.borrow() / &*rhs.0.borrow())
+impl AddAssign<&Value> for DenotedValue {
+    fn add_assign(&mut self, other: &Value) {
+        *self.0.borrow_mut() += other;
     }
 }
 
@@ -317,9 +316,9 @@ impl PartialEq for DenotedValue {
     }
 }
 
-impl PartialOrd for DenotedValue {
+impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match (&*self.0.borrow(), &*other.0.borrow()) {
+        match (self, other) {
             (Value::Integer(lhs), Value::Integer(rhs)) => lhs.partial_cmp(rhs),
             (Value::Float(lhs), Value::Float(rhs)) => lhs.partial_cmp(rhs),
             (Value::Integer(lhs), Value::Float(rhs)) => (*lhs as f64).partial_cmp(rhs),
@@ -337,20 +336,22 @@ mod tests {
     #[test]
     fn add_assign_test1() {
         let mut val1 = DenotedValue::from(Value::Integer(2));
-        let val2 = DenotedValue::from(Value::Integer(5));
-        val1 = val1 + val2.clone();
+        let val2 = Value::Integer(5);
+        val1 += &val2;
         assert_eq!(val1, DenotedValue::from(Value::Integer(7)));
-        val1 += val2;
+        val1 += &val2;
         assert_eq!(val1, DenotedValue::from(Value::Integer(12)));
     }
 
     #[test]
     fn new_array_test() {
         let array = DenotedValue::new_array_from_dimensions(&[10]);
-        array.set_value_at_index(DenotedValue::from(3), DenotedValue::from(4));
-        array.set_value_at_index(DenotedValue::from(4), DenotedValue::from(5));
+        array.set_value_at_index(Value::from(3), DenotedValue::from(4));
+        array.set_value_at_index(Value::from(4), DenotedValue::from(5));
         let val_at_index_3: i64 = array
-            .get_value_at_index(DenotedValue::from(3))
+            .get_value_at_index(Value::from(3))
+            .borrow()
+            .clone()
             .try_into()
             .unwrap();
         assert_eq!(val_at_index_3, 4);

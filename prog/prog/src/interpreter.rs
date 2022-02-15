@@ -1,9 +1,9 @@
 use nom::Finish;
-use std::{collections::HashMap, convert::TryInto, io, iter::zip};
+use std::{collections::HashMap, convert::TryInto, io, iter::zip, ops::Index};
 
 use super::{
     parser::{
-        program, Assignment, Call, Expression, FunctionDeclaration, ListOfStatements,
+        program, Assignment, BigMistake, Call, Expression, FunctionDeclaration, ListOfStatements,
         ParseSettings, Reference, Statement,
     },
     value::{DenotedValue, Value},
@@ -19,7 +19,7 @@ impl Program<'_> {
     pub fn from_str<'a>(
         input: &'a str,
         parse_settings: &ParseSettings,
-    ) -> Result<Program<'a>, nom::error::Error<&'a str>> {
+    ) -> Result<Program<'a>, BigMistake<&'a str>> {
         program(parse_settings)(input)
             .finish()
             .map(|(_, program)| program)
@@ -65,7 +65,31 @@ struct Class<'a> {
     parent_class: Option<&'a str>,
 }
 
-type Environment<'a> = Vec<HashMap<&'a str, DenotedValue>>;
+#[derive(Default)]
+struct StackFrame<'a> {
+    variables: HashMap<&'a str, DenotedValue>,
+    current_class: Option<String>,
+}
+
+impl<'a> StackFrame<'a> {
+    fn get(&self, key: &str) -> Option<&DenotedValue> {
+        self.variables.get(key)
+    }
+
+    fn insert(&mut self, key: &'a String, val: DenotedValue) -> Option<DenotedValue> {
+        self.variables.insert(key, val)
+    }
+}
+
+impl Index<&str> for StackFrame<'_> {
+    type Output = DenotedValue;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        &self.variables[index]
+    }
+}
+
+type Environment<'a> = Vec<StackFrame<'a>>;
 
 struct Context<'a, W: io::Write> {
     environment: Environment<'a>,
@@ -75,21 +99,45 @@ struct Context<'a, W: io::Write> {
 }
 
 fn apply_env<'a>(
-    reference: &Reference,
+    identifier: &str,
     context: &mut Context<'a, impl io::Write>,
 ) -> Option<DenotedValue> {
     let env = &context.environment;
+    env.last()
+        .unwrap()
+        .get(identifier)
+        .or_else(|| env[0].get(identifier))
+        .cloned()
+}
+
+fn get_ref(reference: &Reference, context: &mut Context<impl io::Write>) -> Option<DenotedValue> {
     match reference {
-        Reference::Identifier(var_name) => env
-            .last()
-            .unwrap()
-            .get(var_name.as_str())
-            .or_else(|| env[0].get(var_name.as_str()))
-            .cloned(),
+        Reference::Identifier(identifier) => apply_env(identifier, context),
         Reference::Index(reference, index) => {
-            let array = apply_env(reference, context).expect("TODO: reference does not exist");
+            let array = eval(reference, context);
             let index = eval(index, context);
             Some(array.get_value_at_index(index))
+        }
+        Reference::ObjectAttribute(reference, attribute) => {
+            let obj = eval(reference, context);
+            match obj {
+                Value::Object(class, values) => {
+                    let class = &context.classes[class.as_str()];
+                    let location_of_value = class
+                        .fields_in_scope
+                        .iter()
+                        .find_map(|(index, attribute_in_class)| {
+                            if attribute == attribute_in_class {
+                                Some(index)
+                            } else {
+                                None
+                            }
+                        })
+                        .expect("TODO: beterre error message, attribute does not exist on object");
+                    Some(values[*location_of_value].clone())
+                }
+                val => panic!("{:?} is not an object", val),
+            }
         }
     }
 }
@@ -99,7 +147,7 @@ fn extend_env<'a>(
     value: Value,
     context: &mut Context<'a, impl io::Write>,
 ) -> DenotedValue {
-    match apply_env(reference, context) {
+    match get_ref(reference, context) {
         Some(denoted_value) => {
             denoted_value.replace(value);
             denoted_value
@@ -114,8 +162,12 @@ fn extend_env<'a>(
                     .insert(k, denoted_value.clone());
                 denoted_value
             }
+            // TODO: improve error messages here
             Reference::Index(..) => {
                 panic!("array does not exist");
+            }
+            Reference::ObjectAttribute(..) => {
+                panic!("object does not exist")
             }
         },
     }
@@ -129,12 +181,12 @@ fn execute_statements<'a>(
         match statement {
         Statement::Assignment(Assignment(reference, value)) => {
             let value = eval(value, context);
-            extend_env(reference, value.borrow().clone(), context);
+            extend_env(reference, value, context);
             //dbg!(&context.environment);
         }
         Statement::GlobalAssignment(name, value) => {
             let value = eval(value, context);
-            context.environment[0].insert(name, value);
+            context.environment[0].insert(name, DenotedValue::from(value));
         }
         Statement::ArrayDeclaration(ref name, dimensions) => {
             let dimensions: Vec<_> = dimensions
@@ -151,19 +203,19 @@ fn execute_statements<'a>(
             let counter = eval(begin, context);
             let end = eval(end, context);
             let step = eval(step, context);
-            let step_is_positive_or_zero = step >= DenotedValue::from(0);
-            let mut counter = extend_env(var, counter.borrow().clone(), context);
+            let step_is_positive_or_zero = step >= Value::from(0);
+            let mut counter = extend_env(var, counter, context);
 
             while {
-                step_is_positive_or_zero && counter <= end
-                    || !step_is_positive_or_zero && counter >= end
+                step_is_positive_or_zero && *counter.borrow() <= end
+                    || !step_is_positive_or_zero && *counter.borrow() >= end
             } {
                 execute_statements(body, context);
                 // This clone is cheap because it is an Rc<_>
                 // However I feel like there must be a better solution
                 //
                 // The counter is also updated in the environment because the clone is an Rc
-                counter += step.clone();
+                counter += &step;
             }
             // TODO: We should probably remove the variable from the environment once we are done
         }
@@ -249,16 +301,28 @@ fn apply_method<'a>(
     obj: DenotedValue,
     method: &str,
     super_call: bool,
-    args: Vec<DenotedValue>,
+    args: &Vec<Expression>,
     context: &mut Context<'a, impl io::Write>,
-) -> DenotedValue {
+) -> Value {
     match &*obj.borrow() {
         Value::Object(class, field_values) => {
-            let class = &context.classes[class.as_str()];
-            let method = if super_call {
-                &context.classes[class.parent_class.unwrap()].methods[method]
-            } else {
-                &class.methods[method]
+            let method = {
+                let class = &context.classes[class.as_str()];
+                if super_call {
+                    let current_class = &context.classes[context
+                        .environment
+                        .last()
+                        .unwrap()
+                        .current_class
+                        .as_ref()
+                        .unwrap()
+                        .as_str()];
+                    // FIXME this calls the parent of the object we want the parent of the hosting
+                    // class
+                    context.classes[current_class.parent_class.unwrap()].methods[method].clone()
+                } else {
+                    class.methods[method].clone()
+                }
             };
             let mut method_frame: HashMap<&str, DenotedValue> = context.classes[method.host_class]
                 .fields_in_scope
@@ -272,18 +336,28 @@ fn apply_method<'a>(
                 |((arg_name, as_ref), arg_val)| {
                     (
                         arg_name.as_str(),
-                        if *as_ref { arg_val } else { arg_val.copy() },
+                        if *as_ref {
+                            match arg_val {
+                                Expression::Reference(reference) => get_ref(reference, context)
+                                    .expect(
+                                        "TODO: improve error message if reference does not exist",
+                                    ),
+                                exp => panic!("{:?} is not a reference", exp),
+                            }
+                        } else {
+                            DenotedValue::from(eval(arg_val, context))
+                        },
                     )
                 },
             ));
-            //dbg!(&method_frame);
-            context.environment.push(method_frame);
-            //dbg!(obj.clone());
+            context.environment.push(StackFrame {
+                variables: method_frame,
+                current_class: Some(method.host_class.to_string()),
+            });
             execute_statements(method.function.body, context);
-            //dbg!(obj.clone());
             context.environment.pop();
             // FIXME support function returning values
-            DenotedValue::default()
+            Value::default()
         }
         _ => panic!("Cannot apply method on non object value"),
     }
@@ -291,56 +365,58 @@ fn apply_method<'a>(
 
 // We should probably change this to return Value instead of DenotedValue
 // This will prevent assigning to a non trivial expression as a thing
-fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> DenotedValue {
+fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Value {
     match expression {
-        Expression::IntegerLiteral(integer) => DenotedValue::from(*integer),
-        Expression::StringLiteral(str) => DenotedValue::from(*str),
-        Expression::BoolLiteral(bool) => DenotedValue::from(*bool),
-        Expression::FloatLiteral(float) => DenotedValue::from(*float),
+        Expression::IntegerLiteral(integer) => Value::from(*integer),
+        Expression::StringLiteral(str) => Value::from(*str),
+        Expression::BoolLiteral(bool) => Value::from(*bool),
+        Expression::FloatLiteral(float) => Value::from(*float),
         Expression::And(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
 
-            DenotedValue::from(lhs.try_into().unwrap() && rhs.try_into().unwrap())
+            Value::from(lhs.try_into().unwrap() && rhs.try_into().unwrap())
         }
         Expression::Or(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
 
-            DenotedValue::from(lhs.try_into().unwrap() || rhs.try_into().unwrap())
+            Value::from(lhs.try_into().unwrap() || rhs.try_into().unwrap())
         }
-        Expression::Not(exp) => !eval(&*exp, context),
+        Expression::Not(exp) => {
+            Value::from(!TryInto::<bool>::try_into(eval(&*exp, context)).unwrap())
+        }
         Expression::Equal(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
 
-            DenotedValue::from(lhs == rhs)
+            Value::from(lhs == rhs)
         }
         Expression::NotEqual(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
 
-            DenotedValue::from(lhs != rhs)
+            Value::from(lhs != rhs)
         }
         Expression::GreaterThan(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
-            DenotedValue::from(lhs > rhs)
+            Value::from(lhs > rhs)
         }
         Expression::GreaterThanOrEqual(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
-            DenotedValue::from(lhs >= rhs)
+            Value::from(lhs >= rhs)
         }
         Expression::LessThan(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
-            DenotedValue::from(lhs < rhs)
+            Value::from(lhs < rhs)
         }
         Expression::LessThanOrEqual(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
-            DenotedValue::from(lhs <= rhs)
+            Value::from(lhs <= rhs)
         }
         Expression::Plus(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
@@ -372,83 +448,92 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Denot
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
 
-            let x = DenotedValue::from(match (&*lhs.borrow(), &*rhs.borrow()) {
-                (Value::Integer(lhs), Value::Integer(rhs)) => lhs / rhs,
-                _ => panic!("Can't calculate the quotient of {:?} and {:?}", lhs, rhs),
-            });
-            x
+            match (lhs, rhs) {
+                (Value::Integer(lhs), Value::Integer(rhs)) => Value::from(lhs / rhs),
+                (lhs, rhs) => panic!("Can't calculate the quotient of {:?} and {:?}", lhs, rhs),
+            }
         }
         Expression::Power(base, exponent) => {
             let base = eval(&*base, context);
             let exponent = eval(&*exponent, context);
 
-            let x = match (&*base.borrow(), &*exponent.borrow()) {
+            match (base, exponent) {
                 (Value::Integer(lhs), Value::Integer(rhs)) => {
-                    if *rhs < 0 {
-                        DenotedValue::from((*lhs as f64).powi(*rhs as i32))
+                    if rhs < 0 {
+                        Value::from((lhs as f64).powi(rhs as i32))
                     } else {
-                        DenotedValue::from(lhs.pow(*rhs as u32))
+                        Value::from(lhs.pow(rhs as u32))
                     }
                 }
                 (Value::Integer(base), Value::Float(exponent)) => {
-                    DenotedValue::from((*base as f64).powf(*exponent))
+                    Value::from((base as f64).powf(exponent))
                 }
-                (Value::Float(base), Value::Float(exponent)) => {
-                    DenotedValue::from(base.powf(*exponent))
-                }
+                (Value::Float(base), Value::Float(exponent)) => Value::from(base.powf(exponent)),
                 (base, exponent) => panic!("Cannot take {:?} to the {:?}", base, exponent),
-            };
-            x
-        }
-        // TODO: what to do if variable doesn't exist
-        Expression::Reference(reference) => apply_env(reference, context).unwrap(),
-        Expression::FunctionCall(Call(function_name, arguments)) => {
-            let arguments: Vec<_> = arguments
-                .into_iter()
-                .map(|arg| eval(arg, context))
-                .collect();
-            match function_name.as_str() {
-                "print" => {
-                    print(&arguments, &mut context.stdout);
-                    DenotedValue::from(Value::NoVal)
-                }
-                _ => todo!("Implement functions"),
             }
         }
-        Expression::New(Call(class_name, args)) => {
-            let args = args.into_iter().map(|arg| eval(arg, context)).collect();
-            let obj = DenotedValue::from(Value::Object(
-                class_name.to_string(),
-                vec![
-                    DenotedValue::from(Value::Undefined);
-                    context.classes[class_name.as_str()].fields.len()
-                ],
-            ));
-            apply_method(obj.clone(), "new", false, args, context);
-            //dbg!(&context.environment);
-            obj
-        }
-        Expression::MethodCall(obj, Call(method, args)) => {
-            let args = args.into_iter().map(|arg| eval(arg, context)).collect();
-
-            match &**obj {
+        // TODO: what to do if variable doesn't exist
+        Expression::Reference(reference) => get_ref(reference, context).unwrap().borrow().clone(),
+        Expression::Call(Call(rator, arguments)) => match &**rator {
+            Expression::Reference(Reference::ObjectAttribute(obj, method)) => match &**obj {
                 Expression::Reference(Reference::Identifier(identifier)) => {
                     if identifier == "super" {
                         let obj = context.environment.last().unwrap()["self"].clone();
-                        apply_method(obj.clone(), method, true, args, context)
+                        apply_method(obj.clone(), &method, true, arguments, context)
                     } else {
-                        let obj = eval(obj, context);
-                        apply_method(obj, method, false, args, context)
+                        apply_method(
+                            apply_env(&identifier, context).unwrap(),
+                            &method,
+                            false,
+                            arguments,
+                            context,
+                        )
                     }
                 }
+                Expression::Reference(reference) => apply_method(
+                    get_ref(&reference, context).expect("TODO: if reference does not exist"),
+                    &method,
+                    false,
+                    &arguments,
+                    context,
+                ),
                 obj => {
                     let obj = eval(&obj, context);
-                    apply_method(obj, &method, false, args, context)
+                    apply_method(DenotedValue::from(obj), &method, false, arguments, context)
+                }
+            },
+            Expression::Reference(Reference::Identifier(function_name)) => {
+                let arguments: Vec<_> = arguments
+                    .into_iter()
+                    .map(|arg| DenotedValue::from(eval(arg, context)))
+                    .collect();
+                match function_name.as_str() {
+                    "print" => {
+                        print(&arguments, &mut context.stdout);
+                        Value::NoVal
+                    }
+                    _ => todo!("Implement functions"),
                 }
             }
-        }
-        Expression::ObjectAttribute(..) => {
-            todo!("Object oriented features")
+            exp => panic!("Cannot call {:?}", exp),
+        },
+        Expression::New(Call(class_name, args)) => {
+            if let Expression::Reference(Reference::Identifier(class_name)) = &**class_name {
+                let obj = DenotedValue::from(Value::Object(
+                    class_name.to_string(),
+                    vec![
+                        DenotedValue::from(Value::Undefined);
+                        context.classes[class_name.as_str()].fields.len()
+                    ],
+                ));
+                apply_method(obj.clone(), "new", false, args, context);
+                //dbg!(&context.environment);
+                let x = obj.borrow().clone();
+                x
+            } else {
+                // TODO: improve error message
+                panic!("Cannot create new instance of non class")
+            }
         }
     }
 }
@@ -509,4 +594,5 @@ mod tests {
     output_test!(array_ocr_alevel_example);
     output_test!(chess_board_print);
     output_test!(class2);
+    output_test!(bracket);
 }

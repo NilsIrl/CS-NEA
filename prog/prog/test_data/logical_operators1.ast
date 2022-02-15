@@ -1,5 +1,5 @@
-Program(vec![Statement::Expression(Expression::FunctionCall(Call(
-    "print".to_string(),
+Program(vec![Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+    "print".to_string()))),
     vec![Expression::Or(
         Box::new(Expression::And(
             Box::new(Expression::LessThanOrEqual(

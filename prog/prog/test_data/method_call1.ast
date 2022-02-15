@@ -1,9 +1,8 @@
 Program(vec![
     Statement::Expression(
-        Expression::MethodCall(
-            Box::new(Expression::Reference(Reference::Identifier("stringname".to_string()))),
-            Call(
-                "subString".to_string(),
+        Expression::Call(Call(
+            Box::new(Expression::Reference(Reference::ObjectAttribute(Box::new(Expression::Reference(Reference::Identifier("stringname".to_string()))),
+            "subString".to_string()))),
                 vec![
                     Expression::Reference(Reference::Identifier("startingPosition".to_string())),
                     Expression::Reference(Reference::Identifier("numberOfCharacters".to_string())),

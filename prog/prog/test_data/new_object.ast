@@ -1,6 +1,7 @@
 Program(vec![
     Statement::Assignment(
-        Assignment(Reference::Identifier("myDog".to_string()), Expression::New(Call("Dog".to_string(), vec![
+        Assignment(Reference::Identifier("myDog".to_string()),
+        Expression::New(Call(Box::new(Expression::Reference(Reference::Identifier("Dog".to_string()))), vec![
             Expression::StringLiteral("Fido"),
             Expression::StringLiteral("Scottish Terrier"),
         ])))

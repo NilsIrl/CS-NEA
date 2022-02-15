@@ -1,8 +1,9 @@
 Program(vec![Statement::Function(FunctionDeclaration {
     name: "greeting".to_string(),
     args: vec![("name".to_string(), false)],
-    body: vec![Statement::Expression(Expression::FunctionCall(Call(
-        "print".to_string(),
+    body:
+    vec![Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+        "print".to_string()))),
         vec![Expression::Plus(
             Box::new(Expression::StringLiteral("hello")),
             Box::new(Expression::Reference(Reference::Identifier("name".to_string()))),

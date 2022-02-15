@@ -2,8 +2,8 @@ Program(vec![Statement::For(
     Assignment(Reference::Identifier("i".to_string()), Expression::IntegerLiteral(90)),
     Expression::IntegerLiteral(94),
     Expression::IntegerLiteral(1),
-    vec![Statement::Expression(Expression::FunctionCall(Call(
-        "print".to_string(),
+    vec![Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+        "print".to_string()))),
         vec![Expression::StringLiteral("Hello")],
     )))],
 )])

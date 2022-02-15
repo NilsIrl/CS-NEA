@@ -1,3 +1,3 @@
 Program(vec![
-    Statement::Expression(Expression::FunctionCall(Call("print".to_string(), vec![Expression::StringLiteral("hello")])))
+    Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier("print".to_string()))), vec![Expression::StringLiteral("hello")])))
 ])

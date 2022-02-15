@@ -28,17 +28,17 @@ Program(vec![Statement::For(
                         Box::new(Expression::IntegerLiteral(1)),
                     )),
                 ),
-                vec![Statement::Expression(Expression::FunctionCall(Call(
-                    "print".to_string(),
+                vec![Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+                    "print".to_string()))),
                     vec![Expression::StringLiteral("Homer")],
                 )))],
-                vec![Statement::Expression(Expression::FunctionCall(Call(
-                    "print".to_string(),
+                vec![Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+                    "print".to_string()))),
                     vec![Expression::StringLiteral("Marge")],
                 )))],
             )],
-            vec![Statement::Expression(Expression::FunctionCall(Call(
-                "print".to_string(),
+            vec![Statement::Expression(Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+                "print".to_string()))),
                 vec![Expression::StringLiteral("Bart")],
             )))],
         )],

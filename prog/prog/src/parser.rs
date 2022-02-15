@@ -3,14 +3,41 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case, take_till, take_while},
     character::complete::{self, char, i64, not_line_ending, satisfy},
-    combinator::{all_consuming, map, map_opt, opt, recognize, value, verify},
+    combinator::{all_consuming, map, map_opt, map_res, opt, recognize, value, verify},
+    error::{ErrorKind, FromExternalError, ParseError},
     multi::{many0, separated_list0, separated_list1},
     number::complete::double,
     sequence::{delimited, pair, preceded, terminated, tuple},
-    IResult, Parser,
+    Err, Parser,
 };
 
 use super::interpreter::Program;
+
+/// Parser error
+#[derive(Debug)]
+pub enum BigMistake<I> {
+    /// The left hand sign of the equal sign is an expression that is not an assignment
+    AssignToNonReference,
+    Nom(I, ErrorKind),
+}
+
+type IResult<I, O> = nom::IResult<I, O, BigMistake<I>>;
+
+impl<I> ParseError<I> for BigMistake<I> {
+    fn from_error_kind(input: I, kind: ErrorKind) -> Self {
+        Self::Nom(input, kind)
+    }
+
+    fn append(_input: I, _kind: ErrorKind, other: Self) -> Self {
+        other
+    }
+}
+
+impl<I, E> FromExternalError<I, E> for BigMistake<I> {
+    fn from_external_error(input: I, kind: ErrorKind, _e: E) -> Self {
+        Self::Nom(input, kind)
+    }
+}
 
 pub struct ParseSettings {
     /// Accept keywords in a different case than they are originally defined
@@ -52,7 +79,7 @@ fn space1(input: &str) -> IResult<&str, &str> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Call<'a>(pub String, pub Vec<Expression<'a>>);
+pub struct Call<'a>(pub Box<Expression<'a>>, pub Vec<Expression<'a>>);
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression<'a> {
@@ -60,11 +87,11 @@ pub enum Expression<'a> {
     IntegerLiteral(i64),
     FloatLiteral(f64),
     BoolLiteral(bool),
-    FunctionCall(Call<'a>),
+    //FunctionCall(Call<'a>),
     Reference(Reference<'a>),
 
-    MethodCall(Box<Expression<'a>>, Call<'a>),
-    ObjectAttribute(Box<Expression<'a>>, Box<Reference<'a>>),
+    //MethodCall(Box<Expression<'a>>, Call<'a>),
+    Call(Call<'a>),
     New(Call<'a>),
 
     Equal(Box<Expression<'a>>, Box<Expression<'a>>),
@@ -90,7 +117,8 @@ pub enum Expression<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Reference<'a> {
     Identifier(String),
-    Index(Box<Reference<'a>>, Box<Expression<'a>>),
+    Index(Box<Expression<'a>>, Box<Expression<'a>>),
+    ObjectAttribute(Box<Expression<'a>>, String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -146,20 +174,6 @@ fn comma(input: &str) -> IResult<&str, char> {
     char(',')(input)
 }
 
-fn call(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Call> + '_ {
-    move |input: &str| {
-        let (input, (function_name, arguments)) = pair(
-            identifier(parse_settings),
-            delimited(
-                preceded(space0, open_bracket),
-                separated_list0(token(comma), expression(parse_settings)),
-                preceded(space0, close_bracket),
-            ),
-        )(input)?;
-        Ok((input, Call(function_name, arguments)))
-    }
-}
-
 fn number_literal(input: &str) -> IResult<&str, Expression> {
     let int = map(i64, Expression::IntegerLiteral)(input);
     let float = map(double, Expression::FloatLiteral)(input);
@@ -178,6 +192,7 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
         preceded(
             space0,
             alt((
+                delimited(open_bracket, expression(parse_settings), close_bracket),
                 map(
                     delimited(quote, take_till(is_quote), quote),
                     |string_const| Expression::StringLiteral(string_const),
@@ -189,28 +204,84 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                     Expression::BoolLiteral(false)
                 }),
                 number_literal,
-                map(
+                map_res(
                     preceded(
                         pair(tag_with_settings("new", parse_settings), space1),
-                        call(parse_settings),
+                        expression(parse_settings),
                     ),
-                    Expression::New,
+                    |expression| match expression {
+                        Expression::Call(call) => Ok(Expression::New(call)),
+                        _ => Err(()),
+                    },
                 ),
-                map(call(parse_settings), Expression::FunctionCall),
-                map(reference(parse_settings), |reference| {
-                    Expression::Reference(reference)
+                //map(call(parse_settings), Expression::FunctionCall),
+                map(identifier(parse_settings), |identifier| {
+                    Expression::Reference(Reference::Identifier(identifier))
                 }),
             )),
         )(input)
     }
 }
 
+// Implements object "attribution", calls, method calls, indexing
+fn call_depth(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| {
+        let (mut input, mut lhs) = terminal(parse_settings)(input)?;
+        loop {
+            match preceded(token(char('.')), identifier(parse_settings))(input) {
+                Ok((i, attribute)) => {
+                    lhs =
+                        Expression::Reference(Reference::ObjectAttribute(Box::new(lhs), attribute));
+                    input = i;
+                }
+                Err(nom::Err::Error(_)) => {
+                    match delimited(
+                        token(char('[')),
+                        separated_list1(token(comma), expression(parse_settings)),
+                        token(char(']')),
+                    )(input)
+                    {
+                        Ok((i, indexes)) => {
+                            lhs = indexes.into_iter().fold(lhs, |previous_expression, index| {
+                                Expression::Reference(Reference::Index(
+                                    Box::new(previous_expression),
+                                    Box::new(index),
+                                ))
+                            });
+                            input = i;
+                        }
+                        Err(nom::Err::Error(_)) => {
+                            match delimited(
+                                token(open_bracket),
+                                separated_list0(token(comma), expression(parse_settings)),
+                                token(close_bracket),
+                            )(input)
+                            {
+                                Ok((i, args)) => {
+                                    input = i;
+                                    lhs = Expression::Call(Call(Box::new(lhs), args));
+                                }
+                                Err(nom::Err::Error(_)) => return Ok((input, lhs)),
+                                Err(e) => return Err(e),
+                            }
+                        }
+                        Err(e) => return Err(e),
+                    }
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    }
+}
+
 fn depth6(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
-        let (input, initial) = terminal(parse_settings)(input)?;
+        let (input, initial) = call_depth(parse_settings)(input)?;
         let (input, rest) = many0(preceded(
             preceded(space0, tag("^")),
-            terminal(parse_settings),
+            call_depth(parse_settings),
         ))(input)?;
         Ok((
             input,
@@ -381,34 +452,11 @@ fn quote(input: &str) -> IResult<&str, char> {
     satisfy(is_quote)(input)
 }
 
+// depth added to deal with references
 fn expression(
     parse_settings: &ParseSettings,
 ) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
-    move |input: &str| {
-        let (input, expression) = depth1(parse_settings)(input)?;
-        Ok(
-            match preceded(
-                char('.'),
-                alt((
-                    map(call(parse_settings), Expression::FunctionCall),
-                    map(reference(parse_settings), |reference| {
-                        Expression::Reference(reference)
-                    }),
-                )),
-            )(input)
-            {
-                Ok((input, Expression::FunctionCall(call))) => {
-                    (input, Expression::MethodCall(Box::new(expression), call))
-                }
-                Ok((input, Expression::Reference(reference))) => (
-                    input,
-                    Expression::ObjectAttribute(Box::new(expression), Box::new(reference)),
-                ),
-                Ok((..)) => unreachable!("Can only return FunctionCall or Variable"),
-                Err(_) => (input, expression),
-            },
-        )
-    }
+    move |input: &str| depth1(parse_settings)(input)
 }
 
 fn is_identifer_char(c: char) -> bool {
@@ -464,35 +512,18 @@ fn identifier(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&st
     }
 }
 
-fn reference(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Reference> + '_ {
-    move |input: &str| {
-        let (input, identifier) = map(identifier(parse_settings), Reference::Identifier)(input)?;
-        let (input, indexes) = many0(delimited(
-            token(char('[')),
-            // FIXME: This allocation is avoidable
-            separated_list1(token(comma), expression(parse_settings)),
-            token(char(']')),
-        ))(input)?;
-        Ok((
-            input,
-            indexes.into_iter().fold(identifier, |id2, dimensions| {
-                dimensions.into_iter().fold(id2, |id3, index| {
-                    Reference::Index(Box::new(id3), Box::new(index))
-                })
-            }),
-        ))
-    }
-}
-
 fn assignment(
     parse_settings: &ParseSettings,
 ) -> impl FnMut(&str) -> IResult<&str, Assignment> + '_ {
     move |input: &str| {
-        let (input, (reference, expression)) = tuple((
-            reference(parse_settings),
+        let (input, (left, right)) = tuple((
+            expression(parse_settings),
             preceded(preceded(space0, char('=')), expression(parse_settings)),
         ))(input)?;
-        Ok((input, Assignment(reference, expression)))
+        match left {
+            Expression::Reference(left) => Ok((input, Assignment(left, right))),
+            _ => Err(Err::Error(BigMistake::AssignToNonReference)),
+        }
     }
 }
 

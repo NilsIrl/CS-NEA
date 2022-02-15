@@ -5,8 +5,8 @@ Program(vec![Statement::While(
     ),
     vec![Statement::Assignment(Assignment(
         Reference::Identifier("answer".to_string()),
-        Expression::FunctionCall(Call(
-            "input".to_string(),
+        Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier(
+            "input".to_string()))),
             vec![Expression::StringLiteral("What is the password?")],
         )),
     ))],
