@@ -176,116 +176,118 @@ fn extend_env<'a>(
 fn execute_statements<'a>(
     statements: &'a ListOfStatements<'a>,
     context: &mut Context<'a, impl io::Write>,
-) {
+) -> Value {
     for statement in statements {
         match statement {
-        Statement::Assignment(Assignment(reference, value)) => {
-            let value = eval(value, context);
-            extend_env(reference, value, context);
-            //dbg!(&context.environment);
-        }
-        Statement::GlobalAssignment(name, value) => {
-            let value = eval(value, context);
-            context.environment[0].insert(name, DenotedValue::from(value));
-        }
-        Statement::ArrayDeclaration(ref name, dimensions) => {
-            let dimensions: Vec<_> = dimensions
-                .iter()
-                .map(|size| eval(size, context).try_into().unwrap())
-                .collect();
-            context
-                .environment
-                .last_mut()
-                .unwrap()
-                .insert(name, DenotedValue::new_array_from_dimensions(&dimensions));
-        }
-        Statement::For(Assignment(var, begin), end, step, body) => {
-            let counter = eval(begin, context);
-            let end = eval(end, context);
-            let step = eval(step, context);
-            let step_is_positive_or_zero = step >= Value::from(0);
-            let mut counter = extend_env(var, counter, context);
+            Statement::Assignment(Assignment(reference, value)) => {
+                let value = eval(value, context);
+                extend_env(reference, value, context);
+                //dbg!(&context.environment);
+            }
+            Statement::GlobalAssignment(name, value) => {
+                let value = eval(value, context);
+                context.environment[0].insert(name, DenotedValue::from(value));
+            }
+            Statement::ArrayDeclaration(ref name, dimensions) => {
+                let dimensions: Vec<_> = dimensions
+                    .iter()
+                    .map(|size| eval(size, context).try_into().unwrap())
+                    .collect();
+                context
+                    .environment
+                    .last_mut()
+                    .unwrap()
+                    .insert(name, DenotedValue::new_array_from_dimensions(&dimensions));
+            }
+            Statement::For(Assignment(var, begin), end, step, body) => {
+                let counter = eval(begin, context);
+                let end = eval(end, context);
+                let step = eval(step, context);
+                let step_is_positive_or_zero = step >= Value::from(0);
+                let mut counter = extend_env(var, counter, context);
 
-            while {
-                step_is_positive_or_zero && *counter.borrow() <= end
-                    || !step_is_positive_or_zero && *counter.borrow() >= end
-            } {
+                while {
+                    step_is_positive_or_zero && *counter.borrow() <= end
+                        || !step_is_positive_or_zero && *counter.borrow() >= end
+                } {
+                    execute_statements(body, context);
+                    // This clone is cheap because it is an Rc<_>
+                    // However I feel like there must be a better solution
+                    //
+                    // The counter is also updated in the environment because the clone is an Rc
+                    counter += &step;
+                }
+                // TODO: We should probably remove the variable from the environment once we are done
+            }
+            Statement::If(exp, if_body, else_body) => {
+                if eval(exp, context).try_into().unwrap() {
+                    execute_statements(if_body, context);
+                } else {
+                    execute_statements(else_body, context);
+                }
+            }
+            Statement::Expression(exp) => {
+                eval(exp, context);
+            }
+            Statement::While(condition, body) => {
+                while eval(condition, context).try_into().unwrap() {
+                    execute_statements(body, context);
+                }
+            }
+            Statement::DoUntil(body, condition) => loop {
                 execute_statements(body, context);
-                // This clone is cheap because it is an Rc<_>
-                // However I feel like there must be a better solution
-                //
-                // The counter is also updated in the environment because the clone is an Rc
-                counter += &step;
-            }
-            // TODO: We should probably remove the variable from the environment once we are done
-        }
-        Statement::If(exp, if_body, else_body) => {
-            if eval(exp, context).try_into().unwrap() {
-                execute_statements(if_body, context);
-            } else {
-                execute_statements(else_body, context);
-            }
-        }
-        Statement::Expression(exp) => {
-            eval(exp, context);
-        }
-        Statement::While(condition, body) => {
-            while eval(condition, context).try_into().unwrap() {
-                execute_statements(body, context);
-            }
-        }
-        Statement::DoUntil(body, condition) => loop {
-            execute_statements(body, context);
-            if eval(condition, context).try_into().unwrap() {
-                break;
-            }
-        },
-        Statement::ClassDeclaration {
-            name: class_name,
-            superclass: parent_name,
-            fields,
-            methods,
-        } => {
-            let (mut new_methods, mut new_fields) = match parent_name {
-                Some(parent_name) => (
-                    context.classes[parent_name.as_str()].methods.clone(),
-                    context.classes[parent_name.as_str()].fields.clone(),
-                ),
-                None => (HashMap::new(), Vec::new()),
-            };
-            // TODO: deal with private and public fields
-            new_methods.extend(methods.into_iter().map(|(is_private, declaration)| {
-                (
-                    declaration.name.as_str(),
-                    Method {
-                        host_class: class_name,
-                        function: Function {
-                            args: &declaration.args,
-                            body: &declaration.body,
+                if eval(condition, context).try_into().unwrap() {
+                    break;
+                }
+            },
+            Statement::ClassDeclaration {
+                name: class_name,
+                superclass: parent_name,
+                fields,
+                methods,
+            } => {
+                let (mut new_methods, mut new_fields) = match parent_name {
+                    Some(parent_name) => (
+                        context.classes[parent_name.as_str()].methods.clone(),
+                        context.classes[parent_name.as_str()].fields.clone(),
+                    ),
+                    None => (HashMap::new(), Vec::new()),
+                };
+                // TODO: deal with private and public fields
+                new_methods.extend(methods.into_iter().map(|(is_private, declaration)| {
+                    (
+                        declaration.name.as_str(),
+                        Method {
+                            host_class: class_name,
+                            function: Function {
+                                args: &declaration.args,
+                                body: &declaration.body,
+                            },
                         },
+                    )
+                }));
+                new_fields.extend(fields.into_iter().map(|(is_private, name)| name.as_str()));
+                let mut fields_in_scope: Vec<_> =
+                    new_fields.iter().map(|v| *v).enumerate().collect();
+                fields_in_scope.sort_by_key(|a| a.1);
+                fields_in_scope.dedup_by_key(|a| a.1);
+                context.classes.insert(
+                    class_name,
+                    Class {
+                        fields: new_fields,
+                        methods: new_methods,
+                        parent_class: parent_name.as_deref(),
+                        fields_in_scope,
                     },
-                )
-            }));
-            new_fields.extend(fields.into_iter().map(|(is_private, name)| name.as_str()));
-            let mut fields_in_scope: Vec<_> = new_fields.iter().map(|v| *v).enumerate().collect();
-            fields_in_scope.sort_by_key(|a| a.1);
-            fields_in_scope.dedup_by_key(|a| a.1);
-            context.classes.insert(
-                class_name,
-                Class {
-                    fields: new_fields,
-                    methods: new_methods,
-                    parent_class: parent_name.as_deref(),
-                    fields_in_scope
-                },
-            );
+                );
+            }
+            Statement::Function(FunctionDeclaration { name, args, body }) => {
+                context.functions.insert(name, Function { args, body });
+            }
+            Statement::Return(exp) => return eval(exp, context),
         }
-        Statement::Function(FunctionDeclaration { name, args, body }) => {
-            context.functions.insert(name, Function { args, body });
-        },
-        Statement::Return(..) => unimplemented!("This should probably be removed anyway because a return statement is inherently something to evaluate, not a statement.")
     }
-    }
+    Value::Undefined
 }
 
 fn print(args: &[DenotedValue], write: &mut impl io::Write) {
@@ -503,16 +505,46 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Value
                 }
             },
             Expression::Reference(Reference::Identifier(function_name)) => {
-                let arguments: Vec<_> = arguments
-                    .into_iter()
-                    .map(|arg| DenotedValue::from(eval(arg, context)))
-                    .collect();
                 match function_name.as_str() {
                     "print" => {
+                        let arguments: Vec<_> = arguments
+                            .into_iter()
+                            .map(|arg| DenotedValue::from(eval(arg, context)))
+                            .collect();
                         print(&arguments, &mut context.stdout);
                         Value::NoVal
                     }
-                    _ => todo!("Implement functions"),
+                    function_name => {
+                        let function = context.functions[function_name].clone();
+                        let stack_frame = StackFrame {
+                            variables: function
+                                .args
+                                .iter()
+                                .zip(arguments.into_iter())
+                                .map(|((arg_name, as_ref), arg_val)| {
+                                    (
+                                        arg_name.as_str(),
+                                        if *as_ref {
+                                            match arg_val {
+                                                Expression::Reference(reference) => {
+                                                    get_ref(reference, context)
+                                                        .expect("TODO: put better error message")
+                                                }
+                                                exp => panic!("{:?} is not a reference", exp),
+                                            }
+                                        } else {
+                                            DenotedValue::from(eval(arg_val, context))
+                                        },
+                                    )
+                                })
+                                .collect(),
+                            current_class: None,
+                        };
+                        context.environment.push(stack_frame);
+                        let val = execute_statements(function.body, context);
+                        context.environment.pop();
+                        val
+                    }
                 }
             }
             exp => panic!("Cannot call {:?}", exp),
