@@ -1,5 +1,8 @@
 use prog::{ParseSettings, Program};
-use std::{io::Write, str};
+use std::{
+    io::{BufReader, Read, Write},
+    str,
+};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen(module = "/js/utils.js")]
@@ -22,12 +25,20 @@ impl Write for WorkerOutput {
     }
 }
 
+struct WorkerInput;
+
+impl Read for WorkerInput {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        todo!("input on worker")
+    }
+}
+
 #[wasm_bindgen]
 pub fn run(source: &str) {
     console_error_panic_hook::set_once();
 
     let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
-    ast.interpret_with_write(WorkerOutput);
+    ast.interpret_with_io(WorkerOutput, BufReader::new(WorkerInput));
 }
 
 #[wasm_bindgen]

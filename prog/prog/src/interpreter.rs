@@ -26,21 +26,24 @@ impl Program<'_> {
     }
 
     pub fn interpret(self) {
+        let stdin = io::stdin();
         let mut context = Context {
             functions: HashMap::new(),
             classes: HashMap::new(),
             environment: vec![Default::default()],
             stdout: io::stdout(),
+            stdin: stdin.lock(),
         };
         execute_statements(&self.0, &mut context);
     }
 
-    pub fn interpret_with_write(self, stdout: impl io::Write) {
+    pub fn interpret_with_io(self, stdout: impl io::Write, stdin: impl io::BufRead) {
         let mut context = Context {
             functions: HashMap::new(),
             classes: HashMap::new(),
             environment: vec![Default::default()],
             stdout,
+            stdin,
         };
         execute_statements(&self.0, &mut context);
     }
@@ -91,16 +94,17 @@ impl Index<&str> for StackFrame<'_> {
 
 type Environment<'a> = Vec<StackFrame<'a>>;
 
-struct Context<'a, W: io::Write> {
+struct Context<'a, W: io::Write, R: io::BufRead> {
     environment: Environment<'a>,
     classes: HashMap<&'a str, Class<'a>>,
     functions: HashMap<&'a str, Function<'a>>,
     stdout: W,
+    stdin: R,
 }
 
-fn apply_env<'a>(
+fn apply_env(
     identifier: &str,
-    context: &mut Context<'a, impl io::Write>,
+    context: &mut Context<impl io::Write, impl io::BufRead>,
 ) -> Option<DenotedValue> {
     let env = &context.environment;
     env.last()
@@ -110,7 +114,10 @@ fn apply_env<'a>(
         .cloned()
 }
 
-fn get_ref(reference: &Reference, context: &mut Context<impl io::Write>) -> Option<DenotedValue> {
+fn get_ref(
+    reference: &Reference,
+    context: &mut Context<impl io::Write, impl io::BufRead>,
+) -> Option<DenotedValue> {
     match reference {
         Reference::Identifier(identifier) => apply_env(identifier, context),
         Reference::Index(reference, index) => {
@@ -145,7 +152,7 @@ fn get_ref(reference: &Reference, context: &mut Context<impl io::Write>) -> Opti
 fn extend_env<'a>(
     reference: &'a Reference,
     value: Value,
-    context: &mut Context<'a, impl io::Write>,
+    context: &mut Context<'a, impl io::Write, impl io::BufRead>,
 ) -> DenotedValue {
     match get_ref(reference, context) {
         Some(denoted_value) => {
@@ -175,7 +182,7 @@ fn extend_env<'a>(
 
 fn execute_statements<'a>(
     statements: &'a ListOfStatements<'a>,
-    context: &mut Context<'a, impl io::Write>,
+    context: &mut Context<'a, impl io::Write, impl io::BufRead>,
 ) -> Value {
     for statement in statements {
         match statement {
@@ -290,21 +297,12 @@ fn execute_statements<'a>(
     Value::Undefined
 }
 
-fn print(args: &[DenotedValue], write: &mut impl io::Write) {
-    // TODO: print on the same line
-    for arg in args {
-        // FIXME: Don't use format string here, we can just format and print directly
-        // Using to_string
-        writeln!(write, "{}", &*arg.borrow()).unwrap();
-    }
-}
-
 fn apply_method<'a>(
     obj: DenotedValue,
     method: &str,
     super_call: bool,
     args: &Vec<Expression>,
-    context: &mut Context<'a, impl io::Write>,
+    context: &mut Context<impl io::Write, impl io::BufRead>,
 ) -> Value {
     match &*obj.borrow() {
         Value::Object(class, field_values) => {
@@ -367,7 +365,7 @@ fn apply_method<'a>(
 
 // We should probably change this to return Value instead of DenotedValue
 // This will prevent assigning to a non trivial expression as a thing
-fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Value {
+fn eval(expression: &Expression, context: &mut Context<impl io::Write, impl io::BufRead>) -> Value {
     match expression {
         Expression::IntegerLiteral(integer) => Value::from(*integer),
         Expression::StringLiteral(str) => Value::from(*str),
@@ -507,12 +505,26 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write>) -> Value
             Expression::Reference(Reference::Identifier(function_name)) => {
                 match function_name.as_str() {
                     "print" => {
-                        let arguments: Vec<_> = arguments
-                            .into_iter()
-                            .map(|arg| DenotedValue::from(eval(arg, context)))
-                            .collect();
-                        print(&arguments, &mut context.stdout);
-                        Value::NoVal
+                        if arguments.len() != 1 {
+                            panic!("expected 1 argument got {}", arguments.len())
+                        }
+                        let val = eval(&arguments[0], context);
+                        writeln!(context.stdout, "{}", val).unwrap();
+                        Value::Undefined
+                    }
+                    "input" => {
+                        if arguments.len() > 1 {
+                            panic!("expected 0 or 1 arguments got {}", arguments.len())
+                        }
+                        if let Some(argument) = arguments.get(0) {
+                            let val = eval(argument, context);
+                            write!(context.stdout, "{}", val).unwrap();
+                            context.stdout.flush();
+                        }
+
+                        let mut input_string = String::new();
+                        context.stdin.read_line(&mut input_string).unwrap();
+                        Value::String(input_string)
                     }
                     function_name => {
                         let function = context.functions[function_name].clone();
