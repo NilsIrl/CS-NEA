@@ -59,14 +59,14 @@ The problem with having a relatively strictly defined language is that although
 it is called a ``pseudocode" (at least in older specifications) and it is
 mentioned that ``Learners [...] may provide answers in any style of pseudocode
 they choose providing its meaning could be reasonably inferred by a competent
-programmer.'', it is often that students lose mark dude to the style of
+programmer.'', it is often that students lose mark due to the style of
 pseudocode they chose not being understood by the examiner for various reasons.
 As a result of this, it is preferable for students to write their answers in a
-style that is as close as possible to the ``pseudocode" defined by the exam
+style that is as close as possible to the ``pseudocode'' defined by the exam
 board to avoid losing marks.
 
 From here on out, what has been described as the `pseudocode' will now be
-referred to as a language for 2 reasons: firstly, We believe that as an
+referred to as a language for 2 reasons: firstly, we believe that as an
 inherent result of the language used in OCR exams being formally defined, it is
 no longer a pseudocode but in fact a programming language. Secondly, in the
 newest computer science specification, \textcite{j277}, what was previously
@@ -89,7 +89,13 @@ exam paper students had to take \cite{ocrpec18}.
 
 We believe that a solution for the problems described would be to implement the
 language, as described in the specifications and as used in exams, such that
-users can run code that was written using the language.
+users can run code that was written using the language. The problem we have and
+will describe lends itself particularly well to a computational solution and in
+fact is the only possible solution as computers are the only way to execute and
+trace software in a reliable way: although humans can trace the execution of a
+program it is a very error prone operation. Additionally, the purpose of this
+language is to check a human's work which inherently means it will have to use
+another method than one that is carried out by a human: a computer.
 
 If there was the possibility to run the code, it will allow students to use the
 language when going through the GCSE and A Level courses which will allow them
@@ -108,7 +114,13 @@ Another advantage of having a working implementation of this language is that
 students will no longer need to learn 2 languages: a programming language and
 the OCR Exam Reference Language. They will be able to only learn the OCR Exam
 Reference Language because they will now be able to use it as a proper
-programming language and write programs using it.
+programming language and write programs using it. It should be noted however
+that learning a second language will most likely be beneficial to students as
+they can understand the differences between languages, something that is
+assessed at A Level, where different programming paradigms are explored.
+Additionally, the OCR Exam Reference Language is very domain specific and is
+not designed to build complex systems and as such it is preferable if students
+are confident with a more general language.
 
 Although this project will focus on the OCR Exam Reference Language, this
 section in particular applies to other exam boards. The problems described here
@@ -727,7 +739,7 @@ development speed.
 Added a reference type which in the end I had to remove, nevermind, I'll just
 extend it, why am I so retarded 😖
 
-We need to implement returning from functions inside of execute_statements
+We need to implement returning from functions inside of execute\_statements
 
 \subsection{Where to find example code}
 
