@@ -45,7 +45,7 @@ for their secondary school education; in the summer of 2019, 11124 took it for
 A Levels, 3098 for AS Levels, and 80027 for GCSEs
 \cite{jcqalevel19, jcqgcse19}.
 
-In order to assess the ability of the students in the subject, 2 methods are
+In order to assess the ability of the students in the subject, two methods are
 used: examination and non exam assessment (NEA) in the form a programming
 project. To assess students during exams, exam boards produce questions that
 use and ask the student to use a pseudocode that is language agnostic and has
@@ -66,13 +66,13 @@ style that is as close as possible to the ``pseudocode'' defined by the exam
 board to avoid losing marks.
 
 From here on out, what has been described as the `pseudocode' will now be
-referred to as a language for 2 reasons: firstly, we believe that as an
-inherent result of the language used in OCR exams being formally defined, it is
-no longer a pseudocode but in fact a programming language. Secondly, in the
-newest computer science specification, \textcite{j277}, what was previously
-described as a pseudocode, is now known as the ``OCR Exam Reference Language''
-(We suspect it is because of the realisation of point 1 by OCR although there
-is no evidence to this).
+referred to as a language this is because, firstly, we believe that as an
+inherent result of the language used in OCR exams being defined within the
+specification, it is no longer a pseudocode but in fact a programming language.
+Secondly, in the newest computer science specification, \textcite{j277}, what
+was previously described as a pseudocode, is now known as the ``OCR Exam
+Reference Language'' (We suspect it is because of the realisation of point 1 by
+OCR although there is no evidence to this).
 
 Unfortunately, learning a language is complicated and one of the best ways to
 learn one is to practice with it. However because the language is only defined
@@ -83,16 +83,17 @@ Another problem that stems from the use of this language as described is that
 there is no way to check in a reliable way if code written using it is correct.
 Whether that is when a student is practicing for exams or when writing exam
 papers themselves. In the June 2018 A Level Paper 2, there was a mistake in the
-exam paper students had to take \cite{ocrpec18}.
+exam paper students had to take, demonstrating that even the most proficient
+can make mistakes \cite{ocrpec18}.
 
 % TODO how is computation better than other solutions.
 
 We believe that a solution for the problems described would be to implement the
 language, as described in the specifications and as used in exams, such that
-users can run code that was written using the language. The problem we have and
-will describe lends itself particularly well to a computational solution and in
-fact is the only possible solution as computers are the only way to execute and
-trace software in a reliable way: although humans can trace the execution of a
+users can run code that was written using the language. The problem described
+lends itself particularly well to a computational solution and in fact is the
+only possible solution as computers are the only way to execute and trace
+software in a reliable way: although humans can trace the execution of a
 program it is a very error prone operation. Additionally, the purpose of this
 language is to check a human's work which inherently means it will have to use
 another method than one that is carried out by a human: a computer.
@@ -111,16 +112,10 @@ purpose of exam papers removing the possibility of mistakes creeping up like
 they did in the June 2018 A Level paper.
 
 Another advantage of having a working implementation of this language is that
-students will no longer need to learn 2 languages: a programming language and
+students will no longer need to learn two languages: a programming language and
 the OCR Exam Reference Language. They will be able to only learn the OCR Exam
 Reference Language because they will now be able to use it as a proper
-programming language and write programs using it. It should be noted however
-that learning a second language will most likely be beneficial to students as
-they can understand the differences between languages, something that is
-assessed at A Level, where different programming paradigms are explored.
-Additionally, the OCR Exam Reference Language is very domain specific and is
-not designed to build complex systems and as such it is preferable if students
-are confident with a more general language.
+programming language and write programs using it.
 
 Although this project will focus on the OCR Exam Reference Language, this
 section in particular applies to other exam boards. The problems described here
@@ -137,8 +132,8 @@ the design section.
 
 One of the main stakeholders for the project are the users. There will be
 many different types of users but a majority of them will fall under one of
-four different categories: exam board and resource producers, student, and
-teacher.
+four different categories: exam board and resource producers, students, and
+teachers.
 
 The exam boards and resource producers will make a similar use of the
 implementation of the language: they will use it to create resources, one
@@ -291,30 +286,54 @@ unlikely this stage is reached.
 A limitation of this solution which we propose is that although this language
 will be usable as a general purpose language, students will likely benefit from
 also learning another language that is more widely used and is supported by
-more libraries. This means that using this implementation in order to avoid
-learning 2 languages is not necessarily beneficial.
+more libraries. Learning another language will allow students to have a better
+grasp of the concept of programming languages and will allow them to understand
+and try out the different programming paradigm and language features, something
+that is assessed at A Level. Lastly, students who decide to pursue their
+studies in computer science will undoubtedly need to learn multiple programming
+languages and so we believe that there is little to gain by learning only a
+single one. This means that using this implementation in order to avoid
+learning two languages is not necessarily beneficial and is probably
+detrimental to students for anything greater than short-term time saving, it is
+not something we would recommend to students.
 
 Another limitation of this solution is that the OCR Exam Reference Language is
 a language designed to be as neutral as possible and has as its only intended
 purpose to represent simple algorithms for exams. As a result, the language is
 very limited and cannot be used for much without extensions that add features
-to it and it is therefore not necessarily beneficial to learn it as a language.
+to it. This makes it in combination with its non-existent use unsuitable for
+building any complex system above a few hundreds lines of code.
 
-One of the most important features of a language is its community: it
-allows to have easily available libraries to make development faster without
-having to rewrite code that has already been written before. By using a niche
-language like this one, a developer is giving up on all the libraries that can
-make their life easier.
+One of the most important features of a language is its community: it allows to
+have easily available libraries to make development faster without having to
+rewrite code that has already been written before. By using a niche language
+like this one, a developer is giving up on all the libraries that can make
+their life easier. The language doesn't feature a module system to separate
+code into multiple files and would allow code to be separated into libraries
+for use by others which means that even with a larger user base, it would be
+unlikely that the problem described is ever solved. A solution could be to add
+a module extension to the language, however, we do not believe that making the
+language popular and usable to write business applications is within our aim
+and as such will not implement such a feature.
 
 % TODO: reference the design section here
 
-Lastly, the tooling. Another important part of the user experience of a
-language is the tooling that comes with that language making it easier to use.
-Although we hope to have syntax highlighting through tree-sitter (see Design
-section) and possibly an LSP, the tooling will be greatly reduced compared to
-other languages which means that the development experience will be less
-enjoyable and more difficult leading to users not being able to write as high
-quality code.
+Lastly, another important part of the user experience when it comes to using a
+language is tooling. Tooling improves development time and reduces the learning
+curve of a language. Although we hope to have syntax highlighting through
+tree-sitter (see Design section) and possibly a language server \cite{lsp}, the
+tooling will be greatly reduced compared to other languages which means that
+the development experience will be less enjoyable and more difficult, leading
+to users not being able to write high quality code, and choosing other
+languages in favour of this one.
+
+For languages to be successful and as such useful to know, they need a
+disrupting feature or another compelling reason to use it. With the language
+developed as part of this project, the compelling reason to use it, is related
+to exams (whether that be to prepare for them, or to make them) but there are
+no other reasons than that and as such it will not be useful to know the
+language beyond the reasons just stated which means some users may not find it
+worth it to learn and use this project.
 
 \subsection{Hardware and Software requirements}
 
