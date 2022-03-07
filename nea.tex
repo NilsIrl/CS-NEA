@@ -137,55 +137,91 @@ teachers.
 
 The exam boards and resource producers will make a similar use of the
 implementation of the language: they will use it to create resources, one
-mainly in the form of exams and the other will form a wide variety of
-resources: exam style questions, practice activities and other learning
-resources. They can use the implementation to verify code they show the
-students is correct. \Textcite{pattis88} found that only 20\% of textbooks
-implemented binary search correctly and the 2018 A Level OCR paper contained an
-error in the code they presented students suggesting errors in code presented
-to students is common and solutions need to be found. We believe that using
-an implementation of the language in one such solution and will reduce the
-occurrence of this mistake. Exam boards have previously been fined for mistakes
-in exams \cite{ofqual20180702} and resource producers could also be sued if the
-content they produce lead to students failing their qualifications. For this
-reason, using this an implementation of the language will not only improve the
-accuracy or resources it will also reduce costs (in forms of fines) for exam
-boards and resource producers.
+mainly in the form of exams and the other in a wide variety of forms: exam
+style questions, practice activities and other learning resources.
+\Textcite{pattis88} found that 80\% of textbooks implemented binary search
+\textbf{in}correctly and the 2018 A Level OCR paper contained an error in the
+code they presented students suggesting errors in code presented to students
+can arise easily and solutions need to be found. We believe that using an
+implementation of the language is one such solution and will reduce the
+occurrence of this mistake. Exam boards and resource producers will be able to
+use the implementation to verify through testing that correct code is produced
+in mark schemes, exam questions, and other resources. Exam boards and resource
+producers have a very strong interest in creating high quality material with
+the least amount of mistakes in them in order to maintain a reputation which
+leads to their product being used and purchased (whether that be exams or
+preparation material). Furthermore, exam boards have previously been fined for
+mistakes in exams \cite{ofqual20180702} and resource producers could also be
+sued if the content they produce lead to students failing their qualifications.
+For this reason, using this an implementation of the language will not only
+improve the accuracy or resources it will also reduce costs (in forms of fines)
+for exam boards and resource producers.
 
-Another category user of the implementation of the language will be students
-who are studying computer science in secondary school. They will be able to use
-the implementation to check their answers to questions as well as to write
-programs as part of their learning. We believe that this will help boost their
-grades in 2 ways: firstly, being able to check their answer will allow them go
-to a lot more quickly through questions and learn the fundamentals of
-programming a lot more quickly and be more confident with their learning as
-they can prove that what they have learned works; secondly, having to learn
-only a single language will reduce the amount of learning necessary which will
-allow them to have a more focused learning and know the content they need to
-know better.
+Another group of users of the language will be students who are studying
+computer science in secondary school. They will be able to use the
+implementation to check their answers to questions as well as to write programs
+as part of their learning. We believe that this will help boost their grades in
+2 ways: firstly, being able to check their answers reliably will allow them to
+answer and check their responses in less time leading to them doing more
+effective practice and will allow them learn the fundamentals of programming
+rapidly and be more confident with their learning as they can prove that what
+they have learned works; secondly, having to learn only a single language will
+reduce the amount of learning necessary which will allow them to have a more
+focused learning and know the content they need to know better.
 
-Lastly, teachers like students will be able to use the implementation of the
-language to mark their students and make sure the answers are correct and will
-be able to use it to plan their lessons and demo some of the programs to their
-students.
+Lastly, the language can be used to check the answers of students, by running
+the programs using the interpreter and verifying the output. This is a task
+performed mainly by exam boards and teachers. Exam boards will be able to use
+the language to mark some of the work produced by students in exams reducing
+the likelihood of mistakes done by markers and being more lenient as long as
+the student wrote a valid program. Teachers will also be able to use it to plan
+their lessons and demo some of the programs to their students, making the
+lessons more engaging.
 
-Other than users, stakeholders may include hosting companies especially if a
-server side ``playground'' is developed as part of the project. However,
-regardless of if and how services provided as part of this project are hosted,
-the hosting provider will probably be automated and the existence of this
-project will be negligible to them.
-
-% None user stakeholders (possible hosting provider)
+In addition to users, stakeholders may include companies and individual who
+extend the language in a form or another for profit or not. This includes
+developers of editors and other integrated development environments. For
+example a company could create an online platform for students to try the
+language out or save their code.
 
 \subsection{Existing solutions}
 
 Currently what is done is that when people write code in the OCR Exam Reference
-Language is that they can only check it manually, this can be considered to be
-a solution to making mistakes however it is error prone and doesn't provide
-much.
+Language they can only check it manually, this can be considered to be a
+solution however it is error prone and doesn't provide much, in particular to
+students who are not proficient in the language.
 
 There are however other software that have been written in the past that are
 much more similar to what this project aims to offer.
+
+\subsubsection{Existing programming languages}
+
+Programming languages are not a new concept, they have been a core component of
+computer science since its inception and are still one of the major ongoing
+areas of research. As part of the project, we will be developing an
+interpreter. Interpreters have been written thousands if not millions of times
+before, virtually every programming language has an interpreter, as such there
+is a lot of documentation and resources explaining how to write interpreters
+and programming languages.
+
+In order to develop this programming language we will use \textcite{eopl} as
+our main resource, a textbook that is used in many programming languages
+university courses around the world.
+
+We will also inspire ourselves from other languages. In particular python and
+rust in order to derive the intended behaviour of the OCR Reference Language
+when it has not been defined well enough in the specification. What we mean by
+that is when we are not sure how our program should behave we will try to match
+the behaviour that would be displayed by rust or python.
+
+The reason for these 2 choices is that python is one of the most popular
+programming languages as of the time of this writing and is the one used by
+most schools to teach their secondary school students, in addition the OCR
+Reference Language is very similar to python and as such we believe that
+drawing its behaviour from python is most likely what is intended. However
+sometimes we will match the behaviour of rust as it is the language we will use
+for the implementation and thus it will be simpler and reduce complexity to
+match its behaviour than having to implement something else.
 
 \subsubsection{Pseudo Code Interpreter}
 
@@ -296,6 +332,13 @@ single one. This means that using this implementation in order to avoid
 learning two languages is not necessarily beneficial and is probably
 detrimental to students for anything greater than short-term time saving, it is
 not something we would recommend to students.
+
+Although the language will allow markers to be more lenient when marking code
+written by candidates in exams it will not make the marking easier as it will
+still be necessary for other syntaxes used by students to be marked correctly
+and additionally it will take additional time for the programs written by
+students to be transcribed in a digital format so that it can be executed using
+the interpreter.
 
 Another limitation of this solution is that the OCR Exam Reference Language is
 a language designed to be as neutral as possible and has as its only intended
