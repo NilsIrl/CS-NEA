@@ -325,17 +325,65 @@ features apart from the core itself: implement a language.
 
 It is possible however to separate the core of the language into different
 section; for example, the GCSE features and the A Level (Object-oriented
-programming) features can be separated.
+programming) features can be separated. Considering implementing
+object-oriented features is more complex this will allow to have a working
+language regardless of how the implementation of other features goes.
 
 Other features which we are unlikely to be able to implement but may be done as
 a bonus in order to turn this implementation into a more usable language is
 tooling. Here is a list of tooling we could implement although it is quite
 unlikely this stage is reached.
 
+
+\subsubsection{Syntax highlighting}
+
+In order to support syntax highlighting, code editors support various ways to
+define syntax, some use tree-sitter such as Atom, or Neovim with tree-sitter
+support. Others use their own method of specifying the syntax. Lastly, some
+editors use the specification of other editors.
+
+As such implementing syntax highlighting would be a lot of work, as every
+editor we plan on supporting would require code to be written for.
+
+Syntax highlighting makes code easier to read as the structure is clearly
+separated and keywords, variables names and function definitions stand out from
+the rest of the code.
+
+\begin{listing}
+	\centering
+	\begin{minipage}{.5\textwidth}
+		\centering
+		\begin{minted}{rust}
+fn main() {
+    println!("Hello, World!");
+}
+		\end{minted}
+	\end{minipage}%
+	\begin{minipage}{.5\textwidth}
+		\centering
+		\begin{minted}{text}
+fn main() {
+    println!("Hello, World!");
+}
+		\end{minted}
+	\end{minipage}
+
+	\caption{Side-by-side comparison of syntax highlighted and non-syntax
+	highlighted code}
+\end{listing}
+
+\subsubsection{Playground}
+
+% TODO
+
+\subsubsection{Language Server}
+
+
+
 \begin{itemize}
     \item{Syntax highlighting for already existing editors}
     \item{A playground, an platform to test a language}
-    \item{An Language Server}
+    \item{A Language Server, an editor-independent tool that shows diagnostics}
 \end{itemize}
 
 \subsection{Limitations}
@@ -419,15 +467,20 @@ that it is most likely going to work on any other modern operating system such
 as the BSDs.
 
 If a playground is offered, a browser implementing the standard browser
-specifications should be required and no specific operating system will be
-required. The web version could be implemented using web assembly in which case
-a modern browser supporting WebAssembly will be required. If the web version is
+specifications should be required, alongside a working internet connection. The
+playground version will not have restrictions on the host operating system. The
+web version could be implemented using web assembly in which case a modern
+browser supporting WebAssembly will be required. If the web version is
 implemented by running the interpreter on a server, the server will require one
-of the operating system aforementioned.
+of the operating systems aforementioned.
 
 There are no hardware requirements other than dependencies on already mentioned
 software requirements. Interpreters are not resource intensive programs and can
 even execute on most low power micro controllers\cite{micropython}.
+
+Because we will be using rust to implement the project, we will be limited by
+the platforms rust support, which is to say we will not be limited as rust
+supports all major platforms\cite{rustPlatformSupport}.
 
 \subsection{Success Criteria}
 
