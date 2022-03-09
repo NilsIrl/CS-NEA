@@ -1,5 +1,6 @@
 \documentclass{article}
 
+\usepackage[british]{babel}
 \usepackage[T1]{fontenc}
 
 \usepackage{hyperref}
@@ -49,7 +50,7 @@ In order to assess the ability of the students in the subject, two methods are
 used: examination and non exam assessment (NEA) in the form a programming
 project. To assess students during exams, exam boards produce questions that
 use and ask the student to use a pseudocode that is language agnostic and has
-been predefined in the specification of the exam board.  This is done for
+been predefined in the specification of the exam board. This is done for
 clarity and consistency among other reasons \cite{h446, j276, j277}.
 
 Such an exam board is OCR: in \textcite{h446, j276, j277} a pseudocode is
@@ -179,10 +180,9 @@ their lessons and demo some of the programs to their students, making the
 lessons more engaging.
 
 In addition to users, stakeholders may include companies and individual who
-extend the language in a form or another for profit or not. This includes
-developers of editors and other integrated development environments. For
-example a company could create an online platform for students to try the
-language out or save their code.
+extend the language for profit or not. This includes developers of editors and
+other integrated development environments. For example a company could create
+an online platform for students to try the language out or save their code.
 
 \subsection{Existing solutions}
 
@@ -196,43 +196,44 @@ much more similar to what this project aims to offer.
 
 \subsubsection{Existing programming languages}
 
-Programming languages are not a new concept, they have been a core component of
+Programming languages are not a new concept, they have been a major subfield of
 computer science since its inception and are still one of the major ongoing
 areas of research. As part of the project, we will be developing an
 interpreter. Interpreters have been written thousands if not millions of times
 before, virtually every programming language has an interpreter, as such there
 is a lot of documentation and resources explaining how to write interpreters
-and programming languages.
+and programming languages and it is for the most part a solved problem.
 
-In order to develop this programming language we will use \textcite{eopl} as
-our main resource, a textbook that is used in many programming languages
-university courses around the world.
+In order to develop this programming language we will use \textcite{eopl}, a
+textbook that is used in many programming languages university courses around
+the world, to guide us.
 
-We will also inspire ourselves from other languages. In particular python and
-rust in order to derive the intended behaviour of the OCR Reference Language
-when it has not been defined well enough in the specification. What we mean by
-that is when we are not sure how our program should behave we will try to match
-the behaviour that would be displayed by rust or python.
+We will also inspire ourselves from other languages. In particular
+\citetitle{python}, and \citetitle{rust} in order to derive the intended
+behaviour of the OCR Reference Language when it has not been defined well
+enough in the specification. What we mean by that is when we are not sure how
+our program should behave we will try to match the behaviour that would be
+displayed by rust or python.
 
 The reason for these 2 choices is that python is one of the most popular
 programming languages as of the time of this writing and is the one used by
-most schools to teach their secondary school students, in addition the OCR
+most schools to teach their secondary school students, additionally the OCR
 Reference Language is very similar to python and as such we believe that
-drawing its behaviour from python is most likely what is intended. However
-sometimes we will match the behaviour of rust as it is the language we will use
-for the implementation and thus it will be simpler and reduce complexity to
-match its behaviour than having to implement something else.
+drawing its behaviour from python is most likely to be what is intended.
+However sometimes we will match the behaviour of rust as it is the language we
+will use for the implementation and thus it will be simpler and reduce
+complexity to match its behaviour than having to implement something else.
 
 \subsubsection{Pseudo Code Interpreter}
 
-\Textcite{jacobsieradzki18} is an iPad app that allows to execute pseudo code
+\Citetitle{jacobsieradzki18} is an iPad app that allows to execute pseudo code
 for OCR exams.
 
-However, it has many disadvantages that I hope this project will address.
+However, it has many disadvantages that we hope this project will address.
 Starting with the syntax, it uses a syntax that although is inspired from the
 OCR pseudo code guide is not like the OCR pseudocode guide and as a result
 cannot be used to learn the language properly nor can it be used to check for
-mistake. Another feature of \textcite{jacobsieradzki18} that makes it
+mistake. Another feature of \citetitle{jacobsieradzki18} that makes it
 unsuitable to solve the problem demonstrated above is that it is only available
 as an iPad app and as a result it cannot be used across a wide variety of
 devices and for many different purposes; this ties in with the fact the
@@ -240,12 +241,12 @@ language is not implemented like other languages: it is not possible to use it
 standalone. For example, when input is asked from the user a special interface
 is shown which is not suitable for use as a programming language.
 
-I will be able to use \textcite{jacobsieradzki18} to inspire a possible user
+We will be able to use \citetitle{jacobsieradzki18} to inspire a possible user
 interface for the implementation.
 
 \subsubsection{Pseudocompiler}
 
-\Textcite{pseudocompiler} ``is a (pretty) spec-compliant implementation of
+\Citetitle{pseudocompiler} ``is a (pretty) spec-compliant implementation of
 OCR's provisional "pseudocode" specification''.
 
 It seems to have the features that this project aims for including a playground
@@ -261,22 +262,25 @@ its features and as a result we do not have much to go off of.
 
 \subsubsection{Pseudocode-Compiler}
 
-\Textcite{pseudocode-compiler} is a compiler ``that compiles IGCSE pseudocode
+\Citetitle{pseudocode-compiler} is a compiler ``that compiles IGCSE pseudocode
 to LLVM IR''.
 
 This project compiles to LLVM IR which allows it to support many platforms, as
 many as LLVM supports, however it compiles IGCSE pseudocode which is not
-suitable for our use case.
+suitable for our use case, as we are targeting the OCR Reference Language.
+Additionally it compiling to LLVM IR means that it is not so easily runnable by
+the user and will require some additional work before it can be used in the
+browser.
 
 \subsubsection{Pseudocode-Transpiler}
 
-\Textcite{pseudocode-transpiler} is a compiler that ``compiles pseudocode into
+\Citetitle{pseudocode-transpiler} is a compiler that ``compiles pseudocode into
 python''. It uses regular expressions to evaluate statements.
 
 This project compiles IGCSE pseudocode using regular expressions which is not a
 reliable method, additionally, it compiles to python which is itself an
-interpreted language (at least its main implementation is), which means that
-running code using this method will be slow and probably inaccurate.
+interpreted language (at least its reference implementation is), which means
+that running code using this method will be slow and probably inaccurate.
 
 To conclude there are many different approaches to writing an implementation of
 any given pseudocode. It is possible to compile to different ``targets'' such
@@ -292,6 +296,25 @@ user interfaces.
 \begin{itemize}
     \item{https://github.com/Sherlemious/IGCSE-CS-PC-Transpiler}
 \end{itemize}
+
+\subsubsection{On LLVM}
+
+LLVM has been mentioned multiple times in this section. It is ``a collection of
+modular and reusable compiler and toolchain technologies'' as described by its
+website. One of the feature it provides is an intermediate representation (IR)
+known as LLVM IR. Many compilers including the rust compiler, the
+implementation language, compile the source code given to them to LLVM IR and
+then use LLVM to compile this intermediate representation down to machine code.
+
+LLVM will optimise the code and can then compile into many different types of
+machine code, it supports a dozen architectures/instruction sets. This allows
+those writing compilers to focus on their language rather than having to
+implement a back-end to their compiler for every instruction set they want to
+support.
+
+We will not be using LLVM as part of this project because it would introduce a
+large amount of complexity and unfortunately the documentation for LLVM is
+quite sparse.
 
 \subsection{Essential Features}
 
@@ -530,7 +553,7 @@ curve''\cite{ts_creating_parsers}.
 
 This is why we have decided to use a different method for parsing the code. We
 settled on using parser combinators with the help of the parser combinator
-framework \textcite{nom}. This library was chosen because it is the most widely
+framework \citetitle{nom}. This library was chosen because it is the most widely
 used parsing framework for rust (our implementation language) and the author
 has experience having used it while going through \textcite{eopl}.
 
