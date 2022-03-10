@@ -334,7 +334,6 @@ a bonus in order to turn this implementation into a more usable language is
 tooling. Here is a list of tooling we could implement although it is quite
 unlikely this stage is reached.
 
-
 \subsubsection{Syntax highlighting}
 
 In order to support syntax highlighting, code editors support various ways to
@@ -374,17 +373,48 @@ fn main() {
 
 \subsubsection{Playground}
 
-% TODO
+Many modern programming languages have a `playground', a website on which
+people can test out the language without having to install any software. For
+example the go programming language and rust have one\cite{rustPlayground,
+goPlayground}.
+
+This would allow users to test out or even run programs easily which would
+lower the barrier to entry, something that is necessary when the target
+audience contains students.
+
+Considering the nature of the language, which will be used to test out simple
+pieces of code rather than running production-grade services, there is no
+necessity for the users to install the software.
 
 \subsubsection{Language Server}
 
+Introduced in 2016 by Microsoft, the language server protocol is a protocol
+used by editors to communicate with software that will indicate to the editor
+what diagnostics to display to the user. It allows a single program to be
+written for each language, as long as the editor supports the protocol, instead
+of a plugin being written for every editor and every language out there.
 
+This means that we could write a language server for the OCR reference language
+which would add support for the language in all major editors, instead of
+having to support each editor individually, minimising bugs and improving the
+quality of diagnostics.
 
-\begin{itemize}
-    \item{Syntax highlighting for already existing editors}
-    \item{A playground, an platform to test a language}
-    \item{A Language Server, an editor-independent tool that shows diagnostics}
-\end{itemize}
+\subsubsection{Additional language syntax}
+
+In addition to the language as defined in specification documents, we could add
+additional features and syntax. A feature could be to support other pseudocode
+languages such as the one used by other exam boards like AQA or Edexcel, this
+would allow students taking exams from these exam boards to benefit from this
+project as well.
+
+We could also add support for features that would make the language more
+productive such as a foreign function interface (FFI) with C, which would allow
+to call C code and make use of the wide array of libraries already written in
+C. FFI support with C is primordial in the success of a language in particular
+a high level language like this one because it allows to perform low level
+operations and make use of the thousands of libraries that have been written
+and C and would simply be impossible to rewrite in another language due to the
+amount of work it would require.
 
 \subsection{Limitations}
 
@@ -487,7 +517,7 @@ supports all major platforms\cite{rustPlatformSupport}.
 In order to test the software and validate the success criteria in an objective
 way, a testing script \texttt{neasuccess} will be written before the
 implementation has started to be written. This test script will run the
-implementation with different inputs and verity that the output is the one
+implementation with different inputs and verify that the output is the one
 expected.
 
 The success test script will be modular and be able to support many different
