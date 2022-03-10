@@ -416,6 +416,17 @@ operations and make use of the thousands of libraries that have been written
 and C and would simply be impossible to rewrite in another language due to the
 amount of work it would require.
 
+An example of C library that would be useful to have within the language is
+\citetitle{sqlite}. This SQL database is used by most schools to teach the
+database section of the A level course and as such being able to use it within
+the programming language would be highly beneficial. \Citetitle{sqlite} being
+made up of more than 100,000 lines of code would be impractical to rewrite in
+the language and any attempt would result in a much lower code quality.
+
+An alternative to FFI would be to implement interfaces within the interpreter
+however this would require the interpreter to be updated for every library that
+needs to be supported and as such is impractical.
+
 \subsection{Limitations}
 
 % TODO: students will probably still need to learn another language alongside
@@ -514,90 +525,84 @@ supports all major platforms\cite{rustPlatformSupport}.
 
 \subsection{Success Criteria}
 
-In order to test the software and validate the success criteria in an objective
-way, a testing script \texttt{neasuccess} will be written before the
-implementation has started to be written. This test script will run the
-implementation with different inputs and verify that the output is the one
-expected.
+For the main part of this project, the interpreter that will execute programs
+written in the OCR reference language, the success criteria would be that the
+interpreter works. This means that when given valid code, it should be able to
+execute it and return to the user what is expected.
 
-The success test script will be modular and be able to support many different
-tests. It will work in the following way: In the \texttt{tests} directory,
-there will be files with the extension \texttt{.input} and \texttt{.output}.
-The success test script will run the interpreter with as input the content of
-the \texttt{.input} files and check if the output is the same as the file with
-the same basename but as extension \texttt{.output} file.
+However, this is quite a general definition and within the interpreter they may
+be some features of the language that works while others don't and as such we
+need to break down this larger success criteria into smaller sub-parts. The
+sub-parts can be defined in terms of features of the language.
 
-An argument can be given to the success test script to only use the tests with
-the basename given.
+Following is a list of the features that should be tested to measure how
+successful the project was. The list is derived from the pseudocode guide in
+\citetitle{h446}:
 
-The following success criteria are derived from the pseudocode guide in
-\textcite{h446}. They are ordered such that later tests can include features
-from previous tests. Due to the nature of a programming language, it is very
-possible that some of these features will all be implemented at once,
-especially considering some features are really built-in functions more than
-anything else and as such may not require to be core language features.
+\begin{enumerate}
+	\item Being able to read a file
+	\item Working sequential instructions
+	\item Comments
+	\item Outputting to screen
+	\item Variables
+	\item Iteration --- Count Controlled
+	\item Selection
+	\item Logical Operators
+	\item Iteration --- Condition Controlled
+	\item String Handling
+	\item Subroutines
+	\item Subroutines --- Passing values by value or by reference
+	\item Arrays
+	\item Reading from files
+	\item Writing to files
+	\item Objects --- Attributes
+	\item Objects --- Methods
+	\item Object --- Access level
+	\item Object --- Constructors
+	\item Object --- Inheritence
+\end{enumerate}
 
-\begin{table}
-    \begin{adjustbox}{center}
-        \begin{tabular}{|l|l|}
-            \hline
-            Criteria & How to evidence \\
-            \hline
-            Being able to read a file & Run the interpreter with a file as input \\
-            \hline
-            Working sequential instructions & Run \texttt{./neasuccess seq} \\
-            \hline
-            Comments & Run \texttt{./neasuccess comments} \\
-            \hline
-            Outputting to screen & Run \texttt{./neasuccess print} \\
-            \hline
-            Variables & Run \texttt{./neasuccess variables} \\
-            \hline
-            Iteration --- Count Controlled & Run \texttt{./neasuccess forloop}
-            \\
-            \hline
-            Selection & Run \texttt{./neasuccess selection} \\
-            \hline
-            Logical Operators & Run \texttt{./neasuccess logic} \\
-            \hline
-            Iteration --- Condition Controlled & Run \texttt{./neasuccess
-            whileloop} \\
-            \hline
-            String Handling & Run \texttt{./neasuccess strings} \\
-            \hline
-            Subroutines & Run \texttt{./neasuccess subroutines} \\
-            \hline
-            Subroutines --- Passing values by value or by reference & Run
-            \texttt{./neasuccess byvalue\_byref} \\
-            \hline
-            Arrays & Run \texttt{./neasuccess arrays} \\
-            \hline
-            Reading from files & Run \texttt{./neasuccess readfile} \\
-            \hline
-            Writing to files & Run \texttt{./neasuccess writefile} \\
-            \hline
-            Objects --- Attributes & Run \texttt{./neasuccess attributes} \\
-            \hline
-            Objects --- Methods & Run \texttt{./neasuccess methods} \\
-            \hline
-            Object --- Access level & Run \texttt{./neasuccess access} \\
-            \hline
-            Object --- Constructors & Run \texttt{./neasuccess constructors} \\
-            \hline
-            Object --- Inheritence & Run \texttt{./neasuccess inheritance} \\
-            \hline
-        \end{tabular}
-    \end{adjustbox}
-    \caption{Success Criteria}
-\end{table}
+In order to make the success criteria more objective, it would be preferable if
+these features can be tested as much as possible in an automatic way to remove
+bias. This would also make the testing more efficient.
 
-\section{Design}
+\subsubsection{Success criteria for optional features}
+
+To consider syntax highlighting, to be complete, for the editors for which syntax
+highlighting is implemented, keywords, and structures that make up the language
+should be highlighted accordingly. The syntax defined for the syntax
+highlighting should have no bugs such that the different elements of the code
+are highlighted in a coherent way. If the highlighting is not coherent it would
+be confusing for the user and would result in reduced productivity.
+
+For the playground, the language should be usable with as much of the features
+of the language being usable from the playground. Some features will be more
+difficult to implement as an inherent result of the platform. For example
+reading and writing to files on the web makes little to no sense and it is
+perfectly acceptable if this is not achieved. However, it can be possible to
+implement it for example by having a virtual file system to which users can
+upload files.
+
+The success criteria for the language server would involve having produced a
+language server that is usable by most editors in particular those of interest
+for us are Neovim and VS code. If the language server works for both of these
+editors it can be considered that it is stable enough and should work for most
+others. The language server should be able to display appropriate errors to the
+user and assist them in their development.
+
+For all additional language features, the success criteria would be that the
+feature is functional and works as intended.
+
+\section{Design of the interpreter}
+\label{sec:design_int}
 
 There are 2 main ways to be able to write language: as an interpreter or as a
-compiler. Additionally there are also different flavours of JIT compilers.
+compiler. Additionally there are also different flavours of just-in-time (JIT)
+compilers.
 
 We have decided to opt for an interpreter due to the language's dynamic nature
-as well as because interpreters are less complex.
+as well as because interpreters are less complex to implement and are more
+likely to work across a variety of platforms.
 
 Figure \ref{fig:interpreting_flowchart} shows the major steps of interpreting a
 program.
@@ -623,7 +628,17 @@ machine code. This is very important when writing an interpreter because it
 will allow to have acceptable performance. Writing an interpreter in an
 interpreted language would accumulate overhead and result in bad performance.
 
+Additionally we plan on building a playground which would execute code on the
+client side using WebAssembly (wasm)\cite{wasm}, a web standard which defines a
+bytecode that can be executed by browsers.
+
 \subsection{Parsing}
+
+The first step of interpreting any kind of code is parsing. This stage involves
+converting text into a structured object which can then be used for other
+purposes.
+
+% TODO
 
 When parsing, the source code which can be gathered from various sources is
 converted into an abstract syntax tree (AST) and then the AST is interpreted.
@@ -788,6 +803,31 @@ tested and hence most likely to be correct.
 
 By being able to quantitatively measure our testing strategy we can assure
 ourself of the accuracy and reliability of our program.
+
+\section{Design of the playground}
+
+As briefly mentioned at the beginning of the design of the interpreter, by
+having the interpreter written in rust allows us to compile it down to wasm
+which means that we can then execute our interpreter in the browser allowing
+users to run snippets of code.
+
+A major advantage of using this method to implement a playground is that it
+doesn't require a complex back-end, a simple web server suffices as we only
+need to serve static files. This means we do not have to deal with scaling and
+resource usage and there is no risk of vulnerabilities in the sandbox executing
+user code as there is no sandbox and no user code is executed on our servers.
+
+Because we only need to serve static files, it means that we can use one of the
+many free services available online that will allow us to serve static files.
+In our case we will use GitHub Pages to host the playground for no cost. If the
+implementation was similar to that used by go or rust, we would have much
+higher cost as we would need to pay for a server to host the playground and in
+addition to that would not be able to scale to a larger number of users.
+
+Another advantage of this client-side method is that the application can be
+interactive, it can print text to the screen in real time and accept input from
+the user, something that is rarely seen in traditional playgrounds because it
+only displays the result to the user once the code has finished executing.
 
 \section{NOTES NOT PART OF REPORT}
 

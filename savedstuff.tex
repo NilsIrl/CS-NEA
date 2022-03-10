@@ -1,0 +1,78 @@
+In order to test the software and validate the success criteria in an objective
+way, a testing script \texttt{neasuccess} will be written before the
+implementation has started to be written. This test script will run the
+implementation with different inputs and verify that the output is the one
+expected.
+
+The success test script will be modular and be able to support many different
+tests. It will work in the following way: In the \texttt{tests} directory,
+there will be files with the extension \texttt{.input} and \texttt{.output}.
+The success test script will run the interpreter with as input the content of
+the \texttt{.input} files and check if the output is the same as the file with
+the same basename but as extension \texttt{.output} file.
+
+An argument can be given to the success test script to only use the tests with
+the basename given.
+
+The following success criteria are derived from the pseudocode guide in
+\textcite{h446}. They are ordered such that later tests can include features
+from previous tests. Due to the nature of a programming language, it is very
+possible that some of these features will all be implemented at once,
+especially considering some features are really built-in functions more than
+anything else and as such may not require to be core language features.
+
+\begin{table}
+    \begin{adjustbox}{center}
+        \begin{tabular}{|l|l|}
+            \hline
+            Criteria & How to evidence \\
+            \hline
+            Being able to read a file & Run the interpreter with a file as input \\
+            \hline
+            Working sequential instructions & Run \texttt{./neasuccess seq} \\
+            \hline
+            Comments & Run \texttt{./neasuccess comments} \\
+            \hline
+            Outputting to screen & Run \texttt{./neasuccess print} \\
+            \hline
+            Variables & Run \texttt{./neasuccess variables} \\
+            \hline
+            Iteration --- Count Controlled & Run \texttt{./neasuccess forloop}
+            \\
+            \hline
+            Selection & Run \texttt{./neasuccess selection} \\
+            \hline
+            Logical Operators & Run \texttt{./neasuccess logic} \\
+            \hline
+            Iteration --- Condition Controlled & Run \texttt{./neasuccess
+            whileloop} \\
+            \hline
+            String Handling & Run \texttt{./neasuccess strings} \\
+            \hline
+            Subroutines & Run \texttt{./neasuccess subroutines} \\
+            \hline
+            Subroutines --- Passing values by value or by reference & Run
+            \texttt{./neasuccess byvalue\_byref} \\
+            \hline
+            Arrays & Run \texttt{./neasuccess arrays} \\
+            \hline
+            Reading from files & Run \texttt{./neasuccess readfile} \\
+            \hline
+            Writing to files & Run \texttt{./neasuccess writefile} \\
+            \hline
+            Objects --- Attributes & Run \texttt{./neasuccess attributes} \\
+            \hline
+            Objects --- Methods & Run \texttt{./neasuccess methods} \\
+            \hline
+            Object --- Access level & Run \texttt{./neasuccess access} \\
+            \hline
+            Object --- Constructors & Run \texttt{./neasuccess constructors} \\
+            \hline
+            Object --- Inheritence & Run \texttt{./neasuccess inheritance} \\
+            \hline
+        \end{tabular}
+    \end{adjustbox}
+    \caption{Success Criteria}
+\end{table}
+
+
