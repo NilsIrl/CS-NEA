@@ -596,16 +596,61 @@ feature is functional and works as intended.
 \section{Design of the interpreter}
 \label{sec:design_int}
 
+\subsection{Type of programming language implementation}
+
 There are 2 main ways to be able to write language: as an interpreter or as a
 compiler. Additionally there are also different flavours of just-in-time (JIT)
 compilers.
 
-We have decided to opt for an interpreter due to the language's dynamic nature
-as well as because interpreters are less complex to implement and are more
-likely to work across a variety of platforms.
+Interpreters work by directly executing the instructions indicated by the
+program. For example, if in the programming language, there is a print
+instruction, the interpreter will print the text corresponding to the operand
+of that print instruction.
 
-Figure \ref{fig:interpreting_flowchart} shows the major steps of interpreting a
-program.
+Compilers work by translating the source code into another type of code.
+Generally compilers compile code down to a lower level representation of the
+code but sometimes they transform the code into a language of a similar level
+of abstraction from the source language, for example to JavaScript. These types
+of compilers are usually called ``transpilers''. For example the
+\citetitle{nim} compiler compiles Nim source code down to JavaScript or C.
+Compilers are generally more difficult to implement as they have greater
+complexity and the lower the level of abstraction the target language is the
+greater the complexity of the compiler generally is. Ultimately some compilers
+compile to machine code, code that can be directly executed on the CPU.
+
+In addition to compilers and interpreters, there are just-in-time compilers
+which compile code to machine code as it is executed, often just-in-time
+compilers are a hybrid of a compiler and an interpreter, such that code is
+interpreted at first and then compiled to obtain a greater performance. This is
+how the JavaScript engines that run in major browsers (V8, SpiderMonkey and
+JavaScriptCore, for Chromium, Firefox and Safari respectively) are implemented.
+
+For our programming language, we have decided to opt for an interpreter design
+due to the language's dynamic nature, the lesser complexity of implementation
+of interpreters and the much greater cross-platform compatibility.
+
+\subsection{Language of implementation}
+
+The implementation language will be rust because it is a language the author is
+familiar with and because it is a high performance language as it compiles to
+machine code. This is very important when writing an interpreter because it
+will allow to have acceptable performance. Writing an interpreter in an
+interpreted language would accumulate overhead and result in bad performance.
+
+Additionally, Rust supports a very wide array of operating systems and CPU
+architectures/instruction set. This is particularly important as we plan on
+building a playground which will execute code on the client side using
+WebAssembly (wasm)\cite{wasm}, a web standard which defines a bytecode that can
+be executed by browsers. As of now very few languages have good support for
+WebAssembly, but it is generally considered that rust has be the best support,
+even though, it is still not straight forward to use it.
+
+\subsection{Parsing}
+
+Now that we have made the high-level design decisions, we will look at the
+implementation of the interpreter itself. Figure
+\ref{fig:interpreting_flowchart} shows the major steps involved in the
+interpretation of a program.
 
 \begin{figure}
 	\centering
@@ -622,32 +667,39 @@ program.
 	\label{fig:interpreting_flowchart}
 \end{figure}
 
-The implementation language will be rust because it is a language the author is
-familiar with and because it is a high performance language as it compiles to
-machine code. This is very important when writing an interpreter because it
-will allow to have acceptable performance. Writing an interpreter in an
-interpreted language would accumulate overhead and result in bad performance.
-
-Additionally we plan on building a playground which would execute code on the
-client side using WebAssembly (wasm)\cite{wasm}, a web standard which defines a
-bytecode that can be executed by browsers.
-
-\subsection{Parsing}
-
 The first step of interpreting any kind of code is parsing. This stage involves
 converting text into a structured object which can then be used for other
-purposes.
+purposes, most importantly evaluating/interpreting the object to execute the
+code it represents.
+
+The object generated is known as an abstract syntax tree (AST) and represents
+the program to be executed.
+
+There are numerous methods of writing a parser, they generally fall under two
+wide categories, manual parsing, or parsing using parser generators.
+
+Parser generators are programs to which a language grammar is given, a language
+grammar defines the syntax of a language and its structure, and output a
+parser. The parser is then capable of parsing the input.
+
+When writing parsers manually on the other hand, instead of having it generated
+for us based on a language grammar, we write ourselves the code that would
+parse the input.
+
+At first we were hoping to use \citetitle{treesitter} as our parsing system
+because it would give us syntax highlighting inside of editors without having
+to write a regex based grammar or another parser. Being able to re-use the
+parser used for the language as well as for syntax highlighting increases the
+robustness of the software, because a single shared implementation is used and
+bugs that are found are fixed for both, and both stay consistent with each
+other. However writing tree-sitter grammars is not an easy task and is
+described as having ``a difficult learning curve''\cite{ts_creating_parsers}.
+
+Additionally, tree-sitter loads language grammars as shared libraries which
+would have been difficult to use within the playground from web assembly as the
+grammar itself would be a web assembly module.
 
 % TODO
-
-When parsing, the source code which can be gathered from various sources is
-converted into an abstract syntax tree (AST) and then the AST is interpreted.
-
-At first we were hoping to use tree-sitter as our parsing system because it
-would give us syntax highlighting inside of editors without having to write a
-regex based grammar or another parser. However writing tree-sitter grammars is
-not an easy task and is described as having ``a difficult learning
-curve''\cite{ts_creating_parsers}.
 
 This is why we have decided to use a different method for parsing the code. We
 settled on using parser combinators with the help of the parser combinator
@@ -828,6 +880,15 @@ Another advantage of this client-side method is that the application can be
 interactive, it can print text to the screen in real time and accept input from
 the user, something that is rarely seen in traditional playgrounds because it
 only displays the result to the user once the code has finished executing.
+
+\section{Development}
+
+% TODO: probably mention the tools used, git in particular
+
+\section{Evaluation}
+
+% We could have fuzzed the parser
+% we could have used tree-sitter instead
 
 \section{NOTES NOT PART OF REPORT}
 
