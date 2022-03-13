@@ -37,6 +37,8 @@
 
 \usetikzlibrary{shapes.misc}
 
+%\interfootnotelinepenalty=10000
+
 \tikzstyle{flowchartbox} = [text centered, draw, minimum width=3cm, minimum height=1cm]
 \tikzstyle{terminal} = [flowchartbox, rectangle, rounded rectangle]
 \tikzstyle{process} = [flowchartbox, rectangle]
@@ -696,10 +698,10 @@ code it represents. The object generated is known as an abstract syntax tree
 
 There are numerous methods of writing a parser, they generally fall under two
 wide categories, manual parsing, or parsing using parser generators. Parser
-generators are programs to which a language grammar, a definition of the syntax
-of a language and its structure, is given and which output a parser. The parser
-is then capable of parsing the input. When writing parsers manually on the
-other hand, instead of having the parser generated for us based on a language
+generators are programs to which which output a parser given a language
+grammar, a definition of the syntax of a language and its structure. The parser
+is then capable of parsing the input. On the other hand, when writing parsers
+manually instead of having the parser generated for us based on a language
 grammar, we write ourselves the code that would parse the input.
 
 At first we were hoping to use \citetitle{treesitter} as our parsing system
@@ -723,13 +725,12 @@ WebAssembly module. Lastly, writing a parser is generally not considered to be
 the most complex task of writing an interpreter and writing our own gives us
 much more flexibility.
 
-% TODO
-
 This is why we have decided to use a different method for parsing the code. We
 settled on using parser combinators with the help of the parser combinator
 framework \citetitle{nom}. This library was chosen because it is the most widely
 used parsing framework for rust (our implementation language) and the author
-has experience having used it while going through \textcite{eopl}.
+has experience having used it while going through \textcite{eopl} to prepare
+for this project.
 
 Another advantage of using parser combinators is that they allow to perform
 complex transformations during the parsing. For example, it is possible to
@@ -744,128 +745,156 @@ parser generator library, the method recommended by \textcite{eopl}, such as
 \textcite{bison}. The downside of this is that the program will have to be
 built upon the structure of the parser and will be limited by it.
 
+\subsubsection{On parser combinators}
+
+Parser combinators are an implementation of the recursive descent algorithm,
+they work by chaining functions to parse more complex structures. The recursive
+descent algorithm attempts to parse different elements of the input and then
+backtracks when it fails, until it eventually succeeds or fail, in which case
+it fails to parse the input. This can happen if the input is malformed or if
+there's a bug in the parser.
+
 \subsubsection{Language Grammar}
 
-The language grammar defines all the possible different statements and
-expressions found in the language to simplify writing the parser. If we used a
-method using parser generators we would normally have given our grammar to the
-parser generator so it then generates the parser. In our case, because we are
-writing the parser ourselves in order to be able to easily keep track of
-everything that has to be implemented having a list of the statements,
-expressions and other constructs allows us to easily keep track of everything.
+Because we are writing our parser using a parser combinator design, we will
+have to define a function for every element we want to parse. In order to do
+this we first have to define every element that makes up our language or
+otherwise we risk forgetting some elements.
 
-\noindent
-Statement ::= \texttt{global} Identifier \texttt{=} Expression\\
-Statement ::= Identifier \texttt{=} Expression\\
-Statement ::= \texttt{array} Identifier\texttt{[}\{Expression\}\textsuperscript{+(\texttt{,})}\texttt{]}\\
-Statement ::= Expression\\
-Statement ::= \texttt{for} Identifier \texttt{=} Expression \texttt{to} Expression List-of-Statements \texttt{next} Identifier\\
-Statement ::= \texttt{while} Expression List-of-Statements \texttt{endwhile}\\
-Statement ::= \texttt{do} List-of-Statements \texttt{until} Expression\\
+This definition of the structures in a language can be represented in many
+different ways, but in our case we will define it as a language grammar. A
+language grammar defines all the possible different statements and expressions
+found in the language to simplify writing the parser. If we used a method using
+parser generators we would normally have given our grammar to the parser
+generator so it then generates the parser. In our case, because we are writing
+the parser ourselves we are only doing it in order to more easily keep track of
+everything that has to be implemented.
 
-\noindent
-Statement ::= \texttt{if} Expression \texttt{then} List-of-Statements \{\texttt{elseif} Expression \texttt{then} List-of-Statements\}\textsuperscript{*} \{\texttt{else} List-of-Statements\}\textsuperscript{?} \texttt{endif}\\
-Statement ::= \texttt{switch} Expression\texttt{:} \{\texttt{case} Expression\texttt{:} List-of-Statements\}\textsuperscript{*} \{\texttt{default:} List-of-Statements\}\textsuperscript{?} \texttt{endswitch}\\
+The language grammar we define is informal as it is only meant to be read by
+humans, unlike one that is used with a parser generator. Each definition is
+made up of the left-hand-side and the right-hand-side separated by ``::=''.
+The left-hand-side represents the element that is being defined. When an
+element is defined multiple times, we are defining the different forms this
+element can have. For example a statement can an assignment of a variable but
+it can also be a for loop.
 
-\noindent
-Statement ::= \texttt{function} Identifer\texttt{(}\{Identifier\{:byVal | :byRef\}\}\textsuperscript{*(\texttt{,})}\texttt{)} List-of-Statements \texttt{endfunction}\\
-Statement ::= \texttt{procedure} Identifer\texttt{(}\{Identifier\{:byVal | :byRef\}\}\textsuperscript{*(\texttt{,})}\texttt{)} List-of-Statements \texttt{endprocedure}\\
-Statement ::= \texttt{return} Expression\\
+The root of the tree is the Program element and from where the parsing starts
+with. Comments are not defined in this grammar but they are any text prefixed
+by two forward slashes: ``//''.
 
-\noindent
-List-of-Statements ::= ()\\
-List-of-Statements ::= (Statement . List-of-Statements)\\
+It can be found at listing \ref{lst:grammar}.
 
-\noindent
-Expression ::= Constant\\
-Expression ::= Identifer\texttt{(}\{Expression\}\textsuperscript{*(\texttt{,})}\texttt{)}\\
-Expression ::= Identifier\texttt{.}Field\\
-Expression ::= Identifier\texttt{.}Method\texttt{(}\{Expression\}\textsuperscript{*(\texttt{,})}\texttt{)}\\
+For every element of the of the grammar, and for every variant of every
+element, a function will be defined that parses that element using other
+functions.
 
-\noindent
-Expression ::= Expression \texttt{AND} Expression\\
-Expression ::= Expression \texttt{OR} Expression\\
-Expression ::= \texttt{NOT} Expression\\
+\begin{listing}
+	\noindent
+	Statement ::= \texttt{global} Identifier \texttt{=} Expression\\
+	Statement ::= Identifier \texttt{=} Expression\\
+	Statement ::= \texttt{array} Identifier\texttt{[}\{Expression\}\textsuperscript{+(\texttt{,})}\texttt{]}\\
+	Statement ::= Expression\\
+	Statement ::= \texttt{for} Identifier \texttt{=} Expression \texttt{to} Expression List-of-Statements \texttt{next} Identifier\\
+	Statement ::= \texttt{while} Expression List-of-Statements \texttt{endwhile}\\
+	Statement ::= \texttt{do} List-of-Statements \texttt{until} Expression\\
 
-\noindent
-Expression ::= Expression \texttt{==} Expression\\
-Expression ::= Expression \texttt{!=} Expression\\
-Expression ::= Expression \texttt{\textless{}} Expression\\
-Expression ::= Expression \texttt{\textless=} Expression\\
-Expression ::= Expression \texttt{\textgreater{}} Expression\\
-Expression ::= Expression \texttt{\textgreater=} Expression\\
+	\noindent
+	Statement ::= \texttt{if} Expression \texttt{then} List-of-Statements \{\texttt{elseif} Expression \texttt{then} List-of-Statements\}\textsuperscript{*} \{\texttt{else} List-of-Statements\}\textsuperscript{?} \texttt{endif}\\
+	Statement ::= \texttt{switch} Expression\texttt{:} \{\texttt{case} Expression\texttt{:} List-of-Statements\}\textsuperscript{*} \{\texttt{default:} List-of-Statements\}\textsuperscript{?} \texttt{endswitch}\\
 
-\noindent
-Expression ::= Expression \texttt{+} Expression\\
-Expression ::= Expression \texttt{-} Expression\\
-Expression ::= Expression \texttt{*} Expression\\
-Expression ::= Expression \texttt{/} Expression\\
-Expression ::= Expression \texttt{MOD} Expression\\
-Expression ::= Expression \texttt{DIV} Expression\\
-Expression ::= Expression \texttt{\textasciicircum{}} Expression\\
+	\noindent
+	Statement ::= \texttt{function} Identifer\texttt{(}\{Identifier\{:byVal | :byRef\}\}\textsuperscript{*(\texttt{,})}\texttt{)} List-of-Statements \texttt{endfunction}\\
+	Statement ::= \texttt{procedure} Identifer\texttt{(}\{Identifier\{:byVal | :byRef\}\}\textsuperscript{*(\texttt{,})}\texttt{)} List-of-Statements \texttt{endprocedure}\\
+	Statement ::= \texttt{return} Expression\\
 
-\noindent
-Program ::= List-of-Statements
+	\noindent
+	List-of-Statements ::= ()\\
+	List-of-Statements ::= (Statement . List-of-Statements)\\
 
-The grammar is then used to write the parser including the structures that are
-used:
+	\noindent
+	Expression ::= Constant\\
+	Expression ::= Identifer\texttt{(}\{Expression\}\textsuperscript{*(\texttt{,})}\texttt{)}\\
+	Expression ::= Identifier\texttt{.}Field\\
+	Expression ::= Identifier\texttt{.}Method\texttt{(}\{Expression\}\textsuperscript{*(\texttt{,})}\texttt{)}\\
 
-\begin{minted}{rust}
-#[derive(Debug, PartialEq, Clone)]
-enum Expression<'a> {
-    StringLiteral(&'a str),
-    IntegerLiteral(i64),
-    FloatLiteral(f64),
-    BoolLiteral(bool),
-    Identifier(&'a str),
-    FunctionCall(&'a str, Vec<Expression<'a>>),
-    Variable(&'a str),
+	\noindent
+	Expression ::= Expression \texttt{AND} Expression\\
+	Expression ::= Expression \texttt{OR} Expression\\
+	Expression ::= \texttt{NOT} Expression\\
 
-    Equal(Box<Expression<'a>>, Box<Expression<'a>>),
-    NotEqual(Box<Expression<'a>>, Box<Expression<'a>>),
-    LessThan(Box<Expression<'a>>, Box<Expression<'a>>),
-    LessThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
-    GreaterThan(Box<Expression<'a>>, Box<Expression<'a>>),
-    GreaterThanOrEqual(Box<Expression<'a>>, Box<Expression<'a>>),
+	\noindent
+	Expression ::= Expression \texttt{==} Expression\\
+	Expression ::= Expression \texttt{!=} Expression\\
+	Expression ::= Expression \texttt{\textless{}} Expression\\
+	Expression ::= Expression \texttt{\textless=} Expression\\
+	Expression ::= Expression \texttt{\textgreater{}} Expression\\
+	Expression ::= Expression \texttt{\textgreater=} Expression\\
 
-    Plus(Box<Expression<'a>>, Box<Expression<'a>>),
-    Minus(Box<Expression<'a>>, Box<Expression<'a>>),
-    Times(Box<Expression<'a>>, Box<Expression<'a>>),
-    Divide(Box<Expression<'a>>, Box<Expression<'a>>),
-    Modulus(Box<Expression<'a>>, Box<Expression<'a>>),
-    Quotient(Box<Expression<'a>>, Box<Expression<'a>>),
-    Power(Box<Expression<'a>>, Box<Expression<'a>>),
+	\noindent
+	Expression ::= Expression \texttt{+} Expression\\
+	Expression ::= Expression \texttt{-} Expression\\
+	Expression ::= Expression \texttt{*} Expression\\
+	Expression ::= Expression \texttt{/} Expression\\
+	Expression ::= Expression \texttt{MOD} Expression\\
+	Expression ::= Expression \texttt{DIV} Expression\\
+	Expression ::= Expression \texttt{\textasciicircum{}} Expression\\
 
-    And(Box<Expression<'a>>, Box<Expression<'a>>),
-    Or(Box<Expression<'a>>, Box<Expression<'a>>),
-    Not(Box<Expression<'a>>),
-}
-
-#[derive(Debug, PartialEq)]
-enum Statement<'a> {
-    Assignment(&'a str, Expression<'a>),
-    GlobalAssignment(&'a str, Expression<'a>),
-    ArrayDefinition(&'a str, Vec<usize>),
-    Expression(Expression<'a>),
-    For(
-        &'a str,
-        Expression<'a>,
-        Expression<'a>,
-        ListOfStatements<'a>,
-    ),
-    While(Expression<'a>, ListOfStatements<'a>),
-    If(Expression<'a>, ListOfStatements<'a>, ListOfStatements<'a>),
-    // asRef: bool
-    Function(&'a str, Vec<(&'a str, bool)>, ListOfStatements<'a>),
-    Return(Expression<'a>),
-}
-
-type ListOfStatements<'a> = Vec<Statement<'a>>;
-\end{minted}
+	\noindent
+	Program ::= List-of-Statements
+	\caption{The grammar for our language}
+	\label{lst:grammar}
+\end{listing}
 
 \subsection{Interpreting}
 
+To interpret a program we will simply go over the structure of it executing its
+statements one-by-one.
+
+In order to deal with state: classes, functions, and variables defined
+throughout our program, we will have a \textbf{\texttt{Context}} object that
+holds all the state of our program. It will be made of a hash table from
+function names to function objects, a hash table of class names to class
+objects and lastly, an environment. The environment is a list\footnote{in this
+section ``list'' is used as a generic term, however implementation-wise we use
+rust's \citetitle{vec} type.} of hash tables mapping from variable names to
+values.
+
+Each hash table in the list represents a different stack frame. The first
+element is the global scope and each time a function is called a new element is
+added.
+
+Because our language supports references, there are multiple ways of storing
+values. One of them is to have a list containing the values and then store in
+the environment references to the index of the elements in the list. One
+problem of this approach is that it doesn't garbage collect elements once they
+are unused.
+
+This is why we have decided to use the rust language's built-in types to deal
+with garbage collection. Each denoted value is a reference counted value, such
+that once there are no references to the value it is dropped and memory is
+freed.
+
+To simplify the implementation, values are implemented entirely in rust and use
+overloading (using the traits in rust) to make the use of values within the
+interpreter easier. This can have downsides as it abstracts away the values
+however it means that when writing the interpreter less time is wasted.
+
+Objects are stored as a list of values, each value representing a field in the
+object. Overloading works using a method similar to lexical
+addressing\footnote{Lexical addressing is a method in which textual variables
+are converted into numbers, this allows for improved performance because
+variables are now just indices in a list, something that has an order O(1)
+lookup}, in that attribute names are converted into indices within the object.
+
+However we do not use lexical addressing anywhere else, this means that strings
+are stored in the class objects (that part of the context) and hash tables are
+used for everything instead of lists. The reason for this is we have found it
+difficult to implement whilst following other resources as preparation for this
+project.
+
 \subsection{Testing}
+ 
+% TODO (don't forget about ./savedstuff.tex)
 
 In order to test the parser we are going to use the built-in unit testing
 feature of Rust because they allow to simplify the process of testing with all
@@ -914,6 +943,9 @@ only displays the result to the user once the code has finished executing.
 % We could have fuzzed the parser
 % we could have used tree-sitter instead
 % we could have probably gotten around the problem we had
+% lexical addressing
+% benchmarking
+% no code coverage
 
 \section{Final project}
 
