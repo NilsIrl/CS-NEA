@@ -11,4 +11,8 @@
 *.out
 _minted-nea
 
+/final_files.tex
+/final_files.zip
+/final_files.tar.gz
+
 .DS_Store

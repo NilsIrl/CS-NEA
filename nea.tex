@@ -1,7 +1,20 @@
 \documentclass{article}
 
-\usepackage[british]{babel}
+\usepackage{luatex85}
+
+\usepackage[utf8]{inputenc}
+%\usepackage{fontspec}
+\usepackage{newunicodechar}
+\newunicodechar{”}{''}
+\newunicodechar{“}{``}
+%\newunicodechar{♙}{\fontspec{Noto Color Emoji}\char"2659}
+%\DeclareUnicodeCharacter{201D}{''}
+%\DeclareUnicodeCharacter{201D}{``}
+%\DeclareUnicodeCharacter{2654}{}
 \usepackage[T1]{fontenc}
+
+\usepackage{import}
+\usepackage[british]{babel}
 
 \usepackage{hyperref}
 \usepackage{biblatex}
@@ -10,7 +23,17 @@
 \usepackage{adjustbox}
 \usepackage{tikz}
 
+\usepackage{ifluatex}
+
+\ifluatex
+\usepackage[outputdir=build]{minted}
+\else
 \usepackage{minted}
+\fi
+
+\usepackage{attachfile}
+
+\setminted{curlyquotes=true}
 
 \usetikzlibrary{shapes.misc}
 
@@ -318,8 +341,6 @@ quite sparse.
 
 \subsection{Essential Features}
 
-% TODO implement other exam boards as a bonus
-
 In of itself, the project is quite self contained and there aren't many
 features apart from the core itself: implement a language.
 
@@ -403,9 +424,9 @@ quality of diagnostics.
 
 In addition to the language as defined in specification documents, we could add
 additional features and syntax. A feature could be to support other pseudocode
-languages such as the one used by other exam boards like AQA or Edexcel, this
-would allow students taking exams from these exam boards to benefit from this
-project as well.
+languages such as the one used by other exam boards like \textcite{aqaCS} or
+\textcite{wjecCS}, this would allow students taking exams from these exam
+boards to benefit from this project as well.
 
 We could also add support for features that would make the language more
 productive such as a foreign function interface (FFI) with C, which would allow
@@ -670,21 +691,16 @@ interpretation of a program.
 The first step of interpreting any kind of code is parsing. This stage involves
 converting text into a structured object which can then be used for other
 purposes, most importantly evaluating/interpreting the object to execute the
-code it represents.
-
-The object generated is known as an abstract syntax tree (AST) and represents
-the program to be executed.
+code it represents. The object generated is known as an abstract syntax tree
+(AST) and represents the program to be executed as a tree data structure.
 
 There are numerous methods of writing a parser, they generally fall under two
-wide categories, manual parsing, or parsing using parser generators.
-
-Parser generators are programs to which a language grammar is given, a language
-grammar defines the syntax of a language and its structure, and output a
-parser. The parser is then capable of parsing the input.
-
-When writing parsers manually on the other hand, instead of having it generated
-for us based on a language grammar, we write ourselves the code that would
-parse the input.
+wide categories, manual parsing, or parsing using parser generators. Parser
+generators are programs to which a language grammar, a definition of the syntax
+of a language and its structure, is given and which output a parser. The parser
+is then capable of parsing the input. When writing parsers manually on the
+other hand, instead of having the parser generated for us based on a language
+grammar, we write ourselves the code that would parse the input.
 
 At first we were hoping to use \citetitle{treesitter} as our parsing system
 because it would give us syntax highlighting inside of editors without having
@@ -692,12 +708,20 @@ to write a regex based grammar or another parser. Being able to re-use the
 parser used for the language as well as for syntax highlighting increases the
 robustness of the software, because a single shared implementation is used and
 bugs that are found are fixed for both, and both stay consistent with each
-other. However writing tree-sitter grammars is not an easy task and is
-described as having ``a difficult learning curve''\cite{ts_creating_parsers}.
+other. Additionally using a parser generator is generally less error prone as
+the parser generator is unlikely to produce invalid code and less time
+consuming as only a grammar has to be written instead of a parser, something
+much more complex.
 
-Additionally, tree-sitter loads language grammars as shared libraries which
-would have been difficult to use within the playground from web assembly as the
-grammar itself would be a web assembly module.
+However in the end we decided to write our own parser because writing
+tree-sitter grammars is not an easy task and is described as having ``a
+difficult learning curve''\cite{ts_creating_parsers} and tree-sitter loads
+language grammars as shared libraries which would have been difficult to use
+within the playground from web assembly as the grammar itself would be a web
+assembly module in addition to the interpreter which would also be a
+WebAssembly module. Lastly, writing a parser is generally not considered to be
+the most complex task of writing an interpreter and writing our own gives us
+much more flexibility.
 
 % TODO
 
@@ -889,6 +913,32 @@ only displays the result to the user once the code has finished executing.
 
 % We could have fuzzed the parser
 % we could have used tree-sitter instead
+% we could have probably gotten around the problem we had
+
+\section{Final project}
+
+In order to compile the final project, here is a list of dependencies:
+
+\begin{itemize}
+	\item Rust
+	\item Node.js (for playground)
+	\item wasm-pack (for playground)
+\end{itemize}
+
+Some of the characters in the following listing are not displayed correctly. In
+particularly the chess pieces and some of the quoting. To be able to navigate
+the project here are 2 attachments of it in zip and tar.gz format:
+
+\attachfile{/home/nils/Documents/education/CS-NEA/final_files.zip}
+\attachfile{/home/nils/Documents/education/CS-NEA/final_files.tar.gz}
+
+% To generate final_files.tex:
+% git ls-files -- prog  | grep -v '\.gitignore' | grep -v 'package-lock.json' | grep -v rust-toolchain | cut -d '/' -f 2- | sed 's/.*\.\(.*\)/\\subsection{&} \\inputminted{\1}{\/home\/nils\/Documents\/education\/CS-NEA\/prog\/&}/' | sed -E 's/\{(input|output)\}/{text}/' | sed 's/{ast}/{rs}/' | awk -F '}' '{gsub(/_/,"\\_",$1)}1' OFS=}  > final_files.tex
+% To generate archive:
+% git archive --format=tar HEAD $(git ls-files -- prog  | grep -v '\.gitignore' | grep -v 'package-lock.json' | grep -v rust-toolchain) | gzip >final_files.tar.gz
+% git archive --format=zip -o final_files.zip HEAD $(git ls-files -- prog  | grep -v '\.gitignore' | grep -v 'package-lock.json' | grep -v rust-toolchain)
+
+\input{/home/nils/Documents/education/CS-NEA/final_files.tex}
 
 \section{NOTES NOT PART OF REPORT}
 
