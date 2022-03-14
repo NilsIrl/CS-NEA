@@ -1,0 +1,7 @@
+age = 3
+name = "Shell"
+output = ""
+output = output + name
+output = output + " is "
+output = output + str(age)
+output = " years old."

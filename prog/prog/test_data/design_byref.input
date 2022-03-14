@@ -1,0 +1,14 @@
+procedure v(x)
+    x = 4
+endprocedure
+
+procedure r(x: byRef)
+    x = 5
+endprocedure
+
+a = 3
+print(a)
+v(a)
+print(a)
+r(a)
+print(a)

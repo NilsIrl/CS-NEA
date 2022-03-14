@@ -1,0 +1,9 @@
+a_string = "Lorem ipsum dolor sit amet"
+if a_string.length == 26 then
+    print("The length is indeed 26 characters")
+    if a_string.substr(6, 5) == "ipsum" then
+        print("and the substring is correct!")
+    endif
+else
+    print("some other length")
+endif

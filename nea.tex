@@ -1,7 +1,5 @@
 \documentclass{article}
 
-\usepackage{luatex85}
-
 \usepackage[utf8]{inputenc}
 %\usepackage{fontspec}
 \usepackage{newunicodechar}
@@ -23,21 +21,27 @@
 \usepackage{adjustbox}
 \usepackage{tikz}
 
+\usepackage[color={1 0 0}]{attachfile2}
 \usepackage{ifluatex}
 
+\definecolor{bg}{rgb}{0.95,0.95,0.95}
 \ifluatex
+% Lualatex
 \usepackage[outputdir=build]{minted}
+\newcommand{\inputmintedgrey}[2]{\inputminted[bgcolor=bg]{#1}{#2}}
 \else
+% Tectonic
 \usepackage{minted}
+\usepackage{letltxmacro}
+
+% redefine \inputminted to work with tectonic
+\LetLtxMacro{\oldinputminted}{\inputminted}
+\renewcommand{\inputminted}[2]{\oldinputminted{#1}{/Users/nils/git/CS-NEA/#2}}
+\newcommand{\inputmintedgrey}[2]{\oldinputminted[bgcolor=bg]{#1}{/Users/nils/git/CS-NEA/#2}}
 \fi
 
-\usepackage{attachfile}
-
-\setminted{curlyquotes=true}
 
 \usetikzlibrary{shapes.misc}
-
-%\interfootnotelinepenalty=10000
 
 \tikzstyle{flowchartbox} = [text centered, draw, minimum width=3cm, minimum height=1cm]
 \tikzstyle{terminal} = [flowchartbox, rectangle, rounded rectangle]
@@ -46,6 +50,7 @@
 
 \author{Nils André-Chang}
 \title{NEA: OCR Exam Reference Language as a Language, an implementation}
+\date{14th March 2022}
 
 \begin{document}
 
@@ -893,21 +898,182 @@ difficult to implement whilst following other resources as preparation for this
 project.
 
 \subsection{Testing}
+
+Testing is very important in maintaining stable software that behaves as
+intended. It allows to define the behaviour of our software and prevent
+regressions from occurring. For this project we will be using automated testing
+to test our software because it will allow to consistently tests anything in a
+much faster way. It will allow to test hundreds of components in a mere
+seconds which will be a great productivity boost. By making the friction of
+testing so much smaller it also means we will be testing much more often
+leading to mistakes being found faster. Lastly, it will allow us to use a
+software development process known as test-driven development in which tests
+are written before the code it tests is written. Using this approach will
+improve productivity because it gives a clear goal during the development
+process and also prevents the test to be built around the behaviour of the
+already written code rather than the other way around.
+
+In order to test the software and validate the success criteria in an objective
+way, a testing script \texttt{neasuccess} will be written before the
+implementation has started to be written. This test script will run the
+implementation with different inputs and verify that the output is the one
+expected.
+
+The success test script will be modular and be able to support many different
+tests. It will work in the following way: In the \texttt{tests} directory,
+there will be files with the extension \texttt{.input} and \texttt{.output}.
+The success test script will run the interpreter with as input the content of
+the \texttt{.input} files and check if the output is the same as the file with
+the same basename but as extension \texttt{.output} file. In order to test the
+parser, we will also have \texttt{.ast} files containing a representation of
+the AST to which to parser can compare the result to.
+
+An argument can be given to the success test script to only use the tests with
+the basename given.
+
+In table \ref{tbl:success_criteria} the success criteria defined in the
+analysis are listed alongside the way they will be able to be tested using the
+\texttt{neasuccess} script and the test data. The test data will be displayed
+with the input on the top/left and the expected output on the bottom/right with
+a grey background. It is highly likely that some of the features in the success
+criteria will be implemented together rather than sequentially.
+
+The test data given to test for the success criteria are deliberately very
+simple so that they only test the success criteria in question, however in
+development, we will use much more complex tests when appropriate to test the
+entirety of the interpreter at once.
+
+\begin{table}
+    \begin{adjustbox}{center}
+        \begin{tabular}{|l|l|l|}
+            \hline
+			Criteria & How to evidence & Code \\
+            \hline
+            Being able to read a file & Run the interpreter with a file as input & \\
+            \hline
+			Working sequential instructions & Run \texttt{./neasuccess seq} & Listing \ref{lst:design_seq} \\
+            \hline
+			Comments & Run \texttt{./neasuccess comments} & Listing \ref{lst:design_comment} \\
+            \hline
+			Outputting to screen & Run \texttt{./neasuccess print} & Listing \ref{lst:design_print} \\
+            \hline
+			Variables & Run \texttt{./neasuccess variables} & Listing \ref{lst:design_variables} \\
+            \hline
+            Iteration --- Count Controlled & Run \texttt{./neasuccess forloop} & Listing \ref{lst:design_for_loop} \\
+            \hline
+			Selection & Run \texttt{./neasuccess selection} & Listing \ref{lst:design_string_handling} \\
+            \hline
+			Logical Operators & Run \texttt{./neasuccess logic} & \\
+            \hline
+            Iteration --- Condition Controlled & Run \texttt{./neasuccess whileloop} & Listing \ref{lst:design_while_loop} \\
+            \hline
+			String Handling & Run \texttt{./neasuccess strings} & Listing \ref{lst:design_string_handling} \\
+            \hline
+			Subroutines & Run \texttt{./neasuccess subroutines} & Listing \ref{lst:design_subroutine_run} \\
+            \hline
+            Subroutines --- Passing values by value or by reference & Run \texttt{./neasuccess byvalue\_byref} & Listing \ref{lst:design_byref} \\
+            \hline
+			Arrays & Run \texttt{./neasuccess arrays} & Listing \ref{lst:design_subroutine_run} \\
+            \hline
+			Reading from files & Run \texttt{./neasuccess readfile} & Listing \ref{lst:design_read_from_file} \\
+            \hline
+			Writing to files & Run \texttt{./neasuccess writefile} & \\
+            \hline
+			Objects --- Attributes & Run \texttt{./neasuccess attributes} & \\
+            \hline
+			Objects --- Methods & Run \texttt{./neasuccess methods} & \\
+            \hline
+			Object --- Access level & Run \texttt{./neasuccess access} & \\
+            \hline
+			Object --- Constructors & Run \texttt{./neasuccess constructors} & \\
+            \hline
+			Object --- Inheritence & Run \texttt{./neasuccess inheritance} & \\
+            \hline
+        \end{tabular}
+    \end{adjustbox}
+    \caption{Success Criteria}
+	\label{tbl:success_criteria}
+\end{table}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/design_seq.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/design_seq.output}
+	\caption{Test data for executing sequential instructions}
+	\label{lst:design_seq}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/comment1.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/comment1.output}
+	\caption{Test data with comment}
+	\label{lst:design_comment}
+\end{listing}
+
+\begin{listing}
+	\begin{minipage}{.5\textwidth}
+		\inputminted{text}{./prog/prog/test_data/print.input}%
+	\end{minipage}%
+	\begin{minipage}{.5\textwidth}
+		\inputmintedgrey{text}{./prog/prog/test_data/print.output}
+	\end{minipage}
+	\caption{Test data for printing}
+	\label{lst:design_print}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/design_variables.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/design_variables.output}
+	\caption{Test data for variables}
+	\label{lst:design_variables}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/for_loop1.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/for_loop1.output}
+	\caption{Test data for for loops}
+	\label{lst:design_for_loop}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/design_while.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/design_while.output}
+	\caption{Test data for while loops}
+	\label{lst:design_while_loop}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/design_string_handling.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/design_string_handling.output}
+	\caption{Test data for string handling and selection}
+	\label{lst:design_string_handling}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/design_byref.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/design_byref.output}
+	\caption{Test data for passing data by reference and by value}
+	\label{lst:design_byref}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/design_subroutine_run.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/design_subroutine_run.output}
+	\caption{Test data for running subroutines and arrays}
+	\label{lst:design_subroutine_run}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/design_read_from_file.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/design_read_from_file.output}
+	\caption{Test data to check whether it is possible to read from files}
+	\label{lst:design_read_from_file}
+\end{listing}
+
+%\begin{listing}
+%\end{listing}
+
  
 % TODO (don't forget about ./savedstuff.tex)
-
-In order to test the parser we are going to use the built-in unit testing
-feature of Rust because they allow to simplify the process of testing with all
-the already existing tools provided by rust, and is less error prone than
-rolling out our own testing solution, using for example a custom script.
-
-For example, we will be able to view our code coverage, a measure of how much
-of the code is being tested by tests. Using this we will be able to add tests
-to handle the under tested cases and have a measure of how much of the code is
-tested and hence most likely to be correct.
-
-By being able to quantitatively measure our testing strategy we can assure
-ourself of the accuracy and reliability of our program.
 
 \section{Design of the playground}
 
@@ -946,31 +1112,30 @@ only displays the result to the user once the code has finished executing.
 % lexical addressing
 % benchmarking
 % no code coverage
+% we used a different testing strategy that was much better
 
 \section{Final project}
 
 In order to compile the final project, here is a list of dependencies:
 
+% FIXME: do we actually need rust nightly?
 \begin{itemize}
-	\item Rust
+	\item Rust (nightly)
 	\item Node.js (for playground)
 	\item wasm-pack (for playground)
 \end{itemize}
 
-Some of the characters in the following listing are not displayed correctly. In
-particularly the chess pieces and some of the quoting. To be able to navigate
-the project here are 2 attachments of it in zip and tar.gz format:
+Some of the listings in the following section are not displayed correctly. For
+example, some lines are too long and go over the page and some of the
+characters, in particularly the chess pieces and the curved double quotation
+marks are not displayed correctly. To be able to navigate the project, without
+these mistakes, here are 2 attachments of it in
+\textattachfile{./final_files.zip}{zip} and
+\textattachfile{./final_files.tar.gz}{tar.gz} format (some PDF viewer do not
+support attachments, Firefox and Adobe Acrobat Reader are known to work,
+macOS's Preview and Google Chrome \textbf{do not} work).
 
-\attachfile{/home/nils/Documents/education/CS-NEA/final_files.zip}
-\attachfile{/home/nils/Documents/education/CS-NEA/final_files.tar.gz}
-
-% To generate final_files.tex:
-% git ls-files -- prog  | grep -v '\.gitignore' | grep -v 'package-lock.json' | grep -v rust-toolchain | cut -d '/' -f 2- | sed 's/.*\.\(.*\)/\\subsection{&} \\inputminted{\1}{\/home\/nils\/Documents\/education\/CS-NEA\/prog\/&}/' | sed -E 's/\{(input|output)\}/{text}/' | sed 's/{ast}/{rs}/' | awk -F '}' '{gsub(/_/,"\\_",$1)}1' OFS=}  > final_files.tex
-% To generate archive:
-% git archive --format=tar HEAD $(git ls-files -- prog  | grep -v '\.gitignore' | grep -v 'package-lock.json' | grep -v rust-toolchain) | gzip >final_files.tar.gz
-% git archive --format=zip -o final_files.zip HEAD $(git ls-files -- prog  | grep -v '\.gitignore' | grep -v 'package-lock.json' | grep -v rust-toolchain)
-
-\input{/home/nils/Documents/education/CS-NEA/final_files.tex}
+\input{./final_files.tex}
 
 \section{NOTES NOT PART OF REPORT}
 

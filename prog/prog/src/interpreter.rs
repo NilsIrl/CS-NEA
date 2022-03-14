@@ -642,4 +642,13 @@ mod tests {
     output_test!(chess_board_print);
     output_test!(class2);
     output_test!(bracket);
+    output_test!(print);
+    output_test!(design_variables);
+    output_test!(design_read_from_file);
+    output_test!(for_loop1);
+    output_test!(design_while);
+    output_test!(design_string_handling);
+    output_test!(design_subroutine_run);
+    output_test!(design_seq);
+    output_test!(design_byref);
 }

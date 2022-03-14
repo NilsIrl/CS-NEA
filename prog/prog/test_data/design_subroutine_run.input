@@ -1,0 +1,15 @@
+array names[5]
+
+procedure greeting(name)
+    print("hello " + name)
+endprocedure
+
+names[0]=”Ahmad”
+names[1]=”Ben”
+names[2]=”Catherine”
+names[3]=”Dana”
+names[4]=”Elijah”
+
+for i = 0 to 4
+    greeting(names[i])
+next i

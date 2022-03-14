@@ -1,0 +1,18 @@
+// this program will mimic the rev standard tool, it will read
+// 1 line at a time and print it in reverse. In order to generate
+// the .output file that goes with this program run:
+// ```
+// rev design_read_from_file.input > design_read_from_file.output
+// ```
+
+file = openRead("design_read_a_file.input")
+while NOT file.endOfFile()
+    line = file.readLine()
+    output_line = ""
+    for i = line.length - 1 to 0 step -1
+        output_line = output_line + line[i]
+    next i
+    print(output_line)
+endwhile
+
+file.close()

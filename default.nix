@@ -10,5 +10,6 @@ pkgs.mkShell {
     pkgs.biber
     pkgs.wasm-pack
     pkgs.tectonic
+    pkgs.texlive.combined.scheme-full
   ];
 }
