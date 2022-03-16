@@ -19,6 +19,7 @@
 \addbibresource{nea.bib}
 
 \usepackage{adjustbox}
+\usepackage{makecell}
 \usepackage{tikz}
 
 \usepackage[color={1 0 0}]{attachfile2}
@@ -41,12 +42,16 @@
 \fi
 
 
-\usetikzlibrary{shapes.misc}
+\usetikzlibrary{shapes.geometric, shapes.misc, arrows, calc, decorations.markings, positioning}
+
+\newcommand{\midarrow}{\tikz \draw[-stealth,thick] (0,0) -- +(.1,0);}
 
 \tikzstyle{flowchartbox} = [text centered, draw, minimum width=3cm, minimum height=1cm]
 \tikzstyle{terminal} = [flowchartbox, rectangle, rounded rectangle]
 \tikzstyle{process} = [flowchartbox, rectangle]
+\tikzstyle{io} = [draw, minimum height=1cm, trapezium, trapezium stretches=true, trapezium left angle=70, trapezium right angle=110]
 \tikzstyle{flowchartarrow} = [->,thick,>=stealth]
+\tikzstyle{flowchartline} = [thick]
 
 \author{Nils André-Chang}
 \title{NEA: OCR Exam Reference Language as a Language, an implementation}
@@ -1069,18 +1074,14 @@ entirety of the interpreter at once.
 	\label{lst:design_read_from_file}
 \end{listing}
 
-%\begin{listing}
-%\end{listing}
-
- 
 % TODO (don't forget about ./savedstuff.tex)
 
 \section{Design of the playground}
 
 As briefly mentioned at the beginning of the design of the interpreter, by
-having the interpreter written in rust allows us to compile it down to wasm
-which means that we can then execute our interpreter in the browser allowing
-users to run snippets of code.
+having the interpreter written in rust allows us to compile it down to
+WebAssembly which means that we can then execute our interpreter in the browser
+allowing users to run snippets of code.
 
 A major advantage of using this method to implement a playground is that it
 doesn't require a complex back-end, a simple web server suffices as we only
@@ -1099,6 +1100,100 @@ Another advantage of this client-side method is that the application can be
 interactive, it can print text to the screen in real time and accept input from
 the user, something that is rarely seen in traditional playgrounds because it
 only displays the result to the user once the code has finished executing.
+
+\subsection{Implementation details}
+
+Figure \ref{fig:playground_flow} shows the major steps executed by the
+playground. In order to compile our interpreter to WebAssembly we will have a
+second crate\footnote{Crates are the name given to packages in Rust} that has
+as dependency our interpreter and will have platform specific code for
+WebAssembly. This will include dealing with IO on the web which is much
+different than natively, as on the web we are not actually printing to a file
+but rather modifying the DOM\footnote{Document Object Model, the structure of
+the web page}.
+
+This means that our interpreter when printing won't be able to just print
+normally otherwise it would not be possible to support this in WebAssembly,
+instead we will make it `Write'\footnote{The `Write' trait is the one that will
+be used} to some generic object which will be different based on the platform.
+This is similar to polymorphism in other languages, except the polymorphism is
+done at compile time rather than runtime which is what allows Rust to be such a
+high performance language.
+
+\begin{figure}
+	\centering
+	\begin{tikzpicture}[node distance=2cm]
+		\node (start) [terminal] {Website is loaded};
+		\node (load_UI) [process, below of=start] {Load user interface};
+		\node (load_int) [process, below of=load_UI] {Load wasm module for interpreter};
+		\node (wait_for_input) [io, below of=load_int] {Wait for user to submit code};
+		\node (interpret) [process, below of=wait_for_input] {Execute program};
+		\node (print) [io, below of=interpret] {Print generated output};
+		\node (end) [process, below of=print] {Program finishes executing};
+		\node (terminate) [terminal, below of = end] {Browser tab is closed};
+		\draw [flowchartarrow] (start) -- (load_UI);
+		\draw [flowchartarrow] (load_UI) -- (load_int);
+		\draw [flowchartarrow] (load_int) -- (wait_for_input);
+		\draw [flowchartarrow] (wait_for_input) -- (interpret);
+		\draw [flowchartarrow] (interpret) -- (print);
+		\coordinate [right = 0.5cm of print] (temp);
+		\coordinate [above = 1cm of interpret.north, above of = temp ] (temp1);
+		\draw [flowchartline, sloped] (print.east) -- (temp) -- node
+		{\midarrow} (temp1) -| (interpret.north);
+		\draw [flowchartarrow] (print) -- (end);
+		\draw [flowchartarrow, sloped] (end.south) |- ++(3.4cm,-0.5cm) --
+		node {\midarrow} ($(wait_for_input.north) + (3.4cm,0.5cm)$) -| (wait_for_input.north);
+		\draw [flowchartarrow] (end) -- (terminate);
+	\end{tikzpicture}
+	\caption{User flow when they visit the playground}
+	\label{fig:playground_flow}
+\end{figure}
+
+\subsection{Usability features}
+
+The playground will be separated into two sections, an editor to a side and a
+pane with the result of executing the program in another pane. In the editing
+pane the user will be able to enter their source code and they can then execute
+it or print the abstract syntax tree that was produced after parsing their
+code. The ability to print abstract syntax tree is beneficial for students to
+understand how parsing works and is useful for the development of the project
+itself to debug mistakes in parsing.
+
+\subsection{Testing}
+
+Because this is a user facing application it is more difficult to test it in an
+automatic manner. Generally to test such web applications a headless browser is
+used however we have decided to leave this section untested as it doesn't have
+many features and as such wouldn't be too time consuming to test manually. This
+is because most of the features are implemented in the interpreter which is
+already tested separately, the playground is just a thin wrapper around the
+interpreter adding little functionality.
+
+The list of tests to do manually can be found in table
+\ref{tbl:playground_tests}.
+
+\begin{table}
+	\begin{adjustbox}{center}
+	\begin{tabular}{|l|l|l|}
+		\hline
+		What is being tested & How to test & Success criteria \\
+		\hline
+		Printing & \makecell[ll]{Enter a simple program \\ and then run it} & Verify that the
+		output is correct \\
+		\hline
+		\makecell[ll]{Errors when given \\ invalid code} & Enter an invalid program &
+		\makecell[ll]{Verify that there is an error \\ message indicating where
+		in \\ the program a mistake was found} \\
+		\hline
+		Inputting & \makecell[ll]{Enter a program that asks \\ for the user to
+		input data} &
+		Verify that inputting data works \\
+		\hline
+	\end{tabular}
+	\end{adjustbox}
+	\caption{Tests to do on the playground}
+	\label{tbl:playground_tests}
+\end{table}
 
 \section{Development}
 
