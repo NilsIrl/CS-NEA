@@ -1266,6 +1266,37 @@ this document we did not write a testing tool and so in order to be able to
 test source code we wrote our tests in Rust using its builtin testing
 framework.
 
+This first initial version could only parse variables and only had a single
+hard-coded test: variable. This test can be found in the final code listing.
+To have variables we also implemented string literals and integer literals.
+Whilst implementing string literals we were faced with a problem that will keep
+recurring: how loosely defined the OCR reference language is. In this
+particular case, in the specification, quotes for string literals could either
+be normal double quotes or slanted double quotes going left or right. We
+suspect this may because this was overlooked when writing the specification
+however we decided to implement it such that all three types are entirely
+equivalent in our language.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{initial_quote}
+	\caption[Caption for LOF]{Screenshot\footnotemark{} of the initial quote parser supporting all three types of quotes}
+\end{figure}
+
+\footnotetext{A screenshot had to be taken because we had trouble showing slanted quotes in this document}
+
+\begin{listing}
+	\begin{minted}{rust}
+#[test]
+fn variable_test() {
+	assert_eq!(
+		program(include_str!("../tests/variable.input")).unwrap().1,
+		include!("../tests/variable.ast")
+	);
+}
+	\end{minted}
+	\caption{Our very first test}
+\end{listing}
+
 
 % TODO: probably mention the tools used, git in particular
 
