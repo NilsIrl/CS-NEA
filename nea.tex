@@ -11,6 +11,9 @@
 %\DeclareUnicodeCharacter{2654}{}
 \usepackage[T1]{fontenc}
 
+\usepackage{graphicx}
+\graphicspath{ {./tex_assets/} }
+
 \usepackage{import}
 \usepackage[british]{babel}
 
@@ -855,6 +858,30 @@ functions.
 	\label{lst:grammar}
 \end{listing}
 
+Using this grammar we are able to declare classes that define possible nodes on
+the tree. In our particular implementation, we will use Rust's \texttt{enum}
+feature which allows to define objects that can be one of many variant. In our
+implementation we will have two types of elements: Statements and Expressions.
+Our \texttt{Expression} enum will have all the different types of expression
+and the \texttt{Statement} enum will have all the different types of statements
+as defined in listing \ref{lst:grammar}. Statements can be put together into a
+list known as a list of statements, this represents blocks of codes that can be
+found in this language.
+
+The major differences between expression and statements is that expressions
+evaluate to a value whereas statements do not evaluate to anything, they only
+perform an action. This distinction of evaluating and only performing an
+operation also exists in the language in the form of the co-existence of
+procedures and functions where in other languages they would be one. In our
+implementation we treat them as one with the only difference between the two
+being that functions when called return a value whereas statements return
+nothing, or to be more precise they return a value indicating that no value was
+returned.
+
+Ultimately, because statements can also be return statements that return
+values, lists of statements are effectively expressions and so are all
+statements that contain a list of expression that they could execute or not.
+
 \subsection{Interpreting}
 
 To interpret a program we will simply go over the structure of it executing its
@@ -1101,6 +1128,31 @@ interactive, it can print text to the screen in real time and accept input from
 the user, something that is rarely seen in traditional playgrounds because it
 only displays the result to the user once the code has finished executing.
 
+Another approach to making a playground interactive is to use WebSockets, such
+that whenever the user types something it is sent to the server and whenever
+the server prints something it is sent by to the user's browser. This is the
+approach used by the interactive shell available on python's homepage visible
+in figure \ref{fig:python-playground}.
+
+However this approach has some downsides, first of all it is much slower than
+our approach as it has to incur the cost of network latency and having to send
+every operation over the network. Secondly it is very complex to implement and
+requires having servers that are always on and have to deal with a large amount
+of state: each user currently using an iterative session is state to keep
+track of.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{python-playground}
+	\caption{Screenshot of the python online iterative shell}
+	\label{fig:python-playground}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{rust-playground}
+	\caption{Screenshot of rust's official playground}
+	\label{fig:rust-playground}
+\end{figure}
+
 \subsection{Implementation details}
 
 Figure \ref{fig:playground_flow} shows the major steps executed by the
@@ -1196,6 +1248,24 @@ The list of tests to do manually can be found in table
 \end{table}
 
 \section{Development}
+
+In order to make development efficient we have used the version control system
+\citetitle{git}. This allows us to create snapshots of our software as we move
+along the stages of development and allows us to experiment with features which
+we can then roll back or accept into our main branch.
+
+\subsection{Stage 1}
+
+In the first stage of development we focused only on the parser. Using the
+grammar described in design we wrote the \texttt{struct}\footnote{The
+equivalent to classes found in low level languages} for the tree and then wrote
+a parser for it, making sure to implement all the possible variants.
+
+In the first version, unlike what was ``promised'' in the design section of
+this document we did not write a testing tool and so in order to be able to
+test source code we wrote our tests in Rust using its builtin testing
+framework.
+
 
 % TODO: probably mention the tools used, git in particular
 
