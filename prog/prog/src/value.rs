@@ -188,6 +188,7 @@ impl Display for Value {
             Self::Integer(int) => write!(f, "{}", int),
             Self::Float(float) => write!(f, "{}", float),
             Self::String(str) => f.write_str(str),
+            Self::Boolean(bool) => f.write_str(if *bool { "True" } else { "False" }),
             v => panic!("Cannot display {:?}", v),
         }
     }
