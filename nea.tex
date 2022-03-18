@@ -35,7 +35,7 @@
 \newcommand{\inputmintedgrey}[2]{\inputminted[bgcolor=bg]{#1}{#2}}
 \else
 % Tectonic
-\usepackage{minted}
+\usepackage[]{minted}
 \usepackage{letltxmacro}
 
 % redefine \inputminted to work with tectonic
@@ -43,6 +43,8 @@
 \renewcommand{\inputminted}[2]{\oldinputminted{#1}{/Users/nils/git/CS-NEA/#2}}
 \newcommand{\inputmintedgrey}[2]{\oldinputminted[bgcolor=bg]{#1}{/Users/nils/git/CS-NEA/#2}}
 \fi
+
+\setminted{tabsize=4}
 
 
 \usetikzlibrary{shapes.geometric, shapes.misc, arrows, calc, decorations.markings, positioning}
@@ -67,6 +69,12 @@
 \maketitle
 
 \tableofcontents
+
+\listoffigures
+
+\listoflistings
+
+\listoftables
 
 In this document, the author refers to themselves as `we' however, there is
 only a singular author, and the use of this pronoun is not meant as an
@@ -1264,22 +1272,30 @@ a parser for it, making sure to implement all the possible variants.
 In the first version, unlike what was ``promised'' in the design section of
 this document we did not write a testing tool and so in order to be able to
 test source code we wrote our tests in Rust using its builtin testing
-framework.
+framework. The test compared the AST generated after parsing some code with an
+AST that was manually generated before hand.
 
 This first initial version could only parse variables and only had a single
-hard-coded test: variable. This test can be found in the final code listing.
-To have variables we also implemented string literals and integer literals.
-Whilst implementing string literals we were faced with a problem that will keep
+hard-coded test: variable (see listing \ref{lst:first_test}). This test can be
+found in the final code listing in \autoref{sec:final_project}. To have
+variables we also implemented string literals and integer literals. Whilst
+implementing string literals we were faced with a problem that will keep
 recurring: how loosely defined the OCR reference language is. In this
 particular case, in the specification, quotes for string literals could either
 be normal double quotes or slanted double quotes going left or right. We
 suspect this may because this was overlooked when writing the specification
 however we decided to implement it such that all three types are entirely
-equivalent in our language.
+equivalent in our language (see \autoref{fig:quote_parser}. Additionally the
+language doesn't seem to include escaping either and as such we have not
+implemented it.
+
+Our only test passed and we could move on to the following stages of
+development\ref{fig:stage1_test}.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{initial_quote}
-	\caption[Caption for LOF]{Screenshot\footnotemark{} of the initial quote parser supporting all three types of quotes}
+	\caption[Screenshot of the initial quote parser supporting all three types of quotes]{Screenshot\footnotemark{} of the initial quote parser supporting all three types of quotes}
+	\label{fig:quote_parser}
 \end{figure}
 
 \footnotetext{A screenshot had to be taken because we had trouble showing slanted quotes in this document}
@@ -1295,10 +1311,61 @@ fn variable_test() {
 }
 	\end{minted}
 	\caption{Our very first test}
+	\label{lst:first_test}
 \end{listing}
 
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage1_test}
+	\caption{Screenshot of the first test passing}
+	\label{fig:stage1_test}
+\end{figure}
 
-% TODO: probably mention the tools used, git in particular
+\subsection{Stage 2}
+
+In the second stage of development we added more tests and generalised our
+testing using metaprogramming\footnote{Using rust's macro system} such that
+test were not manually written but generated automatically. This allows us to
+add tests rapidly and in a reliable way. Now it was possible to just add tests
+by adding an entry in the ``tests'' directory and then referencing it in our
+code with \mintinline{rust}{ast_test!()}, see listing \autoref{lst:macro_test}.
+Evidence of the tests passing can be found in \autoref{fig:stage2_test}. The
+actual content of the tests can be found in the final code listing in
+\autoref{sec:final_project} on page \pageref{sec:final_project}.
+
+\begin{listing}
+	\begin{minted}{rust}
+macro_rules! ast_test {
+	( $function_name:ident ) => {
+		#[test]
+		fn $function_name() {
+			assert_eq!(
+				program(include_str!(concat!(
+					"../tests/",
+					stringify!($function_name),
+					".input"
+				)))
+				.unwrap()
+				.1,
+				include!(concat!("../tests/", stringify!($function_name), ".ast"))
+			);
+		}
+	};
+}
+
+ast_test!(variable);
+ast_test!(variable_quotes);
+ast_test!(variable_whitespace);
+	\end{minted}
+	\caption{The definition of the ast\_test macro and the subsequent use of
+	it to define three tests}
+	\label{lst:macro_test}
+\end{listing}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage2_test}
+	\caption{Screenshot of two new added tests passing}
+	\label{fig:stage2_test}
+\end{figure}
 
 \section{Evaluation}
 
@@ -1311,6 +1378,7 @@ fn variable_test() {
 % we used a different testing strategy that was much better
 
 \section{Final project}
+\label{sec:final_project}
 
 In order to compile the final project, here is a list of dependencies:
 
