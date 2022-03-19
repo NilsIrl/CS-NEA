@@ -613,7 +613,7 @@ mod tests {
                     $parse_settings,
                 )
                 .unwrap()
-                .interpret_with_write(&mut stdout);
+                .interpret_with_io(&mut stdout, std::io::Cursor::new(Vec::new()));
                 print!("{}", std::str::from_utf8(&stdout).unwrap());
                 assert_eq!(
                     stdout,
