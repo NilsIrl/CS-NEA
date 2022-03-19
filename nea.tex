@@ -54,7 +54,9 @@
 \tikzstyle{flowchartbox} = [text centered, draw, minimum width=3cm, minimum height=1cm]
 \tikzstyle{terminal} = [flowchartbox, rectangle, rounded rectangle]
 \tikzstyle{process} = [flowchartbox, rectangle]
-\tikzstyle{io} = [draw, minimum height=1cm, trapezium, trapezium stretches=true, trapezium left angle=70, trapezium right angle=110]
+\tikzstyle{decision} = [draw, diamond, text width=6em, align = flush center,
+inner sep = 0pt]
+\tikzstyle{io} = [flowchartbox, trapezium, trapezium stretches=true, trapezium left angle=70, trapezium right angle=110]
 \tikzstyle{flowchartarrow} = [->,thick,>=stealth]
 \tikzstyle{flowchartline} = [thick]
 
@@ -758,7 +760,11 @@ complex transformations during the parsing. For example, it is possible to
 transform a switch statement into if statements and else-if statements into
 if and else statements during the parsing instead of in a different pass, this
 allows to reduce the complexity of subsequent passes at the cost of increasing
-the complexity of the parser.
+the complexity of the parser. Ultimately, we only perform a single pass before
+interpreting the abstract syntax tree: parsing, nothing more. Unlike many
+interpreters were the source code has to be tokenized before and once the
+source code has been parsed it needs to be transformed again into a form that
+can be used for interpretation.
 
 This advantage comes directly from another major advantage of using a parser
 combinator based method: flexibility. The other major method would be to use a
@@ -890,6 +896,65 @@ Ultimately, because statements can also be return statements that return
 values, lists of statements are effectively expressions and so are all
 statements that contain a list of expression that they could execute or not.
 
+\subsubsection{Implementation details}
+
+Parser combinators can cause issues when multiple parsers succeed at parsing a
+given input. An example of this is numbers, a parser for floating point numbers
+will generally succeed at parsing integers and vice versa. In our
+implementation we have decided to use the algorithm presented in
+\autoref{fig:number_parse_alg}. It allows to parse float and integer literals
+in the way the user expects it to happen. The way it works is that if either
+parser fails it returns the result of the other parser or otherwise returns the
+result of the parser that consumed the post input. Note that our parser
+combinators return a \texttt{Result} type which is why it is fine the return
+the result of the integer parser even if it failed, this just means the result
+will propagate down without affecting the ultimate result.
+
+\begin{figure}
+	\centering
+	\begin{tikzpicture}
+		\node (start) [terminal] {Parse number};
+		\node (parse_int) [process, below = 0.7cm of start] {Attempt to parse integer};
+		\node (parse_float) [process, below = 0.7cm of parse_int] {Attempt to parse float};
+		\node (int_err) [decision, below = 0.7cm of parse_float] {Did integer parsing
+		succeed?};
+		\node (return_float) [terminal, right of = int_err, node distance=5cm] {Return float};
+		\node (float_err) [decision, below = 0.7cm of int_err] {Did float
+		parsing succeed?};
+		\node (return_int) [terminal, right of = float_err, node distance=5cm] {Return integer};
+		\node (which_longest) [decision, below = 0.7cm of float_err] {Did
+		integer parsing consume more input than float parsing?};
+		\node (return_float2) [terminal, right of = which_longest, node
+		distance=5cm] {Return float};
+		\node (return_int2) [terminal, below = 0.7cm of which_longest] {Return integer};
+		\draw [flowchartarrow] (start) -- (parse_int);
+		\draw [flowchartarrow] (parse_int) -- (parse_float);
+		\draw [flowchartarrow] (parse_float) -- (int_err);
+		\draw [flowchartarrow] (int_err) -- node[anchor=south] {no} (return_float);
+		\draw [flowchartarrow] (int_err) -- node[anchor=east] {yes} (float_err);
+		\draw [flowchartarrow] (float_err) -- node[anchor=south] {no} (return_int);
+		\draw [flowchartarrow] (float_err) -- node[anchor=east] {yes} (which_longest);
+		\draw [flowchartarrow] (which_longest) -- node[anchor=south] {no} (return_float2);
+		\draw [flowchartarrow] (which_longest) -- node[anchor=east] {yes} (return_int2);
+	\end{tikzpicture}
+	\caption{Flowchart of the process involved in parsing a number}
+	\label{fig:number_parse_alg}
+\end{figure}
+
+Many decisions had to be taken in regards to the design of the language itself
+because it was never strictly defined in the exam specifications from OCR. For
+example the format of identifiers (class, function and variable names) is not
+defined. So we decided to have a design similar to most languages (such as
+python and rust): identifiers can be made of letters and digits, as well as
+underscores and dashes however they cannot start with a digit. The reason most
+languages do this and we have decided to follow their decision is because
+having an identifier start with a digit makes parsing more difficult as a
+integer literal parser could succeed when what is being parsed is not a number
+but rather an identifier.
+
+The last two design decisions have been made due to parsers not being mutually
+successful (i.e. multiple parsers can succeed for a given input).
+
 \subsection{Interpreting}
 
 To interpret a program we will simply go over the structure of it executing its
@@ -943,15 +1008,23 @@ Testing is very important in maintaining stable software that behaves as
 intended. It allows to define the behaviour of our software and prevent
 regressions from occurring. For this project we will be using automated testing
 to test our software because it will allow to consistently tests anything in a
-much faster way. It will allow to test hundreds of components in a mere
-seconds which will be a great productivity boost. By making the friction of
-testing so much smaller it also means we will be testing much more often
+much faster and objective way. It will allow to test hundreds of components in
+mere seconds which will be a great productivity boost. By making the friction
+of testing so much smaller it also means we will be testing much more often
 leading to mistakes being found faster. Lastly, it will allow us to use a
 software development process known as test-driven development in which tests
 are written before the code it tests is written. Using this approach will
 improve productivity because it gives a clear goal during the development
 process and also prevents the test to be built around the behaviour of the
-already written code rather than the other way around.
+already written code rather than the other way around which would mean the
+tests are bias and may not be suitable.
+
+Additionally because we will be building the parser first, there will be no
+convenient way for a human to test the parser and writing tests would allow to
+test the parser, without having to write an interface for a human tester (or
+any other way that involves a human in the process of testing the parser). Once
+the interpreter is developed, it is then possible for a human to test the
+program manually as they can see the result of the program they run.
 
 In order to test the software and validate the success criteria in an objective
 way, a testing script \texttt{neasuccess} will be written before the
@@ -1289,8 +1362,8 @@ equivalent in our language (see \autoref{fig:quote_parser}. Additionally the
 language doesn't seem to include escaping either and as such we have not
 implemented it.
 
-Our only test passed and we could move on to the following stages of
-development\ref{fig:stage1_test}.
+Our only test passed (see \autoref{fig:stage1_test}) and we could move on to
+the following stages of development.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{initial_quote}
@@ -1323,14 +1396,16 @@ fn variable_test() {
 \subsection{Stage 2}
 
 In the second stage of development we added more tests and generalised our
-testing using metaprogramming\footnote{Using rust's macro system} such that
-test were not manually written but generated automatically. This allows us to
-add tests rapidly and in a reliable way. Now it was possible to just add tests
-by adding an entry in the ``tests'' directory and then referencing it in our
-code with \mintinline{rust}{ast_test!()}, see listing \autoref{lst:macro_test}.
-Evidence of the tests passing can be found in \autoref{fig:stage2_test}. The
-actual content of the tests can be found in the final code listing in
-\autoref{sec:final_project} on page \pageref{sec:final_project}.
+testing using metaprogramming\footnote{metaprogramming is when code is written
+that generates further code, in our case this was done through rust's macro
+system} such that test were not manually written but generated automatically.
+This allows us to add tests rapidly and in a reliable way. Now it was possible
+to just add tests by adding an entry in the ``tests'' directory and then
+referencing it in our code with \mintinline{rust}{ast_test!()}, see listing
+\autoref{lst:macro_test}. Evidence of the tests passing can be found in
+\autoref{fig:stage2_test}. The actual content of the tests can be found in the
+final code listing in \autoref{sec:final_project} on page
+\pageref{sec:final_project}.
 
 \begin{listing}
 	\begin{minted}{rust}
@@ -1366,6 +1441,20 @@ ast_test!(variable_whitespace);
 	\caption{Screenshot of two new added tests passing}
 	\label{fig:stage2_test}
 \end{figure}
+
+\subsection{Stage 3}
+
+We then added support for more language constructs to the parser, namely:
+function calls, float literals and for loops.
+
+Previously the integer literal variant was called \texttt{NumberLiteral} and so
+we renamed it to \texttt{IntegerLiteral} so it wouldn't be confused with
+\texttt{FloatLiteral} because a number could be a float or an integer. For the
+float implementation we decided to store it as an \texttt{f64}\footnote{This
+type is often known as a \texttt{double} in other languages and represents a
+64bit floating point number} instead of an \texttt{f32} to have more
+flexibility and because the overhead caused by using a larger float wasn't too
+much of an issue as this was not a performance critical language.
 
 \section{Evaluation}
 
