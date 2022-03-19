@@ -1335,6 +1335,10 @@ In order to make development efficient we have used the version control system
 along the stages of development and allows us to experiment with features which
 we can then roll back or accept into our main branch.
 
+Note: In this section tests are often referenced, they will rarely be listed
+here but can be found in the section \nameref{sec:final_project} on page
+\pageref{sec:final_project}.
+
 \subsection{Stage 1}
 
 In the first stage of development we focused only on the parser. Using the
@@ -1346,7 +1350,9 @@ In the first version, unlike what was ``promised'' in the design section of
 this document we did not write a testing tool and so in order to be able to
 test source code we wrote our tests in Rust using its builtin testing
 framework. The test compared the AST generated after parsing some code with an
-AST that was manually generated before hand.
+AST that was manually generated before hand. Because these are standard tests
+using rust's built-in testing framework, in order to run them the \texttt{cargo
+test} command is used.
 
 This first initial version could only parse variables and only had a single
 hard-coded test: variable (see listing \ref{lst:first_test}). This test can be
@@ -1456,10 +1462,66 @@ type is often known as a \texttt{double} in other languages and represents a
 flexibility and because the overhead caused by using a larger float wasn't too
 much of an issue as this was not a performance critical language.
 
+We also improved our parser for quotes so that what was considered a quote (for
+parsing string literals) was stored as a constant which multiple functions
+could refer to rather than it being hard-coded (see \autoref{fig:new_quote}).
+This approach is more modular and maintainable.
+
+Once again we added tests before implementing the features and
+\autoref{fig:stage3_test} shows the tests passing. The tests can be found in
+the final project listing.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{new_quote}
+	\caption{New quote parsing code}
+	\label{fig:new_quote}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage3_test}
+	\caption{Tests passing after adding the features}
+	\label{fig:stage3_test}
+\end{figure}
+
+\subsection{Stage 4}
+
+In stage 4, we added arithmetic and logical operators. It worked for the most
+part except that operator precedence didn't work: all operators were treated as
+equal and parsed from left to right which caused some unexpected results (see
+\autoref{fig:precedence_test_fail}. We decided to follow python's operator
+precedence however we weren't sure how to implement it
+\cite{python_precedence}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{precedence_test_fail}
+	\caption{Screenshot of the precedence1 test failing}
+	\label{fig:precedence_test_fail}
+\end{figure}
+
+After doing some research and looking at existing examples of precedence
+parsing using the \citetitle{nom} library we found out that one possible way to
+do it was by parsing in layers, first parsing the operators with the least
+precedence and then parsing operators with a greater precedence from then on.
+This lead to having multiple depth of parsing called depth1, depth2, depth3,
+depth4, depth5, depth6 and terminal. This method worked and allowed our tests
+to pass (see \autoref{fig:precedence_test_pass}) however it increased the
+amount of code by a lot and made the codebase harder to navigate compared to
+our previous attempt using metaprogramming to generate the parsing code. It
+also meant that if we were to add another parsing depth we would need to rename
+a lot of function or have functions that didn't follow the current numeral
+naming scheme.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{precedence_test_pass}
+	\caption{Screenshot of the precedence1 test passing}
+	\label{fig:precedence_test_pass}
+\end{figure}
+
 \section{Evaluation}
 
 % We could have fuzzed the parser
-% we could have used tree-sitter instead
+% we could have used tree-sitter instead (would have been a lot better than our
+% current method of implementing precedence)
 % we could have probably gotten around the problem we had
 % lexical addressing
 % benchmarking
@@ -1611,6 +1673,12 @@ extend it, why am I so retarded 😖
 We need to implement returning from functions inside of execute\_statements
 
 Add converting functions
+
+Tests wouldn't run because interpret\_with\_write had been removed (fixed in
+eb1de2f0f95e77992fabe31b2b5274ad0c4549d0)
+
+There's a test that never finishes and I couldn't detect which, luckily after
+60 seconds I was told why (present in eb1de2f0f95e77992fabe31b2b5274ad0c4549d0)
 
 \subsection{Where to find example code}
 
