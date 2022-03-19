@@ -1,4 +1,5 @@
 i = 0
-while i <= 8
+while i < 8
     print("Hello")
+    i = i + 1
 endwhile
