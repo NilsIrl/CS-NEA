@@ -1,0 +1,6 @@
+Program(vec![Statement::Expression(Expression::Call(Call(
+    Box::new(Expression::Reference(Reference::Identifier("print".to_string()))),
+    vec![
+        Expression::Plus(Box::new(Expression::Times(Box::new(Expression::IntegerLiteral(2)), Box::new(Expression::IntegerLiteral(6)))), Box::new(Expression::IntegerLiteral(7)))
+    ],
+)))])

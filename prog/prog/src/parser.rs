@@ -966,4 +966,5 @@ mod tests {
     ast_test!(class1, &CASE_SENSITIVE);
     ast_test!(new_object, &CASE_SENSITIVE);
     ast_test!(minus_one_literal, &CASE_SENSITIVE);
+    ast_test!(precedence1, &CASE_SENSITIVE);
 }

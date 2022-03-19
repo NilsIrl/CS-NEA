@@ -651,4 +651,5 @@ mod tests {
     output_test!(design_subroutine_run);
     output_test!(design_seq);
     output_test!(design_byref);
+    output_test!(precedence1);
 }
