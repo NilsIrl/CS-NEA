@@ -1002,6 +1002,14 @@ used for everything instead of lists. The reason for this is we have found it
 difficult to implement whilst following other resources as preparation for this
 project.
 
+It would also have been a possibility to implement functions as values as is
+common in most programming languages however we preferred to not implement
+functions as values as when we were going through \citetitle{eopl} whilst
+preparing to write this interpreter we found great difficulty in implementing
+mutually recursive functions, something that is not a problem when functions
+are not values but rather an item in a \texttt{HashMap}\footnote{Rust's hash
+table present in the standard library}.
+
 \subsection{Testing}
 
 Testing is very important in maintaining stable software that behaves as
@@ -1500,21 +1508,288 @@ precedence however we weren't sure how to implement it
 
 After doing some research and looking at existing examples of precedence
 parsing using the \citetitle{nom} library we found out that one possible way to
-do it was by parsing in layers, first parsing the operators with the least
-precedence and then parsing operators with a greater precedence from then on.
-This lead to having multiple depth of parsing called depth1, depth2, depth3,
-depth4, depth5, depth6 and terminal. This method worked and allowed our tests
-to pass (see \autoref{fig:precedence_test_pass}) however it increased the
-amount of code by a lot and made the codebase harder to navigate compared to
-our previous attempt using metaprogramming to generate the parsing code. It
-also meant that if we were to add another parsing depth we would need to rename
-a lot of function or have functions that didn't follow the current numeral
-naming scheme.
+do it was by parsing in layers of different recursion depth, first parsing the
+operators with the least precedence and then parsing operators with a greater
+precedence from then on. This lead to having multiple depth of parsing called
+depth1, depth2, depth3, depth4, depth5, depth6 and terminal. This method worked
+and allowed our tests to pass (see \autoref{fig:precedence_test_pass}) however
+it increased the amount of code by a lot and made the codebase harder to
+navigate compared to our previous attempt using metaprogramming to generate the
+parsing code. It also meant that if we were to add another parsing depth we
+would need to rename a lot of function or have functions that didn't follow the
+current numeral naming scheme.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{precedence_test_pass}
 	\caption{Screenshot of the precedence1 test passing}
 	\label{fig:precedence_test_pass}
+\end{figure}
+
+As you can see from \autoref{fig:precedence_test_fail}, failing tests can be
+difficult to comprehend because everything is on one line. This is why we
+decided to add \citetitle{rust_pretty_assertions} to our dependencies. This is
+a library that works similar to rusts \texttt{assert\_eq} macro except it
+compares to left and right side when they are not equal making the output more
+readable and easier to reason about.
+
+\subsection{Stage 5}
+
+We then went on to implement parsing for the not operator, while loops, if and
+switch statements, comments, functions and procedures. In order to implement
+comments we had to change our whitespace function so that it would work if
+whitespace included comments. An other thing that wasn't defined in the OCR
+specification was what was considered to be whitespace. We decided that we
+would use whatever was defined as whitespace by \citetitle{nom} which are
+spaces, tabs, carriage returns and line feeds. The passing tests can be seen
+in \autoref{fig:stage5_test}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage5_test}
+	\caption{Screenshot of tests passing for stage 5 of development}
+	\label{fig:stage5_test}
+\end{figure}
+
+In order to implement \texttt{elseif} and \texttt{switch} statements we made it
+such that the results are transformed into a chain of if and else statements.
+This allows to simplify our interpreter and improves the performance of our
+program at the cost of a slightly more complex parser. Listing
+\ref{lst:switch_tranformation} shows how the first two pieces of code are
+equivalent to the third whilst using only \texttt{if} and \texttt{else}
+statements. A downside to this approach is that as it stands an expression that
+takes a long time to compute is given to a switch statement, that expression
+will be executed multiple times leading to performance loss and unintended
+behaviour if the expression causes side effects.
+
+\begin{listing}
+	\begin{minted}{text}
+// Using if, elseif and else
+if entry == "a" then
+	print("You selected A")
+elseif entry == "b" then
+	print("You selected B")
+else
+	print("Unrecognised selection")
+endif
+
+// Using switch
+switch entry:
+	case "A":
+		print("You selected A")
+	case "B":
+		print("You selected B")
+	default:
+		print("Unrecognised selection")
+endswitch
+
+
+// Using just if and else
+if entry == "a" then
+	print("You selected A")
+else
+	if entry == "b" then
+		print("You selected B")
+	else
+		print("Unrecognised selection")
+	endif
+endif
+	\end{minted}
+	\caption{Three different ways to write the equivalent code}
+	\label{lst:switch_tranformation}
+\end{listing}
+
+\subsection{Stage 6}
+
+In stage 6, we improved the code quality of our parser in preparation for the
+implementation of the interpreter. To make our project more robust we also
+added some tests including one from exercises we were given in class. However,
+one of them used the \texttt{step} operation in a for loop something which was
+first defined in \citetitle{j277}. Because the \texttt{step} feature had not
+been implemented yet it resulted in our test failing to compile as can be seen
+in \autoref{fig:thinking_logically_failing}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{thinking_logically_failing}
+	\caption{Screenshot of tests failing to compile due to the \texttt{step}
+	feature not being implemented}
+	\label{fig:thinking_logically_failing}
+\end{figure}
+
+In order to fix that we implemented the \texttt{step} feature however the test
+still wouldn't pass because our implementation for comments didn't support
+multiple comments. We also implemented parsing settings simultaneously which
+allowed our parser to behave differently based on certain settings such as
+whether keywords and variables are case sentitive or not. Unfortunately this
+caused a regression which caused the precedence to fail as can be seen in
+\autoref{fig:regression}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{regression}
+	\caption{Screenshot of tests failing due to regression in whitespace
+	parsing and multiple comments not being implemented}
+	\label{fig:regression}
+\end{figure}
+
+Finally, we fixed the regression and implemented the ability to have multiple
+comments within one set of whitespace which fixed our tests as can be seen in
+\autoref{fig:thinking_logically_passing}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{thinking_logically_passing}
+	\caption{Screenshot of tests passing after implementing the \texttt{step}
+	feature}
+	\label{fig:thinking_logically_passing}
+\end{figure}
+
+We also improved the parsing of operators by using a recursive approach instead
+of an iterative one avoiding allocations on the heap to store the results. We
+also improved code quality by applying the suggestions given by
+\citetitle{clippy}\footnote{Rust tool that offers suggestions to improve code
+quality}. Another feature of our modular parsing which allows to have different
+parsing settings is that it allowed to have looser rules around for loops. In
+the OCR Reference language, for loops are terminated using ``next x'' however
+in these call specifying the variable is not necessary. With the setting
+\texttt{for\_next\_not\_enforced} it is possible to accept programs that don't
+have the right matching variable in their \texttt{next} statement.
+
+In order to implement settings we had to turn every single of our parsing
+functions into combinators that returned a parser and that accepted settings as
+arguments. This meant a major rewrite of our parser because every function had
+to be changed. Listing \ref{lst:settings_expression} shows an example of how a
+small parser had to be changed, this operation had to be done for the entirety
+of our parser. Listing \ref{lst:tag_with_settings} shows an example of a parser
+now taking into account settings.
+
+\begin{listing}
+	\begin{minted}{diff}
+-fn expression(input: &str) -> IResult<&str, Expression> {
+-    depth1(input)
++fn expression(
++    parse_settings: &ParseSettings,
++) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
++    depth1(parse_settings)
+ }
+	\end{minted}
+	\caption{Adding settings to the expression parser}
+	\label{lst:settings_expression}
+\end{listing}
+
+\begin{listing}
+	\begin{minted}{rust}
+fn tag_with_settings<'a>(
+    tag_str: &'a str,
+    parse_settings: &'a ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, &str> + 'a {
+    move |input: &str| {
+        if parse_settings.case_sensitive {
+            tag(tag_str)(input)
+        } else {
+            tag_no_case(tag_str)(input)
+        }
+    }
+}
+	\end{minted}
+	\caption{A combinator returning a parser that takes into account settings}
+	\label{lst:tag_with_settings}
+\end{listing}
+
+\subsection{Stage 7}
+
+In stage 7, we added a basic interpreter to our language. As part of that we
+modularised our code moving parser related code to \texttt{parser.rs} and
+interpreter related code to \texttt{interpreter.rs}. As part of this stage we
+also added a simple CLI interface so that it was possible to run code from the
+command line. This parser could only implement a limited set of statements and
+was designed to run the thinking logically test.
+
+\subsection{Stage 8}
+
+For stage 8 we continued adding features to the parser and adding tests. We
+added support for \texttt{do} \texttt{until} statements, array declaration and
+object-oriented related features (method parsing, class parsing, object
+instantiation parsing).
+
+We also improved performance by using binary search to find if a word was a
+keyword instead of our previous naive linear search. For binary search to work
+we have to make sure the list of keywords is sorted at all time something we
+can do with a test which can be seen in listing \ref{lst:sorted_keywords}. You
+may notice that the list of keywords almost only includes keywords that end
+statements. The reason for this is that when parsing there is only ambiguity
+when parsing endings so it is not necessary to have beginning keywords in the
+list of keywords.
+
+\autoref{fig:stage8_test} shows the tests passing after adding many tests and
+the features discussed in this section.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage8_test}
+	\caption{Screenshot of tests passing after implementing more features in
+	the parser}
+	\label{fig:stage8_test}
+\end{figure}
+
+\begin{listing}
+	\begin{minted}{rust}
+const KEYWORDS: [&str; 14] = [
+    "case",
+    "default",
+    "else",
+    "elseif",
+    "endclass",
+    "endfunction",
+    "endif",
+    "endprocedure",
+    "endswitch",
+    "endwhile",
+    "function",
+    "next",
+    "procedure",
+    "until",
+];
+
+#[test]
+fn keywords_sorted() {
+	assert!(KEYWORDS.is_sorted());
+}
+	\end{minted}
+	\caption{Test making sure keywords are sorted for parsing}
+	\label{lst:sorted_keywords}
+\end{listing}
+
+\subsection{Stage 9}
+
+For stage 9, we made changes that allowed our interpreter to be more than just
+a toy to be able to execute a single piece of code. To do that we redid the
+value system by having two types of values: DenotedValue and Value.
+DenotedValue is the type of values that are stored in the environment, it is
+nothing more than an Value inside of a RefCell inside of an Rc type. Value
+is the type defining the actual different types our programming language can
+take.
+
+In rust the Rc type allows to store reference counted items on the heap and
+RefCell allows to have interior mutability: it allows to mutate values without
+it being checked by the borrow checker. These types are necessary because in
+rust the borrow checker prevents values from being mutated if there are other
+references to a value. The RefCell type allows to maintain that guarantee but
+checking at runtime. We used the Rc type because it is necessary in order to
+not use too much memory: it destroys objects if there are no references to it.
+
+We also moved all code related to values to a separate file: \texttt{value.rs}.
+We also added the macro necessary to be able to add tests rapidly to the
+parser. The way this macro works is that it executes the code in
+\texttt{.input} files and then compares the output produced with files in
+\texttt{.output} files. If the output matches, the test passes.
+
+As part of this stage we added many features. We implemented printing such that
+values of different types could be printed and such that the output of printing
+could be captured. We did this by having our interpreter accept an object that
+implements the \texttt{Write} trait. On the command line, the object passed is
+an instance of standard output. In tests it is a Vec, such that we can collect
+the results for later.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage9_test}
+	\caption{Screenshot of tests passing at the end of stage 9}
+	\label{fig:stage9_test}
 \end{figure}
 
 \section{Evaluation}
@@ -1583,8 +1858,6 @@ so we had to inverse the direction of our ops macro
 
 %Use pretty_assertions to speed up AST testing
 
-Fuzz the parser (idk why, we should just do it cause that sounds cool)
-
 Switch statement implemented as a bunch of if else
 
 This language makes no sense. For example, switch statements have a colon after
@@ -1610,6 +1883,7 @@ was failing to compile. So I had to report it to the authors.
 
 There is no "break" statement for loops.
 
+// TODO: talk about this somewhere in design section
 Array is defined as "array" and "Array" in the spec...
 
 Fields in classes must be defined before methods.
