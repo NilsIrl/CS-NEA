@@ -955,6 +955,45 @@ but rather an identifier.
 The last two design decisions have been made due to parsers not being mutually
 successful (i.e. multiple parsers can succeed for a given input).
 
+Another design decision we had to take and for which we ultimately settled on a
+design inspired by python was division and what value type they would return.
+In the end we settled for a design similar to python in which any kind of non
+whole number division returns a floating point number.
+
+Another difficult issue to tackle was how we were going to implement
+exponentiation. This is a very complex operation which on one hand people
+generally wish to return an integer if possible but on the other hand requires
+to return a floating point value if need be. We settled for a design inspired
+from python which can be found in \autoref{lst:power_alg}.
+
+\begin{listing}
+	\begin{minted}{text}
+function exponentiation(base, exponent)
+	if is_integer(base) then
+		if is_integer(exponent) then
+			if exponent >= 0 then
+				return integer_exponentiation(base, exponent)
+			else
+				// if the exponent is negative
+				return float_exponentiation(base, exponent)
+			endif
+		else
+			return float_exponentiation(base, exponent)
+		endif
+	else
+		return float_exponentiation(base, exponent)
+	endif
+endfunction
+	\end{minted}
+	\caption[Pseudocode describing the algorithm for exponentiation]{Pseudocode
+	describing the algorithm for exponentiation\protect\footnotemark}
+	\label{lst:power_alg}
+\end{listing}
+
+\footnotetext{In reality the algorithm is more complex in order to have
+performance improvements when the exponent is an integer but a float result is
+wanted.}
+
 \subsection{Interpreting}
 
 To interpret a program we will simply go over the structure of it executing its

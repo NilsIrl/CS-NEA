@@ -469,6 +469,9 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write, impl io::
                     Value::from((base as f64).powf(exponent))
                 }
                 (Value::Float(base), Value::Float(exponent)) => Value::from(base.powf(exponent)),
+                (Value::Float(base), Value::Integer(exponent)) => {
+                    Value::from(base.powi(exponent as i32))
+                }
                 (base, exponent) => panic!("Cannot take {:?} to the {:?}", base, exponent),
             }
         }
