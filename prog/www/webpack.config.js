@@ -1,5 +1,6 @@
 const path = require("path");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin")
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 module.exports = {
   entry: "./js/index.ts",
@@ -22,7 +23,8 @@ module.exports = {
   plugins: [
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "../prog-wasm"),
-    })
+    }),
+    new MonacoWebpackPlugin({ languages: [] }),
   ],
   resolve: {
     extensions: [".ts", "..."],
