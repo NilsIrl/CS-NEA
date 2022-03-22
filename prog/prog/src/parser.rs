@@ -497,6 +497,19 @@ const KEYWORDS: [&str; 14] = [
     "until",
 ];
 
+fn convert_case(identifier: &str) -> String {
+    let identifier = identifier.to_lowercase();
+    match identifier.as_str() {
+        "asc" => "ASC".to_string(),
+        "chr" => "CHR".to_string(),
+        "readline" => "readLine".to_string(),
+        "writeline" => "writeLine".to_string(),
+        "endoffile" => "endOfFile".to_string(),
+        "newfile" => "newFile".to_string(),
+        _ => identifier,
+    }
+}
+
 fn identifier(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, String> + '_ {
     move |input: &str| {
         map(
@@ -519,7 +532,7 @@ fn identifier(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&st
                 if parse_settings.case_sensitive {
                     ident.to_string()
                 } else {
-                    ident.to_lowercase()
+                    convert_case(ident)
                 }
             },
         )(input)

@@ -1,0 +1,2 @@
+print(ASC("A"))
+print(chr(97))

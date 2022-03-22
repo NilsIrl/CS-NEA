@@ -1856,6 +1856,59 @@ necessary. \autoref{fig:string_tests} shows the tests passing.
 	\label{fig:string_tests}
 \end{figure}
 
+\subsection{Stage n+1}
+
+For stage n+1, we implemented the remaining built-in functions for both
+\citetitle{j277} and \citetitle{h446}:
+
+\begin{itemize}
+	\item The casting functions: \texttt{str}, \texttt{int}, \texttt{float},
+		\texttt{real}, \texttt{bool}
+	\item ASCII conversion: \texttt{ASC}, \texttt{CHR}
+	\item \texttt{random}
+\end{itemize}
+
+For a reason we are not aware of, \citetitle{j277} defines both a real and
+float casting functions, we will just treat them as redundant functions and
+make them do the same thing. As far as we are concerned there is no difference
+between a float and a real type.
+
+The ASCII conversion functions also cause an issue in that they do not use only
+capital letters which can case an issue when the case insensitive feature is
+enabled. The solution we found which wouldn't require rewriting the
+\texttt{.ast} files for our existing tests is to transform the functions into
+their wanted case during parsing if case insensitive mode is enabled, using a
+function \texttt{convert\_case} as can be seen in listing
+\ref{lst:convert_case}.
+
+\begin{listing}
+	\begin{minted}{rust}
+fn convert_case(identifier: &str) -> String {
+    let identifier = identifier.to_lowercase();
+    match identifier.as_str() {
+        "asc" => "ASC".to_string(),
+        "chr" => "CHR".to_string(),
+        "readline" => "readLine".to_string(),
+        "writeline" => "writeLine".to_string(),
+        "endoffile" => "endOfFile".to_string(),
+        "newfile" => "newFile".to_string(),
+        _ => identifier,
+    }
+}
+	\end{minted}
+	\caption[Implementation of the convert\_case function]{Implementation of
+	the convert\_case function}
+	\label{lst:convert_case}
+\end{listing}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{builtin_functions}
+	\caption{Screenshot of tests using builtin functions working}
+	\label{fig:builtin_functions}
+\end{figure}
+
+\autoref{fig:builtin_functions} shows the built-in functions working.
+
 \section{Evaluation}
 
 % We could have fuzzed the parser

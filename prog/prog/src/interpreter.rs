@@ -1,4 +1,5 @@
 use nom::Finish;
+use rand::Rng;
 use std::{collections::HashMap, convert::TryInto, io, iter::zip, ops::Index};
 
 use super::{
@@ -305,6 +306,15 @@ fn execute_statements<'a>(
     Value::Undefined
 }
 
+fn assert_argument_count(method_name: &str, expected: usize, found: usize) {
+    if expected != found {
+        panic!(
+            "`{}()` takes {} arguments(s) but {} were given",
+            method_name, expected, found
+        )
+    }
+}
+
 fn apply_method<'a>(
     obj: DenotedValue,
     method: &str,
@@ -572,12 +582,56 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write, impl io::
                         if let Some(argument) = arguments.get(0) {
                             let val = eval(argument, context);
                             write!(context.stdout, "{}", val).unwrap();
-                            context.stdout.flush();
+                            context.stdout.flush().unwrap();
                         }
 
                         let mut input_string = String::new();
                         context.stdin.read_line(&mut input_string).unwrap();
                         Value::String(input_string)
+                    }
+                    "ASC" => {
+                        assert_argument_count("ASC", 1, arguments.len());
+                        let v: String = eval(&arguments[0], context).try_into().unwrap();
+                        Value::from(v.chars().next().unwrap() as i64)
+                    }
+                    "CHR" => {
+                        assert_argument_count("CHR", 1, arguments.len());
+                        let v: i64 = eval(&arguments[0], context).try_into().unwrap();
+                        Value::from(char::from_u32(v as u32).unwrap().to_string())
+                    }
+                    "str" => {
+                        assert_argument_count("str", 1, arguments.len());
+                        eval(&arguments[0], context).cast_to_string()
+                    }
+                    "int" => {
+                        assert_argument_count("int", 1, arguments.len());
+                        eval(&arguments[0], context).cast_to_int()
+                    }
+                    "float" => {
+                        assert_argument_count("float", 1, arguments.len());
+                        eval(&arguments[0], context).cast_to_float()
+                    }
+                    "real" => {
+                        assert_argument_count("real", 1, arguments.len());
+                        eval(&arguments[0], context).cast_to_float()
+                    }
+                    "bool" => {
+                        assert_argument_count("bool", 1, arguments.len());
+                        eval(&arguments[0], context).cast_to_bool()
+                    }
+                    "random" => {
+                        assert_argument_count("random", 2, arguments.len());
+                        let start = eval(&arguments[0], context);
+                        let end = eval(&arguments[1], context);
+                        match (start, end) {
+                            (Value::Float(start), Value::Float(end)) => {
+                                Value::Float(rand::thread_rng().gen_range(start..=end))
+                            }
+                            (Value::Integer(start), Value::Integer(end)) => {
+                                Value::Integer(rand::thread_rng().gen_range(start..=end))
+                            }
+                            (start, end) => panic!("cannot use random with {} and {}", start, end),
+                        }
                     }
                     function_name => {
                         let function = context.functions[function_name].clone();
@@ -706,4 +760,5 @@ mod tests {
     output_test!(design_byref);
     output_test!(precedence1);
     output_test!(j277_string_operations);
+    output_test!(j277_builtin_functions);
 }

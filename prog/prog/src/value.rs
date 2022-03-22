@@ -12,6 +12,7 @@ pub enum ProgError {
     NotBool,
     NotPositiveInteger,
     NotArray,
+    NotString,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -39,6 +40,59 @@ impl Value {
             Value::Array(v) => v[index].clone(),
             _ => panic!("Cannot index {:?}", self),
         }
+    }
+
+    pub fn cast_to_bool(self) -> Self {
+        Value::from(match self {
+            Value::Integer(0) => false,
+            Value::Integer(_) => true,
+            Value::String(string) => {
+                let string = string.to_lowercase();
+                if string == "" || string == "false" {
+                    false
+                } else if string == "true" {
+                    false
+                } else {
+                    panic!("Cannot cast {} to bool", string)
+                }
+            }
+            Value::Boolean(b) => b,
+            s => panic!("Cannot cast {} to bool", s),
+        })
+    }
+
+    pub fn cast_to_int(self) -> Self {
+        Value::from(match self {
+            Value::Float(f) => f as i64,
+            Value::String(s) => s.parse().unwrap(),
+            Value::Integer(v) => v,
+            Value::Boolean(b) => {
+                if b {
+                    1
+                } else {
+                    0
+                }
+            }
+            v => panic!("Cannot cast {} to int", v),
+        })
+    }
+
+    pub fn cast_to_string(self) -> Self {
+        Value::from(match self {
+            Value::Float(f) => f.to_string(),
+            Value::Integer(i) => i.to_string(),
+            Value::String(s) => s,
+            Value::Boolean(b) => b.to_string(),
+            v => panic!("Cannot cast {} to str", v),
+        })
+    }
+    pub fn cast_to_float(self) -> Self {
+        Value::from(match self {
+            Value::String(s) => s.parse().unwrap(),
+            Value::Integer(i) => i as f64,
+            Value::Float(f) => f,
+            v => panic!("Cannot cast {} to float", v),
+        })
     }
 }
 
@@ -138,6 +192,17 @@ impl TryInto<usize> for Value {
     type Error = ProgError;
     fn try_into(self) -> Result<usize, Self::Error> {
         TryInto::<i64>::try_into(self).map(|v| v as usize)
+    }
+}
+
+impl TryInto<String> for Value {
+    type Error = ProgError;
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        match self {
+            Value::String(s) => Ok(s),
+            _ => Err(ProgError::NotString),
+        }
     }
 }
 

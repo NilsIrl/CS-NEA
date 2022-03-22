@@ -4,4 +4,5 @@ output = ""
 output = output + name
 output = output + " is "
 output = output + str(age)
-output = " years old."
+output = output + " years old."
+print(output)
