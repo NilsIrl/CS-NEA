@@ -95,6 +95,12 @@ impl From<&str> for Value {
     }
 }
 
+impl From<String> for Value {
+    fn from(v: String) -> Self {
+        Self::String(v)
+    }
+}
+
 impl From<f64> for Value {
     fn from(v: f64) -> Self {
         Self::Float(v)

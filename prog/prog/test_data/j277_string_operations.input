@@ -1,0 +1,7 @@
+subject = "ComputerScience"
+print(subject.length)
+print(subject.substring(3,5))
+print(subject.left(4))
+print(subject.right(3))
+print(subject.upper)
+print(subject.lower)

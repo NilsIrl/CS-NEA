@@ -1831,6 +1831,31 @@ the results for later.
 	\label{fig:stage9_test}
 \end{figure}
 
+\subsection{Stage n}
+
+For stage n, we added support to string operations. We decided to implement it
+before other built-in features such as file operations because making it work
+would be similar to making files work. Another advantage of string operations
+is that they were fully lowercase which meant it was easier for us to implement
+because of the way case sensitivity is handled: when the programming language
+is set to case insensitive mode, it puts everything to lowercase which makes it
+difficult to compare in the interpreter section without taking the risk to have
+collisions between names. Do note however that in the specification
+``substring'' is sometimes written \texttt{substring} and other times
+\texttt{subString} so there is really no way of knowing which is correct.
+
+Considering how trivial it was to implement the string operations defined in
+\citetitle{h446} (\texttt{substring()} and \texttt{length}) we decided to also
+implement the string operations described in \citetitle{j277} (\texttt{left},
+\texttt{right}, \texttt{upper}, and \texttt{lower}) along with the tests
+necessary. \autoref{fig:string_tests} shows the tests passing.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{string_tests}
+	\caption{Screenshot tests that make use of string handling passing}
+	\label{fig:string_tests}
+\end{figure}
+
 \section{Evaluation}
 
 % We could have fuzzed the parser

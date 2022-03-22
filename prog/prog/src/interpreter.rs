@@ -143,6 +143,14 @@ fn get_ref(
                         .expect("TODO: beterre error message, attribute does not exist on object");
                     Some(values[*location_of_value].clone())
                 }
+                Value::String(string) => match attribute.as_str() {
+                    "length" => Some(DenotedValue::from(Value::from(string.len() as i64))),
+                    "upper" => Some(DenotedValue::from(Value::from(string.to_uppercase()))),
+                    "lower" => Some(DenotedValue::from(Value::from(string.to_lowercase()))),
+                    method_name => {
+                        panic!("Cannot get attribute `{}` on string", method_name)
+                    }
+                },
                 val => panic!("{:?} is not an object", val),
             }
         }
@@ -359,6 +367,48 @@ fn apply_method<'a>(
             // FIXME support function returning values
             Value::default()
         }
+        Value::String(string) => match method {
+            "substring" => {
+                if args.len() != 2 {
+                    panic!(
+                        "Wrong number of arguments passed to substring, expected 2 found {}",
+                        args.len()
+                    )
+                }
+                // 0 index is first element
+                let starting_position: usize = eval(&args[0], context).try_into().unwrap();
+                let number_of_characters: usize = eval(&args[1], context).try_into().unwrap();
+
+                Value::from(&string[starting_position..(starting_position + number_of_characters)])
+            }
+            "left" => {
+                if args.len() != 1 {
+                    panic!(
+                        "Wrong number of arguments passed to left, expected 1 found {}",
+                        args.len()
+                    )
+                }
+
+                let n: usize = eval(&args[0], context).try_into().unwrap();
+
+                Value::from(&string[..n])
+            }
+            "right" => {
+                if args.len() != 1 {
+                    panic!(
+                        "Wrong number of arguments passed to right, expected 1 found {}",
+                        args.len()
+                    )
+                }
+
+                let n: usize = eval(&args[0], context).try_into().unwrap();
+
+                Value::from(&string[string.len() - n..])
+            }
+            method_name => {
+                panic!("Cannot apply `{}` on string", method_name)
+            }
+        },
         _ => panic!("Cannot apply method on non object value"),
     }
 }
@@ -655,4 +705,5 @@ mod tests {
     output_test!(design_seq);
     output_test!(design_byref);
     output_test!(precedence1);
+    output_test!(j277_string_operations);
 }
