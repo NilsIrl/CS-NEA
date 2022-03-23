@@ -1918,7 +1918,9 @@ the web-app is available to everyone from the internet.
 In order to do so, we had to improve our webpack configuration so that it would
 copy static files to the \texttt{dist} directory from where we will deploy to
 GitHub pages and setup a GitHub workflow so that deployment would happen at
-every change.
+every change. Additionally we separated the CLI interface into a separate crate
+so that building the web application would not include dependencies used by the
+CLI.
 
 \section{Evaluation}
 
