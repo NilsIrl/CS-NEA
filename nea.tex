@@ -1925,6 +1925,22 @@ CLI.
 With all of that done, the language is now available from the web! At the
 following address: \url{https://nilsirl.github.io/CS-NEA/}.
 
+\subsection{Stage n+3}
+
+For stage n+3, we added support for file operations: \texttt{newFile},
+\texttt{open} (from \citetitle{j277}), \texttt{openRead}, \texttt{readLine},
+\texttt{endOfFile}, \texttt{openWrite}, \texttt{writeLine}, \texttt{close}.
+
+\autoref{fig:file_test_fail} shows the tests failing before the file operations
+are implemented.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{file_test_fail}
+	\caption{Screenshot of test for file operations failing before file
+	operations are implemented.}
+	\label{fig:file_test_fail}
+\end{figure}
+
 \section{Evaluation}
 
 % We could have fuzzed the parser
@@ -2086,6 +2102,8 @@ eb1de2f0f95e77992fabe31b2b5274ad0c4549d0)
 
 There's a test that never finishes and I couldn't detect which, luckily after
 60 seconds I was told why (present in eb1de2f0f95e77992fabe31b2b5274ad0c4549d0)
+
+Add this alternative: https://pseudocode.uk/
 
 \subsection{Where to find example code}
 
