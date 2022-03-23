@@ -1,0 +1,24 @@
+on:
+  push:
+    branches:
+      - log
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./prog/www
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npx webpack --mode production
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./prog/www/dist
+
