@@ -5,3 +5,6 @@ members = [
     "prog-cli",
     "prog-wasm",
 ]
+
+[profile.release]
+lto = true

@@ -2043,6 +2043,15 @@ as can be seen in \autoref{fig:file_success}.
 	\label{fig:file_success}
 \end{figure}
 
+\subsection{Stage n+4}
+
+For stage n+4, we are improving the error messages on the web application.
+Currently when an error is reached the user is never informed, all that happens
+is that an error message is printed into the developer console of the browser.
+
+In order to fix this issue, we will setup a hook in our code such that when a
+panic is reached it will print to the appropriate screen.
+
 \section{Evaluation}
 
 % We could have fuzzed the parser

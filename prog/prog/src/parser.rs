@@ -17,7 +17,7 @@ use super::interpreter::Program;
 #[derive(Debug)]
 pub enum BigMistake<I> {
     /// The left hand sign of the equal sign is an expression that is not an assignment
-    AssignToNonReference,
+    AssignToNonReference(I),
     Nom(I, ErrorKind),
 }
 
@@ -558,7 +558,7 @@ fn assignment(
         ))(input)?;
         match left {
             Expression::Reference(left) => Ok((input, Assignment(left, right))),
-            _ => Err(Err::Error(BigMistake::AssignToNonReference)),
+            _ => Err(Err::Error(BigMistake::AssignToNonReference(input))),
         }
     }
 }
