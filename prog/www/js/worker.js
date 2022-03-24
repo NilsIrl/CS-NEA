@@ -1,4 +1,5 @@
 import("../../prog-wasm/pkg").then(prog => {
+  prog.init();
   self.addEventListener("message", ev => {
     switch (ev.data.type) {
       case "code":
@@ -8,6 +9,5 @@ import("../../prog-wasm/pkg").then(prog => {
         prog.ast(ev.data.inner);
         break;
     }
-    self.postMessage({ type: "close" });
   });
 });

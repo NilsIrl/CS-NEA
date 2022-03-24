@@ -9,6 +9,9 @@ use wasm_bindgen::prelude::wasm_bindgen;
 extern "C" {
     #[wasm_bindgen]
     fn print(data: &[u8]);
+
+    #[wasm_bindgen]
+    fn close();
 }
 
 struct WorkerOutput;
@@ -34,17 +37,22 @@ impl Read for WorkerInput {
 }
 
 #[wasm_bindgen]
-pub fn run(source: &str) {
-    console_error_panic_hook::set_once();
+pub fn init() {
+    std::panic::set_hook(Box::new(|info| {
+        writeln!(WorkerOutput, "{}", info.to_string()).unwrap();
+        close();
+    }));
+}
 
+#[wasm_bindgen]
+pub fn run(source: &str) {
     let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
     ast.interpret_with_io(WorkerOutput, BufReader::new(WorkerInput));
+    close();
 }
 
 #[wasm_bindgen]
 pub fn ast(source: &str) {
-    console_error_panic_hook::set_once();
-
     let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
     writeln!(WorkerOutput, "{:#?}", ast).unwrap();
 }
