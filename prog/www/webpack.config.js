@@ -4,17 +4,12 @@ const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  entry: "./js/index.ts",
+  entry: "./js/index.js",
   experiments: {
     asyncWebAssembly: true,
   },
   module: {
     rules: [
-      {
-        test: /\.tsx?$/,
-        use: "ts-loader",
-        exclude: /node_modules/,
-      },
       {
         test: /\.css$/,
         use: ["style-loader", "css-loader"],
@@ -32,7 +27,4 @@ module.exports = {
       ]
     }),
   ],
-  resolve: {
-    extensions: [".ts", "..."],
-  },
 };
