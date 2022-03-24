@@ -1,0 +1,4 @@
+Program(vec![
+    Statement::Assignment(Assignment(Reference::Identifier("dest".to_string()),
+    Expression::Call(Call(Box::new(Expression::Reference(Reference::Identifier("newfile".to_string()))), vec![])))),
+])

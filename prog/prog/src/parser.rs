@@ -84,7 +84,14 @@ fn space0(input: &str) -> IResult<&str, &str> {
 fn space1(input: &str) -> IResult<&str, &str> {
     // FIXME space0 allows no whietspace to be classified as space1
     // The comment should not be optional
-    alt((complete::multispace1, space0))(input)
+    alt((
+        complete::multispace1,
+        recognize(tuple((
+            complete::multispace0,
+            comment,
+            complete::multispace0,
+        ))),
+    ))(input)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -502,6 +509,8 @@ fn convert_case(identifier: &str) -> String {
     match identifier.as_str() {
         "asc" => "ASC".to_string(),
         "chr" => "CHR".to_string(),
+        "openread" => "openRead".to_string(),
+        "openwrite" => "openWrite".to_string(),
         "readline" => "readLine".to_string(),
         "writeline" => "writeLine".to_string(),
         "endoffile" => "endOfFile".to_string(),
@@ -980,4 +989,5 @@ mod tests {
     ast_test!(new_object, &CASE_SENSITIVE);
     ast_test!(minus_one_literal, &CASE_SENSITIVE);
     ast_test!(precedence1, &CASE_SENSITIVE);
+    ast_test!(new_bug, &CASE_SENSITIVE);
 }
