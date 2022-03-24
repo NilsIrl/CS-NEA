@@ -1,0 +1,19 @@
+dest = "/tmp/prog-testing-" + str(random(0,1000000))
+
+cargo_manifest_dir = system("printenv CARGO_MANIFEST_DIR")
+cargo_manifest_dir = cargo_manifest_dir.left(cargo_manifest_dir.length - 1)
+
+source = cargo_manifest_dir + "/test_data/copy_file.input"
+
+source_file = openRead(source)
+dest_file = openWrite(dest)
+
+while NOT source_file.endOfFile()
+    dest_file.writeLine(source_file.readLine())
+endwhile
+
+source_file.close()
+dest_file.close()
+
+print(system("diff " + source + " " + dest))
+system("rm " + dest)

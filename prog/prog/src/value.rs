@@ -2,6 +2,8 @@ use std::{
     cell::{Ref, RefCell, RefMut},
     convert::TryInto,
     fmt::Display,
+    fs::File,
+    io::BufReader,
     iter,
     ops::{Add, AddAssign, Div, Mul, Not, Rem, Sub},
     rc::Rc,
@@ -15,7 +17,7 @@ pub enum ProgError {
     NotString,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Integer(i64),
     Float(f64),
@@ -25,6 +27,9 @@ pub enum Value {
 
     // FIXME: change this to a reference instead of a String
     Object(String, Vec<DenotedValue>),
+
+    ReadFile(Rc<RefCell<Option<BufReader<File>>>>),
+    WriteFile(Rc<RefCell<Option<File>>>),
 
     // When a value is uninitialized
     Undefined,
@@ -99,6 +104,20 @@ impl Value {
 impl Default for Value {
     fn default() -> Self {
         Self::Undefined
+    }
+}
+
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::String(a), Value::String(b)) => a == b,
+            (Value::Integer(a), Value::Integer(b)) => a == b,
+            (Value::Float(a), Value::Float(b)) => a == b,
+            (Value::Boolean(a), Value::Boolean(b)) => a == b,
+            (Value::Array(a), Value::Array(b)) => a == b,
+            (Value::Object(a1, a2), Value::Object(b1, b2)) => a1 == b1 && a2 == b2,
+            _ => false,
+        }
     }
 }
 

@@ -1,6 +1,15 @@
 use nom::Finish;
 use rand::Rng;
-use std::{collections::HashMap, convert::TryInto, io, iter::zip, ops::Index};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    convert::TryInto,
+    fs::File,
+    io::{self, BufRead, BufReader, Write},
+    iter::zip,
+    ops::Index,
+    rc::Rc,
+};
 
 use super::{
     parser::{
@@ -9,6 +18,41 @@ use super::{
     },
     value::{DenotedValue, Value},
 };
+
+#[cfg(unix)]
+fn system(command: String) -> io::Result<String> {
+    use lazy_static::lazy_static;
+    use std::process::Command;
+    use std::{env, ffi::OsString};
+
+    lazy_static! {
+        static ref SHELL: OsString = env::var_os("SHELL").unwrap();
+    };
+
+    Command::new(&*SHELL)
+        .arg("-c")
+        .arg(command)
+        .output()
+        .map(|output| String::from_utf8(output.stdout).unwrap())
+}
+
+#[cfg(windows)]
+fn system(command: String) -> io::Result<String> {
+    Command::new("cmd")
+        .arg("/C")
+        .arg(command)
+        .output()
+        .map(|output| String::from_utf8(output.stdout).unwrap())
+}
+
+#[cfg(all(
+    target_arch = "wasm32",
+    target_vendor = "unknown",
+    target_os = "unknown"
+))]
+fn system(_: String) -> io::Result<String> {
+    panic!("system unimplemented for web")
+}
 
 #[derive(Debug)]
 pub struct Error {}
@@ -419,6 +463,49 @@ fn apply_method<'a>(
                 panic!("Cannot apply `{}` on string", method_name)
             }
         },
+        Value::ReadFile(file) => match method {
+            "readLine" => {
+                let mut line = String::new();
+                file.borrow_mut()
+                    .as_mut()
+                    .expect("File is closed")
+                    .read_line(&mut line)
+                    .unwrap();
+                line.pop().unwrap();
+                Value::from(line)
+            }
+            "endOfFile" => Value::from(
+                !file
+                    .borrow_mut()
+                    .as_mut()
+                    .expect("File is closed")
+                    .has_data_left()
+                    .unwrap(),
+            ),
+            "close" => {
+                file.take();
+                Value::Undefined
+            }
+            _ => panic!("No method {} on file", method),
+        },
+        Value::WriteFile(file) => match method {
+            "writeLine" => {
+                assert_argument_count("writeLine", 1, args.len());
+                let line: String = eval(&args[0], context).try_into().unwrap();
+                writeln!(
+                    file.borrow_mut().as_ref().expect("File is closed"),
+                    "{}",
+                    line
+                )
+                .unwrap();
+                Value::Undefined
+            }
+            "close" => {
+                file.take();
+                Value::Undefined
+            }
+            _ => panic!("No method {} on file", method),
+        },
         _ => panic!("Cannot apply method on non object value"),
     }
 }
@@ -633,6 +720,26 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write, impl io::
                             (start, end) => panic!("cannot use random with {} and {}", start, end),
                         }
                     }
+                    "openRead" => {
+                        assert_argument_count("openRead", 1, arguments.len());
+                        let filename: String = eval(&arguments[0], context).try_into().unwrap();
+                        Value::ReadFile(Rc::new(RefCell::new(Some(BufReader::new(
+                            File::open(&filename)
+                                .expect(&format!("Failed to open file {}", filename)),
+                        )))))
+                    }
+                    "openWrite" => {
+                        assert_argument_count("openWrite", 1, arguments.len());
+                        let filename: String = eval(&arguments[0], context).try_into().unwrap();
+                        Value::WriteFile(Rc::new(RefCell::new(Some(
+                            File::create(filename).unwrap(),
+                        ))))
+                    }
+                    "system" => {
+                        assert_argument_count("system", 1, arguments.len());
+                        let command: String = eval(&arguments[0], context).try_into().unwrap();
+                        Value::from(system(command).unwrap())
+                    }
                     function_name => {
                         let function = context.functions[function_name].clone();
                         let stack_frame = StackFrame {
@@ -751,6 +858,7 @@ mod tests {
     output_test!(bracket);
     output_test!(print);
     output_test!(design_variables);
+    #[cfg(unix)]
     output_test!(design_read_from_file);
     output_test!(for_loop1);
     output_test!(design_while);
@@ -761,4 +869,6 @@ mod tests {
     output_test!(precedence1);
     output_test!(j277_string_operations);
     output_test!(j277_builtin_functions);
+    #[cfg(unix)]
+    output_test!(copy_file);
 }

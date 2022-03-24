@@ -5,12 +5,12 @@
 // rev design_read_from_file.input > design_read_from_file.output
 // ```
 
-file = openRead("design_read_a_file.input")
+file = openRead(system("echo -n $CARGO_MANIFEST_DIR") + "/test_data/design_read_from_file.input")
 while NOT file.endOfFile()
     line = file.readLine()
     output_line = ""
     for i = line.length - 1 to 0 step -1
-        output_line = output_line + line[i]
+        output_line = output_line + line.substring(i, 1)
     next i
     print(output_line)
 endwhile

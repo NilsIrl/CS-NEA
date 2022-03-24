@@ -1888,6 +1888,8 @@ fn convert_case(identifier: &str) -> String {
     match identifier.as_str() {
         "asc" => "ASC".to_string(),
         "chr" => "CHR".to_string(),
+        "openread" => "openRead".to_string(),
+        "openwrite" => "openWrite".to_string(),
         "readline" => "readLine".to_string(),
         "writeline" => "writeLine".to_string(),
         "endoffile" => "endOfFile".to_string(),
@@ -1939,6 +1941,106 @@ are implemented.
 	\caption{Screenshot of test for file operations failing before file
 	operations are implemented.}
 	\label{fig:file_test_fail}
+\end{figure}
+
+Our test has to refer to another file located in the testing directory however
+when tests are executed in rust, they are executed from a different working
+directory. The recommended method to locate files is to use the
+\texttt{CARGO\_MANIFEST\_DIR} environment variable however our language does
+not support environment variables. There are multiple methods to fix this
+limitation: implement some method to recover environment variables, set the
+location using the testing framework or hard-code the location of the file.
+
+We decided to go with the first method by adding the \texttt{system} function
+to the language. This function works similarly to how it does in python, PHP or
+C: it executes the command given using the default shell (often bash on Linux
+and cmd.exe on Windows) and then returns the output of the command. We have
+decided to use this method because being able to execute system commands is
+necessary for a language to be usable and so we believe that this feature
+should be implemented anyway. This will be the first extension to the language
+we make. The function \texttt{system} is not defined in any of the documents
+produced by OCR.
+
+Because the system function is platform specific we had to implement it in
+three different ways depending on the platforms: unix (Linux and MacOS),
+windows and Web Assembly using conditional compilation as shown in listing
+\ref{lst:system}.
+
+Whilst testing for the file feature we stumbled upon a parsing bug. If an
+identifier started with ``new'' our parser would interpret that as an object
+instantiation instead of an identifier as can be seen in
+\autoref{fig:new_parsing_bug}. We went about fixing it by first adding a test
+to make sure the behaviour will stay correct and then fixing the bug.
+\autoref{fig:new_bug_fail} shows the test failing before it was fixed and
+\autoref{fig:new_bug_success} shows the test succeeding after fixing the
+parser.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{new_parsing_bug}
+	\caption{Screenshot showing an erroneous AST being generated}
+	\label{fig:new_parsing_bug}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{new_bug_fail}
+	\caption{Screenshot of test failing because of erroneous parser}
+	\label{fig:new_bug_fail}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{new_bug_success}
+	\caption{Screenshot of succeeding test after fixing parser}
+	\label{fig:new_bug_success}
+\end{figure}
+
+\begin{listing}
+	\begin{minted}{rust}
+#[cfg(unix)]
+fn system(command: String) -> io::Result<String> {
+    use lazy_static::lazy_static;
+    use std::process::Command;
+    use std::{env, ffi::OsString};
+
+    lazy_static! {
+        static ref SHELL: OsString = env::var_os("SHELL").unwrap();
+    };
+
+    Command::new(&*SHELL)
+        .arg("-c")
+        .arg(command)
+        .output()
+        .map(|output| String::from_utf8(output.stdout).unwrap())
+}
+
+#[cfg(windows)]
+fn system(command: String) -> io::Result<String> {
+    Command::new("cmd")
+        .arg("/C")
+        .arg(command)
+        .output()
+        .map(|output| String::from_utf8(output.stdout).unwrap())
+}
+
+#[cfg(all(
+    target_arch = "wasm32",
+    target_vendor = "unknown",
+    target_os = "unknown"
+))]
+fn system(_: String) -> io::Result<String> {
+    panic!("system unimplemented for web")
+}
+	\end{minted}
+	\caption{Implementation of the system function}
+	\label{lst:system}
+\end{listing}
+
+Once everything was implemented, the tests testing the file features succeeded
+as can be seen in \autoref{fig:file_success}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{file_success}
+	\caption{Screenshot showing the file related tests succeeding}
+	\label{fig:file_success}
 \end{figure}
 
 \section{Evaluation}
