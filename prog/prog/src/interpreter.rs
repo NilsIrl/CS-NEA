@@ -427,10 +427,9 @@ fn apply_method<'a>(
                 variables: method_frame,
                 current_class: Some(method.host_class.to_string()),
             });
-            execute_statements(method.function.body, context);
+            let val = execute_statements(method.function.body, context);
             context.environment.pop();
-            // FIXME support function returning values
-            Value::default()
+            val
         }
         Value::String(string) => match method {
             "substring" => {
