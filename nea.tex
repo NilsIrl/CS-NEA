@@ -2050,7 +2050,44 @@ Currently when an error is reached the user is never informed, all that happens
 is that an error message is printed into the developer console of the browser.
 
 In order to fix this issue, we will setup a hook in our code such that when a
-panic is reached it will print to the appropriate screen.
+panic is reached it will print to the output terminal in a red colour as can be
+seen in listing \ref{lst:ansi_printing}. The output can be seen in
+\autoref{fig:red_error}.
+
+\begin{listing}
+	\begin{minted}{rust}
+#[wasm_bindgen]
+pub fn init() {
+    std::panic::set_hook(Box::new(|info| {
+        writeln!(WorkerOutput, "\x1b[31m{}\x1b[39m", info.to_string()).unwrap();
+        close();
+    }));
+}
+	\end{minted}
+	\caption{Panic hooks which prints panic messages in red to the output}
+	\label{lst:ansi_printing}
+\end{listing}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{red_error}
+	\caption{Screenshot of error message when there is a syntax error}
+	\label{fig:red_error}
+\end{figure}
+
+We also removed the scrollbars which were present in previous versions of the
+web app by making the size of containers include their padding (scrollbars
+visible in \autoref{lst:annoying_scrollbars.png}). In addition we improved the
+code quality to remove the use of absolute values and instead replaced them by
+a use of flexbox. This made our web app usable regardless of the screen size it
+was used on.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{annoying_scrollbars}
+	\caption{Screenshot of the web application before scrollbars were removed}
+	\label{fig:annoying_scrollbars}
+\end{figure}
+
+
 
 \section{Evaluation}
 

@@ -39,7 +39,7 @@ impl Read for WorkerInput {
 #[wasm_bindgen]
 pub fn init() {
     std::panic::set_hook(Box::new(|info| {
-        writeln!(WorkerOutput, "{}", info.to_string()).unwrap();
+        writeln!(WorkerOutput, "\x1b[31m{}\x1b[39m", info.to_string()).unwrap();
         close();
     }));
 }
