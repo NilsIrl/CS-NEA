@@ -1,0 +1,13 @@
+class Person
+    public name
+    public age
+
+    public procedure new(name_local, age_local)
+        name = name_local
+        age = age_local
+    endprocedure
+endclass
+
+person1 = new Person("Lisa", 17)
+print(person1.name)
+print(person1.age)

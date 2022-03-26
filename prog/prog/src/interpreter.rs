@@ -6,7 +6,7 @@ use std::{
     convert::TryInto,
     fs::File,
     io::{self, BufRead, BufReader, Write},
-    iter::zip,
+    iter::{self, zip},
     ops::Index,
     rc::Rc,
 };
@@ -94,18 +94,19 @@ impl Program<'_> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Function<'a> {
     args: &'a Vec<(String, bool)>,
     body: &'a ListOfStatements<'a>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Method<'a> {
     function: Function<'a>,
     host_class: &'a str,
 }
 
+#[derive(Debug)]
 struct Class<'a> {
     fields: Vec<&'a str>,
     fields_in_scope: Vec<(usize, &'a str)>,
@@ -253,7 +254,6 @@ fn execute_statements<'a>(
             Statement::Assignment(Assignment(reference, value)) => {
                 let value = eval(value, context);
                 extend_env(reference, value, context);
-                //dbg!(&context.environment);
             }
             Statement::GlobalAssignment(name, value) => {
                 let value = eval(value, context);
@@ -789,13 +789,11 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write, impl io::
             if let Expression::Reference(Reference::Identifier(class_name)) = &**class_name {
                 let obj = DenotedValue::from(Value::Object(
                     class_name.to_string(),
-                    vec![
-                        DenotedValue::from(Value::Undefined);
-                        context.classes[class_name.as_str()].fields.len()
-                    ],
+                    iter::repeat_with(|| DenotedValue::from(Value::Undefined))
+                        .take(context.classes[class_name.as_str()].fields.len())
+                        .collect(),
                 ));
                 apply_method(obj.clone(), "new", false, args, context);
-                //dbg!(&context.environment);
                 let x = obj.borrow().clone();
                 x
             } else {
@@ -884,4 +882,5 @@ mod tests {
     output_test!(return1);
     output_test!(return2);
     output_test!(return3);
+    output_test!(class3);
 }
