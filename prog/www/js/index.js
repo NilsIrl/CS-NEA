@@ -4,7 +4,7 @@ import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
 const editor = monaco.editor.create(document.getElementById("code-monaco"), {
-    value: 'print("Hello World!")',
+  value: 'print("Hello World!")',
 });
 
 const term = new Terminal({ convertEol: true });
@@ -42,10 +42,10 @@ term.open(document.getElementById("terminal"));
 fit_addon.fit();
 
 term.onKey((e) => {
-    const ev = e.domEvent;
-    if (ev.ctrlKey && ev.key == "c") {
-        terminate_worker();
-    }
+  const ev = e.domEvent;
+  if (ev.ctrlKey && ev.key == "c") {
+    terminate_worker();
+  }
 });
 
 const runButton = document.getElementById("run-button");
@@ -62,14 +62,14 @@ printAstButton.addEventListener("click", e => {
 });
 
 runButton.addEventListener("click", e => {
-    if (runButton.innerText === "Stop") {
-      terminate_worker();
-    } else {
-      term.clear();
-      worker.postMessage({
-        type: "code",
-        inner: editor.getValue(),
-      });
-      runButton.innerText = "Stop";
-    }
+  if (runButton.innerText === "Stop") {
+    terminate_worker();
+  } else {
+    term.clear();
+    worker.postMessage({
+      type: "code",
+      inner: editor.getValue(),
+    });
+    runButton.innerText = "Stop";
+  }
 });
