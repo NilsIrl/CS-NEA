@@ -2087,6 +2087,59 @@ was used on.
 	\label{fig:annoying_scrollbars}
 \end{figure}
 
+% n + 5
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we will be adding the ability to return values in
+sub-blocks of a function. The way we had implemented statements so far meant
+that returning values was not something that was possible.
+
+But in order to do that, first we will add tests. We added the \texttt{return1}
+and \texttt{return2} tests. The \texttt{return1} test already passed however
+the \texttt{return2} didn't pass because its use of return was within a sub
+statement. \autoref{fig:return_before} shows the test running before return of
+sub-statements was implemented.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{return_before}
+	\caption{Tests for returning values before the feature is complete}
+	\label{fig:return_before}
+\end{figure}
+
+We were able to implement this feature by using a macro. Using a macro
+minimised the amount of code change and made our code more maintainable, both
+things which decrease the possibility of a bug occurring. This is a great
+example of the use of meta programming and how it can simplify development and
+make it elegant and efficient. The macro can be seen in listing
+\ref{lst:return_macro}.
+
+\begin{listing}
+	\begin{minted}{rust}
+// executes the statements returning a value if a value is to be returned
+// Otherwise continue
+macro_rules! execute_statements {
+    ($statements:expr, $context:expr) => {
+        match execute_statements($statements, $context) {
+            Value::Undefined => (),
+            val => return val,
+        }
+    };
+}
+	\end{minted}
+	\caption{The macro which allows to return values in sub blocks of a
+	function}
+	\label{lst:return_macro}
+\end{listing}
+
+After the changes were made the tests passed as can be seen in listing
+\fig{fig:return_after}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{return_after}
+	\caption{Tests for returning values after the feature is complete}
+	\label{fig:return_after}
+\end{figure}
+
 
 
 \section{Evaluation}
