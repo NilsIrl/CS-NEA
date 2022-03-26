@@ -233,6 +233,17 @@ fn extend_env<'a>(
     }
 }
 
+// executes the statements returning a value if a value is to be returned
+// Otherwise continue
+macro_rules! execute_statements {
+    ($statements:expr, $context:expr) => {
+        match execute_statements($statements, $context) {
+            Value::Undefined => (),
+            val => return val,
+        }
+    };
+}
+
 fn execute_statements<'a>(
     statements: &'a ListOfStatements<'a>,
     context: &mut Context<'a, impl io::Write, impl io::BufRead>,
@@ -270,7 +281,7 @@ fn execute_statements<'a>(
                     step_is_positive_or_zero && *counter.borrow() <= end
                         || !step_is_positive_or_zero && *counter.borrow() >= end
                 } {
-                    execute_statements(body, context);
+                    execute_statements!(body, context);
                     // This clone is cheap because it is an Rc<_>
                     // However I feel like there must be a better solution
                     //
@@ -281,9 +292,9 @@ fn execute_statements<'a>(
             }
             Statement::If(exp, if_body, else_body) => {
                 if eval(exp, context).try_into().unwrap() {
-                    execute_statements(if_body, context);
+                    execute_statements!(if_body, context);
                 } else {
-                    execute_statements(else_body, context);
+                    execute_statements!(else_body, context);
                 }
             }
             Statement::Expression(exp) => {
@@ -291,11 +302,11 @@ fn execute_statements<'a>(
             }
             Statement::While(condition, body) => {
                 while eval(condition, context).try_into().unwrap() {
-                    execute_statements(body, context);
+                    execute_statements!(body, context);
                 }
             }
             Statement::DoUntil(body, condition) => loop {
-                execute_statements(body, context);
+                execute_statements!(body, context);
                 if eval(condition, context).try_into().unwrap() {
                     break;
                 }
