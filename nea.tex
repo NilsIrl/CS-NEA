@@ -50,6 +50,7 @@
 \usetikzlibrary{shapes.geometric, shapes.misc, arrows, calc, decorations.markings, positioning}
 
 \newcommand{\midarrow}{\tikz \draw[-stealth,thick] (0,0) -- +(.1,0);}
+\newcommand{\subsecnum}{\the\value{subsection}}
 
 \tikzstyle{flowchartbox} = [text centered, draw, minimum width=3cm, minimum height=1cm]
 \tikzstyle{terminal} = [flowchartbox, rectangle, rounded rectangle]
@@ -1831,9 +1832,9 @@ the results for later.
 	\label{fig:stage9_test}
 \end{figure}
 
-\subsection{Stage n}
+\subsection{Stage \subsecnum}
 
-For stage n, we added support to string operations. We decided to implement it
+For stage \subsecnum, we added support to string operations. We decided to implement it
 before other built-in features such as file operations because making it work
 would be similar to making files work. Another advantage of string operations
 is that they were fully lowercase which meant it was easier for us to implement
@@ -1856,9 +1857,9 @@ necessary. \autoref{fig:string_tests} shows the tests passing.
 	\label{fig:string_tests}
 \end{figure}
 
-\subsection{Stage n+1}
+\subsection{Stage \subsecnum}
 
-For stage n+1, we implemented the remaining built-in functions for both
+For stage \subsecnum, we implemented the remaining built-in functions for both
 \citetitle{j277} and \citetitle{h446}:
 
 \begin{itemize}
@@ -1911,9 +1912,9 @@ fn convert_case(identifier: &str) -> String {
 
 \autoref{fig:builtin_functions} shows the built-in functions working.
 
-\subsection{Stage n+2}
+\subsection{Stage \subsecnum}
 
-For stage n+2, we deployed the web application to GitHub pages using GitHub
+For stage \subsecnum, we deployed the web application to GitHub pages using GitHub
 actions so that it would deploy automatically when a change is made and so that
 the web-app is available to everyone from the internet.
 
@@ -1927,9 +1928,9 @@ CLI.
 With all of that done, the language is now available from the web! At the
 following address: \url{https://nilsirl.github.io/CS-NEA/}.
 
-\subsection{Stage n+3}
+\subsection{Stage \subsecnum}
 
-For stage n+3, we added support for file operations: \texttt{newFile},
+For stage \subsecnum, we added support for file operations: \texttt{newFile},
 \texttt{open} (from \citetitle{j277}), \texttt{openRead}, \texttt{readLine},
 \texttt{endOfFile}, \texttt{openWrite}, \texttt{writeLine}, \texttt{close}.
 
@@ -2043,9 +2044,9 @@ as can be seen in \autoref{fig:file_success}.
 	\label{fig:file_success}
 \end{figure}
 
-\subsection{Stage n+4}
+\subsection{Stage \subsecnum}
 
-For stage n+4, we are improving the error messages on the web application.
+For stage \subsecnum, we are improving the error messages on the web application.
 Currently when an error is reached the user is never informed, all that happens
 is that an error message is printed into the developer console of the browser.
 
@@ -2076,7 +2077,7 @@ pub fn init() {
 
 We also removed the scrollbars which were present in previous versions of the
 web app by making the size of containers include their padding (scrollbars
-visible in \autoref{lst:annoying_scrollbars.png}). In addition we improved the
+visible in \autoref{fig:annoying_scrollbars}). In addition we improved the
 code quality to remove the use of absolute values and instead replaced them by
 a use of flexbox. This made our web app usable regardless of the screen size it
 was used on.
