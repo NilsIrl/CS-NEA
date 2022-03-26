@@ -1,16 +1,22 @@
+* {
+    box-sizing: border-box;
+}
+
 html, body {
+    margin: 0;
     height: 100%;
     width: 100%;
 }
 
 body {
+    padding: 5px;
     display: flex;
 }
 
 #left {
     display: flex;
     flex-direction: column;
-    width: 100%;
+    flex-grow: 1;
 }
 
 #actions {
@@ -18,10 +24,9 @@ body {
 }
 
 #code-monaco {
-    width: 100%;
     flex-grow: 1;
 }
 
 #terminal {
-    width: 100%;
+    flex-grow: 1;
 }
