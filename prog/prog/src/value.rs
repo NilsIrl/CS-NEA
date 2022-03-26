@@ -290,9 +290,9 @@ pub struct DenotedValue(pub Rc<RefCell<Value>>);
 impl DenotedValue {
     pub fn new_array_from_dimensions(dimensions: &[usize]) -> Self {
         match dimensions {
-            [] => Self::from(Value::Undefined),
+            [] => Self::default(),
             [x, xs @ ..] => Self::from(Value::Array(
-                iter::from_fn(|| Some(Self::new_array_from_dimensions(xs)))
+                iter::repeat_with(|| Self::new_array_from_dimensions(xs))
                     .take(*x)
                     .collect(),
             )),
