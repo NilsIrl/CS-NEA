@@ -1,0 +1,13 @@
+class Dog
+    private name
+    public procedure new()
+        name = "Diogo"
+    endprocedure
+
+    public function getName()
+        return name
+    endfunction
+endclass
+
+doggo = new Dog()
+print(doggo.getName())

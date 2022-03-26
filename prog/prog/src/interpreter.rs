@@ -873,4 +873,5 @@ mod tests {
     output_test!(copy_file);
     output_test!(return1);
     output_test!(return2);
+    output_test!(return3);
 }
