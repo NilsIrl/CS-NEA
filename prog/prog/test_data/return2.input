@@ -1,0 +1,7 @@
+function three()
+    for i = 0 to 10
+        return 3
+    next i
+endfunction
+
+print(three())

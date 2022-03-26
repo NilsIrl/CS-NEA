@@ -1,0 +1,5 @@
+function three()
+    return 3
+endfunction
+
+print(three())

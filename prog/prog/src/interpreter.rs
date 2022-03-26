@@ -871,4 +871,6 @@ mod tests {
     output_test!(j277_builtin_functions);
     #[cfg(unix)]
     output_test!(copy_file);
+    output_test!(return1);
+    output_test!(return2);
 }
