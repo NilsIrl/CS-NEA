@@ -898,4 +898,5 @@ mod tests {
     output_test!(return3);
     output_test!(class3);
     output_test!(class4);
+    output_test!(logical_operators2);
 }
