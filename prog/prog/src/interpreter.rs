@@ -4,6 +4,7 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     convert::TryInto,
+    fmt::Debug,
     fs::File,
     io::{self, BufRead, BufReader, Write},
     iter::{self, zip},
@@ -82,7 +83,7 @@ impl Program<'_> {
         execute_statements(&self.0, &mut context);
     }
 
-    pub fn interpret_with_io(self, stdout: impl io::Write, stdin: impl io::BufRead) {
+    pub fn interpret_with_io(self, stdout: impl Write + Debug, stdin: impl BufRead + Debug) {
         let mut context = Context {
             functions: HashMap::new(),
             classes: HashMap::new(),
@@ -114,7 +115,7 @@ struct Class<'a> {
     parent_class: Option<&'a str>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct StackFrame<'a> {
     variables: HashMap<&'a str, DenotedValue>,
     current_class: Option<String>,
@@ -140,7 +141,8 @@ impl Index<&str> for StackFrame<'_> {
 
 type Environment<'a> = Vec<StackFrame<'a>>;
 
-struct Context<'a, W: io::Write, R: io::BufRead> {
+#[derive(Debug)]
+struct Context<'a, W: Write + Debug, R: BufRead + Debug> {
     environment: Environment<'a>,
     classes: HashMap<&'a str, Class<'a>>,
     functions: HashMap<&'a str, Function<'a>>,
@@ -150,7 +152,7 @@ struct Context<'a, W: io::Write, R: io::BufRead> {
 
 fn apply_env(
     identifier: &str,
-    context: &mut Context<impl io::Write, impl io::BufRead>,
+    context: &mut Context<impl Write + Debug, impl BufRead + Debug>,
 ) -> Option<DenotedValue> {
     let env = &context.environment;
     env.last()
@@ -162,7 +164,7 @@ fn apply_env(
 
 fn get_ref(
     reference: &Reference,
-    context: &mut Context<impl io::Write, impl io::BufRead>,
+    context: &mut Context<impl Write + Debug, impl BufRead + Debug>,
 ) -> Option<DenotedValue> {
     match reference {
         Reference::Identifier(identifier) => apply_env(identifier, context),
@@ -206,7 +208,7 @@ fn get_ref(
 fn extend_env<'a>(
     reference: &'a Reference,
     value: Value,
-    context: &mut Context<'a, impl io::Write, impl io::BufRead>,
+    context: &mut Context<'a, impl Write + Debug, impl BufRead + Debug>,
 ) -> DenotedValue {
     match get_ref(reference, context) {
         Some(denoted_value) => {
@@ -247,7 +249,7 @@ macro_rules! execute_statements {
 
 fn execute_statements<'a>(
     statements: &'a ListOfStatements<'a>,
-    context: &mut Context<'a, impl io::Write, impl io::BufRead>,
+    context: &mut Context<'a, impl Write + Debug, impl BufRead + Debug>,
 ) -> Value {
     for statement in statements {
         match statement {
@@ -375,7 +377,7 @@ fn apply_method<'a>(
     method: &str,
     super_call: bool,
     args: &Vec<Expression>,
-    context: &mut Context<impl io::Write, impl io::BufRead>,
+    context: &mut Context<impl Write + Debug, impl BufRead + Debug>,
 ) -> Value {
     match &*obj.borrow() {
         Value::Object(class, field_values) => {
@@ -390,8 +392,17 @@ fn apply_method<'a>(
                         .as_ref()
                         .unwrap()
                         .as_str()];
+                    /*
+                    context.classes[context.classes[current_class.methods[method].host_class]
+                        .parent_class
+                        .unwrap()]
+                    .methods[method]
+                        .clone()
+                    */
                     // FIXME this calls the parent of the object we want the parent of the hosting
                     // class
+                    // EDIT: this should actually be alright because the parent class is set as the
+                    // host class
                     context.classes[current_class.parent_class.unwrap()].methods[method].clone()
                 } else {
                     class.methods[method].clone()
@@ -522,7 +533,10 @@ fn apply_method<'a>(
 
 // We should probably change this to return Value instead of DenotedValue
 // This will prevent assigning to a non trivial expression as a thing
-fn eval(expression: &Expression, context: &mut Context<impl io::Write, impl io::BufRead>) -> Value {
+fn eval(
+    expression: &Expression,
+    context: &mut Context<impl Write + Debug, impl BufRead + Debug>,
+) -> Value {
     match expression {
         Expression::IntegerLiteral(integer) => Value::from(*integer),
         Expression::StringLiteral(str) => Value::from(*str),
@@ -639,7 +653,7 @@ fn eval(expression: &Expression, context: &mut Context<impl io::Write, impl io::
                 Expression::Reference(Reference::Identifier(identifier)) => {
                     if identifier == "super" {
                         let obj = context.environment.last().unwrap()["self"].clone();
-                        apply_method(obj.clone(), &method, true, arguments, context)
+                        apply_method(obj, &method, true, arguments, context)
                     } else {
                         apply_method(
                             apply_env(&identifier, context).unwrap(),
@@ -835,7 +849,7 @@ mod tests {
                     $parse_settings,
                 )
                 .unwrap()
-                .interpret_with_io(&mut stdout, std::io::Cursor::new(Vec::new()));
+                .interpret_with_io(&mut stdout, io::Cursor::new(Vec::new()));
                 print!("{}", std::str::from_utf8(&stdout).unwrap());
                 assert_eq!(
                     stdout,

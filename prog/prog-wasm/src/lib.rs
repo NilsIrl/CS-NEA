@@ -14,6 +14,7 @@ extern "C" {
     fn close();
 }
 
+#[derive(Debug)]
 struct WorkerOutput;
 
 impl Write for WorkerOutput {
@@ -28,6 +29,7 @@ impl Write for WorkerOutput {
     }
 }
 
+#[derive(Debug)]
 struct WorkerInput;
 
 impl Read for WorkerInput {
