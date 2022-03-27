@@ -1,0 +1,45 @@
+class Animal
+    public name
+    public dob
+
+    public procedure new(local_name, local_dob)
+        name = local_name
+        dob = local_dob
+    endprocedure
+
+    public procedure print_name()
+        print("hi im " + name)
+    endprocedure
+
+    public procedure print_dob()
+        print("dob is " + str(dob))
+    endprocedure
+endclass
+
+class Dog inherits Animal
+    public breed
+
+    public procedure new(local_name, local_dob, local_breed)
+        super.new(local_name, local_dob)
+        breed = local_breed
+    endprocedure
+
+    public procedure print_name()
+        print("WOOF! im " + name)
+    endprocedure
+
+    public procedure print_breed()
+        print("im a " + breed)
+    endprocedure
+endclass
+
+class Shepherd inherits Dog
+    public procedure new(local_name, local_dob)
+        super.new(local_name, local_dob, "Shepherd")
+    endprocedure
+endclass
+
+shepherd = new Shepherd("kira", 2004)
+shepherd.print_name()
+shepherd.print_dob()
+shepherd.print_breed()

@@ -883,4 +883,5 @@ mod tests {
     output_test!(return2);
     output_test!(return3);
     output_test!(class3);
+    output_test!(class4);
 }
