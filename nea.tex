@@ -1138,7 +1138,7 @@ entirety of the interpreter at once.
             \hline
 			Reading from files & Run \texttt{./neasuccess readfile} & Listing \ref{lst:design_read_from_file} \\
             \hline
-			Writing to files & Run \texttt{./neasuccess writefile} & \\
+			Writing to files & Run \texttt{./neasuccess writefile} & Listing \ref{lst:copy_file} \\
             \hline
 			Objects --- Attributes & Run \texttt{./neasuccess attributes} & \\
             \hline
@@ -1228,6 +1228,13 @@ entirety of the interpreter at once.
 	\inputmintedgrey{text}{./prog/prog/test_data/design_read_from_file.output}
 	\caption{Test data to check whether it is possible to read from files}
 	\label{lst:design_read_from_file}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/copy_file.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/copy_file.input}
+	\caption{Test data for writing to files}
+	\label{lst:copy_file}
 \end{listing}
 
 % TODO (don't forget about ./savedstuff.tex)
@@ -1809,15 +1816,52 @@ In rust the Rc type allows to store reference counted items on the heap and
 RefCell allows to have interior mutability: it allows to mutate values without
 it being checked by the borrow checker. These types are necessary because in
 rust the borrow checker prevents values from being mutated if there are other
-references to a value. The RefCell type allows to maintain that guarantee but
-checking at runtime. We used the Rc type because it is necessary in order to
-not use too much memory: it destroys objects if there are no references to it.
+references to a value. The RefCell type allows to maintain that guarantee by
+doing the checks at runtime. We used the Rc type because it is necessary in
+order to not use too much memory: it destroys objects if there are no
+references to it.
 
 We also moved all code related to values to a separate file: \texttt{value.rs}.
-We also added the macro necessary to be able to add tests rapidly to the
-parser. The way this macro works is that it executes the code in
-\texttt{.input} files and then compares the output produced with files in
-\texttt{.output} files. If the output matches, the test passes.
+We also added the macro necessary to be able to add tests rapidly to the parser
+(the macro can be seen in listing \ref{lst:output_test}. The way this macro
+works is that it executes the code in \texttt{.input} files and then compares
+the output produced with files in \texttt{.output} files. If the output
+matches, the test passes.
+
+\begin{listing}
+	\begin{minted}{rust}
+macro_rules! output_test {
+    ( $function_name:ident ) => {
+        #[test]
+        fn $function_name() {
+            let mut stdout = Vec::new();
+            Program::from_str(
+                include_str!(concat!(
+                    "../test_data/",
+                    stringify!($function_name),
+                    ".input"
+                )),
+                &ParseSettings::default(),
+            )
+            .unwrap()
+            .interpret_with_write(&mut stdout);
+            print!("{}", std::str::from_utf8(&stdout).unwrap());
+            assert_eq!(
+                stdout,
+                include_bytes!(concat!(
+                    "../test_data/",
+                    stringify!($function_name),
+                    ".output"
+                ))
+            );
+        }
+    };
+}
+	\end{minted}
+	\caption{The macro used for testing the interpreter part of the programming
+	language}
+	\label{lst:output_test}
+\end{listing}
 
 As part of this stage we added many features. We implemented printing such that
 values of different types could be printed and such that the output of printing
@@ -1826,11 +1870,126 @@ implements the \texttt{Write} trait. On the command line, the object passed is
 an instance of standard output. In tests it is a Vec, such that we can collect
 the results for later.
 
+Because we now have tests for the interpreter we will only show screenshots of
+a subset of the tests so as to not crowd this report with information that is
+not necessary as there are now too many tests to show them all at once.
+Nevertheless we will run the full test suite as we develop the programming
+language to make sure no bugs are introduced by.
+\autoref{fig:stage9_test} shows the tests that were added as part of stage 9
+passing.
+
 \begin{figure}
 	\includegraphics[width=\textwidth]{stage9_test}
 	\caption{Screenshot of tests passing at the end of stage 9}
 	\label{fig:stage9_test}
 \end{figure}
+
+% Stage 10
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we started the playground, a web application that allows
+to use the programming language from one's browser.
+
+This first version was very basic, it had a \texttt{textarea} for the user's
+code and would just output to the web page through a \texttt{output} tag to
+achieve the correct formatting. A problem this version had is that it couldn't
+print in real time. The web page was only updated once the program had finished
+executing due to the web's asynchronous architecture: when the user's program
+was running, its execution was blocking the DOM from being refreshed.
+
+\autoref{fig:webappv1} shows running a small test program on the web
+application.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{webappv1}
+	\caption{Screenshot of the first version of the playground}
+	\label{fig:webappv1}
+\end{figure}
+
+% Stage 11
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we tried desperately to be able to print continuously in
+real time, such as with an infinitely running loop. We went through different
+iterations and methods before we achieved something that worked in a robust
+way.
+
+We thought that using the xterm.js package would allow use to print in real
+time, it didn't work. In hindsight there was no reason why using it would solve
+our solution. We also tried many workarounds that we thought would introduce a
+pause in the page leaving enough time for the DOM to refresh, these include
+calling \mintinline{javascript}{window.requestAnimationFrame()}, calling
+\mintinline{javascript}{setTimeout()}, changing the visibility of the output
+to \texttt{none} and then back to \texttt{block}, or requesting the
+\texttt{offsetHeight} attribute of the output after each print. None of them
+worked.
+
+In the end what we did is we made the program run in a web worker, a separate
+virtual page independent from the main web page and which communicates with the
+main web page by passing messages to each other. After this change it was now
+possible to print to the screen continuously in real time.
+
+This can be tested by running a very simple infinite loop in the playground
+such as the one in listing \ref{lst:infinite_loop}.
+
+\begin{listing}
+	\begin{minted}{text}
+a = 1
+while True
+    print(a)
+    a = a + 1
+endwhile
+	\end{minted}
+	\caption{Infinite loop program to test continuous real-time printing in the
+	playground}
+	\label{lst:infinite_loop}
+\end{listing}
+
+Whilst working on this feature, we reached another bug, output from the web
+worker would be corrupted. We are not sure why that is the case however we were
+able to solve it by calling \texttt{slice} on the output before sending it to
+the main thread.
+
+% Stage 12
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we added more features to the playground: the ability to
+stop a program using CTRL-C like in a normal terminal, a button to print the
+AST of a program and lastly we changed the editor from a \texttt{textarea} to
+using the \citetitle{monaco}, the same one that is used in \citetitle{vscode}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{monaco}
+	\caption{Screenshot showing the updated playground with monaco editor on
+	the left and the AST on the right}
+	\label{fig:monaco}
+\end{figure}
+
+% Stage 13
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we made improvements to the interpreter: we added support
+for boolean and real literals, logical operators, and while loops in the
+interpreter. We also fixed a bug in the parser that made it so that numbers
+that started with a minus sign were parsed as identifiers instead of integers
+or real numbers. We added tests to make sure this was not going to regress and
+others for the features listed.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage13_test}
+	\caption{Screenshot of tests passing after the changes of stage 13 have
+	been carried out}
+	\label{fig:stage13_test}
+\end{figure}
+
+\autoref{fig:stage13_test} shows the tests that were added passing after the
+changes have been implemented.
+
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we added support for arrays in the interpreter.
+
+
 
 \subsection{Stage \subsecnum}
 
@@ -2132,8 +2291,8 @@ macro_rules! execute_statements {
 	\label{lst:return_macro}
 \end{listing}
 
-After the changes were made the tests passed as can be seen in listing
-\fig{fig:return_after}.
+After the changes were made the tests passed as can be seen in
+\autoref{fig:return_after}.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{return_after}
