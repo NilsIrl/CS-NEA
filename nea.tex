@@ -592,21 +592,21 @@ successful the project was. The list is derived from the pseudocode guide in
 	\item Comments
 	\item Outputting to screen
 	\item Variables
-	\item Iteration --- Count Controlled
+	\item Iteration---Count Controlled
 	\item Selection
 	\item Logical Operators
-	\item Iteration --- Condition Controlled
+	\item Iteration---Condition Controlled
 	\item String Handling
 	\item Subroutines
-	\item Subroutines --- Passing values by value or by reference
+	\item Subroutines---Passing values by value or by reference
 	\item Arrays
 	\item Reading from files
 	\item Writing to files
-	\item Objects --- Attributes
-	\item Objects --- Methods
-	\item Object --- Access level
-	\item Object --- Constructors
-	\item Object --- Inheritence
+	\item Objects---Attributes
+	\item Objects---Methods
+	\item Object---Access level
+	\item Object---Constructors
+	\item Object---Inheritence
 \end{enumerate}
 
 In order to make the success criteria more objective, it would be preferable if
@@ -1120,19 +1120,19 @@ entirety of the interpreter at once.
             \hline
 			Variables & Run \texttt{./neasuccess variables} & Listing \ref{lst:design_variables} \\
             \hline
-            Iteration --- Count Controlled & Run \texttt{./neasuccess forloop} & Listing \ref{lst:design_for_loop} \\
+            Iteration---Count Controlled & Run \texttt{./neasuccess forloop} & Listing \ref{lst:design_for_loop} \\
             \hline
 			Selection & Run \texttt{./neasuccess selection} & Listing \ref{lst:design_string_handling} \\
             \hline
 			Logical Operators & Run \texttt{./neasuccess logic} & Listing \ref{lst:logical_operators2} \\
             \hline
-            Iteration --- Condition Controlled & Run \texttt{./neasuccess whileloop} & Listing \ref{lst:design_while_loop} \\
+            Iteration---Condition Controlled & Run \texttt{./neasuccess whileloop} & Listing \ref{lst:design_while_loop} \\
             \hline
 			String Handling & Run \texttt{./neasuccess strings} & Listing \ref{lst:design_string_handling} \\
             \hline
 			Subroutines & Run \texttt{./neasuccess subroutines} & Listing \ref{lst:design_subroutine_run} \\
             \hline
-            Subroutines --- Passing values by value or by reference & Run \texttt{./neasuccess byvalue\_byref} & Listing \ref{lst:design_byref} \\
+            Subroutines---Passing values by value or by reference & Run \texttt{./neasuccess byvalue\_byref} & Listing \ref{lst:design_byref} \\
             \hline
 			Arrays & Run \texttt{./neasuccess arrays} & Listing \ref{lst:design_subroutine_run} \\
             \hline
@@ -1140,15 +1140,15 @@ entirety of the interpreter at once.
             \hline
 			Writing to files & Run \texttt{./neasuccess writefile} & Listing \ref{lst:copy_file} \\
             \hline
-			Objects --- Attributes & Run \texttt{./neasuccess attributes} & \\
+			Objects---Attributes & Run \texttt{./neasuccess attributes} & \\
             \hline
-			Objects --- Methods & Run \texttt{./neasuccess methods} & \\
+			Objects---Methods & Run \texttt{./neasuccess methods} & \\
             \hline
-			Object --- Access level & Run \texttt{./neasuccess access} & \\
+			Object---Access level & Run \texttt{./neasuccess access} & \\
             \hline
-			Object --- Constructors & Run \texttt{./neasuccess constructors} & \\
+			Object---Constructors & Run \texttt{./neasuccess constructors} & \\
             \hline
-			Object --- Inheritence & Run \texttt{./neasuccess inheritance} & \\
+			Object---Inheritence & Run \texttt{./neasuccess inheritance} & \\
             \hline
         \end{tabular}
     \end{adjustbox}
@@ -1992,10 +1992,60 @@ others for the features listed.
 \autoref{fig:stage13_test} shows the tests that were added passing after the
 changes have been implemented.
 
+% Stage 14
 \subsection{Stage \subsecnum}
 
-For stage \subsecnum, we added support for arrays in the interpreter.
+For stage \subsecnum, we added support for arrays in the interpreter. We also
+improved our implementation of for loops by mutating a reference to the counter
+variable rather than inserting the counter variable into the stack on each
+iteration.
 
+We implemented multi-dimensional arrays as arrays of arrays which gives us a
+lot of flexibility. Additionally arrays can contain values of any type include
+of differing types. This follows our philosophy of accepting as much code as
+possible, something we have to do because of how loosely the language is
+defined by OCR.
+
+As part of this stage we also implemented string concatenation, something that
+is necessary for printing as well as the \texttt{do}-\texttt{until} loop. The
+tests added as part of this stage can be seen to pass in
+\autoref{fig:stage14_test}. We didn't add tests for \texttt{do}-\texttt{until}
+loops because we don't have support for \texttt{input} in tests. We plan on
+adding the use of \texttt{input} in tests later, at which time we'll add a test
+for \texttt{do}-\texttt{until} loops.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage14_test}
+	\caption{Screenshot of tests for stage 14 passing}
+	\label{fig:stage14_test}
+\end{figure}
+
+% Stage 15
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we did one of the biggest changes to our language, we
+implemented classes and objects. In order to implement them we changed some of
+the core functions of the interpreter, such as the \texttt{eval} function which
+evaluates an expression within a given context to return a raw Value, not a
+reference like it used to and we added a function \texttt{get\_ref} which
+returns a reference instead of a value. As part of these changes we had to
+change the AST, which is quite unfortunate because it meant rewriting almost
+all of our \texttt{.ast} files making this stage even more complex.
+
+Some of the changes to the AST made it more consistent by for example having
+attributes be references which had as parent the expression before the full
+stop, and a subroutine call being a call on a reference. This was quite complex
+as it meant making our parser recursive which as we explored before is not easy
+to implement.
+
+\autoref{fig:stage15_test} shows the tests testing the features implemented in
+this stage passing.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{stage15_test}
+	\caption{Screenshot of tests for classes and objects passing}
+	\label{fig:stage15_test}
+\end{figure}
 
 
 \subsection{Stage \subsecnum}
