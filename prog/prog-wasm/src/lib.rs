@@ -57,4 +57,5 @@ pub fn run(source: &str) {
 pub fn ast(source: &str) {
     let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
     writeln!(WorkerOutput, "{:#?}", ast).unwrap();
+    close();
 }

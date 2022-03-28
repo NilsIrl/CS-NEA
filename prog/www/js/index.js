@@ -16,6 +16,10 @@ function workerListener(e) {
       break;
     case "close":
       runButton.innerText = "Run!";
+      if (timeCheckbox.checked) {
+        const timeElapsed = (performance.now() - start_time) / 1000;
+        term.write(`${timeElapsed} seconds elapsed.\n`)
+      }
       break;
 
   }
@@ -33,6 +37,7 @@ function terminate_worker() {
 }
 
 let worker;
+let start_time;
 start_worker();
 
 const fit_addon = new FitAddon();
@@ -50,11 +55,13 @@ term.onKey((e) => {
 
 const runButton = document.getElementById("run-button");
 const printAstButton = document.getElementById("print-ast");
+const timeCheckbox = document.getElementById("time-taken");
 
 const textarea = document.getElementById("code-textarea");
 
 printAstButton.addEventListener("click", e => {
   term.clear();
+  start_time = performance.now();
   worker.postMessage({
     type: "ast",
     inner: editor.getValue(),
@@ -66,6 +73,7 @@ runButton.addEventListener("click", e => {
     terminate_worker();
   } else {
     term.clear();
+    start_time = performance.now();
     worker.postMessage({
       type: "code",
       inner: editor.getValue(),
