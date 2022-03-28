@@ -22,7 +22,7 @@
 \addbibresource{nea.bib}
 
 \usepackage{adjustbox}
-\usepackage{makecell}
+\usepackage{makecell, siunitx}
 \usepackage{tikz}
 
 \usepackage[color={1 0 0}]{attachfile2}
@@ -339,6 +339,25 @@ others.
 
 It is also possible to interpret the language and there are different types of
 user interfaces.
+
+\subsubsection{PseudoCode Interpreter}
+
+Finally there is \citetitle{pseudocode-uk}, an IDE for the OCR reference
+language. It is a proprietary solution and requires a license to be used. The
+license is targeted towards institutions and as such has a price that we are
+unable to afford. A 14 day free trial option is also available but we were
+unable to try it out at first, because an error would be displayed claiming the
+email address entered had already been used previously. For a reason we are
+unaware the free trial option eventually worked.
+
+This software however has builtin code examples which we will be able to make
+use of to inspire our own tests and possibly verify the validity of our
+interpreter.
+
+This software only targets the OCR Reference language which so far has only be
+defined as part of GCSE specifications and as such doesn't include support for
+classes and objects, something that our project will feature. Additionally, it
+only supports Windows which is problematic for macOS and Linux users.
 
 \paragraph{Other projects:}
 
@@ -1399,7 +1418,12 @@ we can then roll back or accept into our main branch.
 
 Note: In this section tests are often referenced, they will rarely be listed
 here but can be found in the section \nameref{sec:final_project} on page
-\pageref{sec:final_project}.
+\pageref{sec:final_project}. Additionally, code is rarely included because it
+would make the report way too long and all code written can be found in the
+final section. The final project at the end of this document is already more
+than 100 pages, to reach these 100 pages of code twice the amount of code had
+to be written, which would make this document 300 pages of code, something that
+is not possible.
 
 \subsection{Stage 1}
 
@@ -2357,7 +2381,23 @@ After the changes were made the tests passed as can be seen in
 	\label{fig:return_after}
 \end{figure}
 
+\subsection{Stage \subsecnum}
 
+For stage \subsecnum, we added an option to display the time it took for a
+program to run in the web application. This is useful because it can allow to
+take benchmarks and see how efficient and performant the language is, but it
+can also indicate when a program has finished executing when said program does
+not print anything to the console.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{wasm_prime_bench}
+	\caption{Running a benchmark that finds the largest prime smaller than
+	100'000 within the playground}
+	\label{fig:wasm_prime_bench}
+\end{figure}
+
+\autoref{fig:wasm_prime_bench} shows the output once the feature has been added
+to the playground.
 
 \section{Evaluation}
 
@@ -2369,6 +2409,116 @@ After the changes were made the tests passed as can be seen in
 % benchmarking
 % no code coverage
 % we used a different testing strategy that was much better
+
+\subsection{Maintenance and limitations}
+
+One major maintenance issue that our programming language has is its parser.
+Because we wrote a parser manually we spent a long period of time on this
+section of the project when using a parser generator would have done the job a
+lot better and made the parser more maintainable. As it stands, changes to
+parsing require modifying the parser, something that is error prone, if a
+parser generator had been used, it would only require changing a declarative
+grammar that is a lot easier to understand. This difficulty of maintenance
+ultimately increases the number of bugs and also had a negative impact on
+performance as corners are cut\footnote{In rust, a lot of borrow checker issues
+can be fixed by cloning values instead of passing references to them. Cloning a
+value is an expensive operation which requires memory allocation and ultimately
+results in decreased performance.}. In particular when implementing
+precedence we have to write very nested and difficult to read code, something
+that would have been avoided had a parser generator been used instead.
+
+Another major maintenance issue with the parser is its testing. When testing
+it, abstract syntax tree produced is compared to an abstract syntax tree loaded
+from a file. This causes a big issue whenever the structure of the tree is
+modified resulting in the files containing abstract syntax trees having to be
+modified. This meant that multiple times during development, because of a
+small change in the structure of our abstract syntax tree, we had to modify a dozen files
+to be able to make tests work again. This could be fixed in different ways, one of
+them is to write migration code, similarly to migrations in databases, which
+convert these files into the new format whenever a change happens. Another way
+would be to use the output of our parser to write these files, without having
+to write them manually beforehand. This is possible with packages such as
+\citetitle{insta} which automatically do all the heavy-lifting for us. This
+library will automatically write files to the appropriate place and update them
+when the test result changes, first asking the developer if the change should
+be accepted or not. A downside of this method is that there is a risk of bias,
+as the intended test results are determined based on the output of the current
+program rather than from a human which doesn't have the same bugs as the
+program could have. This method is however faster and easier to implement than
+having to migrate files using code (rather than automatically).
+
+Although our testing is quite thorough, it could be much better. In particular
+we have currently no way of knowing how much of our code is actually being
+tested. In order to know that, we would need to find out our code coverage, how
+much of a our code is covered by tests. Considering we are using rust's
+built-in testing framework, it is very easy to add support for code coverage,
+although we didn't take the time to support it as part of our allotted
+development time. By having code coverage, it will be possible to determine
+which parts of the codebase are not tested which then makes it possible to
+write additional tests to cover this forgotten areas, furthermore code coverage
+can give us an estimation of how thorough our testing is, to have a measure of
+how likely an uncaught bug could occur. Do note however, that code coverage is
+not necessarily associated with decreased number of bugs, low quality testing,
+can still let a lot of bugs appear even with a large code coverage.
+
+Another testing method we could make use of is fuzzing. It consists of having
+another program, the fuzzer, automatically test our software. This method is
+one of the main way that memory corruption vulnerabilities are found nowadays
+as it is a very difficult task now that mitigations have removed a large amount
+of memory corruption bugs. Because our programming language is written in a
+memory safe programming language, memory corruption related bugs are very
+unlikely to happen however they could if an erroneous use of the
+\texttt{unsafe} keyword\footnote{In rust, the \texttt{unsafe} keyword is used
+to disable some of the checks made by the compiler which normally would
+guarantee memory safety, it is up to the programmer to make those guarantees.
+This keyword allows to write certain things which would normally not be
+possible at the risk of there being a memory corruption bug occurring.} is used
+in one of our dependencies. The reason fuzzing is good at finding memory
+corruption vulnerabilities is because memory corruption bugs are the only
+things it can find as it has no indication of what is valid or wrong behaviour,
+it just tries to vary its input to cover the maximum amount of the software,
+detecting an error when the program aborts, something that mainly happens due
+to memory corruption bugs.
+
+Another type of test that could have been carried out more thoroughly is
+benchmarks, they allow to measure the performance of our implementation of the
+programming language and compare it to others. Although our language is not
+designed to have a great performance high performance is beneficial and makes
+the language more usable. We have however performed limited benchmarks by
+writing a program to calculate the largest prime smaller than 100'000 in three
+different languages visible at \autoref{tab:bench_prime}. This simple benchmark
+is however quite interesting and shows that our language is about twice as slow
+as python, which is notoriously slow.
+
+\begin{table}
+	\begin{center}
+		\begin{tabular}{|l|l|S|}
+			\hline
+			Language & Runtime & Time (s) \\
+			\hline
+			\multirowcell{2}{OCR Reference Language} & Web Assembly & 198.331 \\
+			\cline{2-3}
+			& Native & 102.902 \\
+			\hline
+			\multirowcell{2}{Python} & CPython & 54.422 \\
+			\cline{2-3}
+			& PyPy & 8.450 \\
+			\hline
+			\multirowcell{2}{Rust} & No optimisations & 8.422 \\
+			\cline{2-3}
+			& \texttt{opt-level=3} & 1.044 \\
+			\hline
+		\end{tabular}
+	\end{center}
+	\caption{Results of prime number calculation benchmark}
+	\label{tab:bench_prime}
+\end{table}
+
+One of the reasons that our language is slow is our heavy use of hash tables to
+store variables this means that every access to a variable is a costly
+operation. In the future an improvement that could be made to the language is
+to use lexical addressing, a method in which variables are turned into indices
+in an array, thereby greatly improving performance.
 
 \section{Final project}
 \label{sec:final_project}
