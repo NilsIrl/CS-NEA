@@ -2450,6 +2450,48 @@ not print anything to the console.
 \autoref{fig:wasm_prime_bench} shows the output once the feature has been added
 to the playground.
 
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we improved the error messages for missing identifiers.
+As it stands when a function or variable is not found the error message gives
+little to know useful information as can be seen in \autoref{fig:bad_errors}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{before_novar}
+	\includegraphics[width=\textwidth]{before_nofunc}
+	\includegraphics[width=\textwidth]{before_noclass}
+	\caption{Screenshot of errors displayed when a function or variable does
+	not exist}
+	\label{fig:bad_errors}
+\end{figure}
+
+\autoref{fig:better_errors} shows error messages after improvements to them.
+Although they are not as good as can be seen in mature programming languages,
+these error messages are already much better in helping someone attemping to
+debug their code.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{after_novar}
+	\includegraphics[width=\textwidth]{after_nofunc}
+	\includegraphics[width=\textwidth]{after_noclass}
+	\caption{Screenshot of error messages after improving them}
+	\label{fig:better_errors}
+\end{figure}
+
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we will expose the options to customise the behaviour of
+the programming language to users of the playground. For the moment these are
+case sensitivity, enforce correct variable after the \texttt{next} keyword of a
+for loop, and whether to accept single quotes as valid quotes for strings.
+\autoref{fig:playground_options} shows these settings in action.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{playground_options}
+	\caption{Screenshot of playground with new options}
+	\label{fig:playground_options}
+\end{figure}
+
 \section{Evaluation}
 
 % We could have fuzzed the parser
