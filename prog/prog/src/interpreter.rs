@@ -647,7 +647,10 @@ fn eval(
             }
         }
         // TODO: what to do if variable doesn't exist
-        Expression::Reference(reference) => get_ref(reference, context).unwrap().borrow().clone(),
+        Expression::Reference(reference) => get_ref(reference, context)
+            .expect(&format!("Reference `{:?}` is not defined", reference))
+            .borrow()
+            .clone(),
         Expression::Call(Call(rator, arguments)) => match &**rator {
             Expression::Reference(Reference::ObjectAttribute(obj, method)) => match &**obj {
                 Expression::Reference(Reference::Identifier(identifier)) => {
@@ -765,7 +768,11 @@ fn eval(
                         Value::from(system(command).unwrap())
                     }
                     function_name => {
-                        let function = context.functions[function_name].clone();
+                        let function = context
+                            .functions
+                            .get(function_name)
+                            .expect(&format!("function `{}` is not defined", function_name))
+                            .clone();
                         let stack_frame = StackFrame {
                             variables: function
                                 .args
@@ -804,7 +811,14 @@ fn eval(
                 let obj = DenotedValue::from(Value::Object(
                     class_name.to_string(),
                     iter::repeat_with(|| DenotedValue::from(Value::Undefined))
-                        .take(context.classes[class_name.as_str()].fields.len())
+                        .take(
+                            context
+                                .classes
+                                .get(class_name.as_str())
+                                .expect(&format!("class `{}` is not defined", &class_name))
+                                .fields
+                                .len(),
+                        )
                         .collect(),
                 ));
                 apply_method(obj.clone(), "new", false, args, context);
