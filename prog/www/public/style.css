@@ -17,6 +17,7 @@ body {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+    width: 50%;
 }
 
 #actions {
@@ -29,4 +30,5 @@ body {
 
 #terminal {
     flex-grow: 1;
+    width: 50%;
 }
