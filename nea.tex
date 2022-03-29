@@ -345,10 +345,10 @@ user interfaces.
 Finally there is \citetitle{pseudocode-uk}, an IDE for the OCR reference
 language. It is a proprietary solution and requires a license to be used. The
 license is targeted towards institutions and as such has a price that we are
-unable to afford. A 14 day free trial option is also available but we were
-unable to try it out at first, because an error would be displayed claiming the
-email address entered had already been used previously. For a reason we are
-unaware the free trial option eventually worked.
+unable to afford. A 14 day free trial available but we were unable to try it
+out at first, because an error would be displayed claiming the email address
+entered had already been used previously. For a reason we are unaware the free
+trial option eventually worked.
 
 This software however has builtin code examples which we will be able to make
 use of to inspire our own tests and possibly verify the validity of our
@@ -358,6 +358,21 @@ This software only targets the OCR Reference language which so far has only be
 defined as part of GCSE specifications and as such doesn't include support for
 classes and objects, something that our project will feature. Additionally, it
 only supports Windows which is problematic for macOS and Linux users.
+
+An issue with this program is that it only allows to run programs within it and
+doesn't support proper input and output, whenever the input function is called,
+it uses a pop-up to retrieve the value from the user and then when printing
+creates a new window which means that output is not kept. Additionally its
+error messages are extremely unhelpful and do not describe any of the issues
+that are present.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{pseudocodeuk_runtime_err}
+	\includegraphics[width=\textwidth]{pseudocodeuk_syntax_err}
+	\caption{Screenshots of the error messages provided by PseudoCode
+	Interpreter}
+	\label{fig:pseudocodeuk_errors}
+\end{figure}
 
 \paragraph{Other projects:}
 
@@ -922,13 +937,16 @@ Parser combinators can cause issues when multiple parsers succeed at parsing a
 given input. An example of this is numbers, a parser for floating point numbers
 will generally succeed at parsing integers and vice versa. In our
 implementation we have decided to use the algorithm presented in
-\autoref{fig:number_parse_alg}. It allows to parse float and integer literals
-in the way the user expects it to happen. The way it works is that if either
-parser fails it returns the result of the other parser or otherwise returns the
-result of the parser that consumed the post input. Note that our parser
-combinators return a \texttt{Result} type which is why it is fine the return
-the result of the integer parser even if it failed, this just means the result
-will propagate down without affecting the ultimate result.
+\autoref{fig:number_parse_alg}. It allows to parse float and integer
+literals\footnote{In programming languages,
+\href{https://en.wikipedia.org/wiki/Literal_(computer_programming)}{literals}
+are fixed values that are represented directly in the code} in the way the user
+expects it to happen. The way it works is that if either parser fails it
+returns the result of the other parser or otherwise returns the result of the
+parser that consumed the post input. Note that our parser combinators return a
+\texttt{Result} type which is why it is fine the return the result of the
+integer parser even if it failed, this just means the result will propagate
+down without affecting the ultimate result.
 
 \begin{figure}
 	\centering
@@ -1451,8 +1469,17 @@ be normal double quotes or slanted double quotes going left or right. We
 suspect this may because this was overlooked when writing the specification
 however we decided to implement it such that all three types are entirely
 equivalent in our language (see \autoref{fig:quote_parser}. Additionally the
-language doesn't seem to include escaping either and as such we have not
-implemented it.
+language doesn't seem to include escaping inside of string literals either and
+as such we have not implemented it\footnote{Escaping in programming languages
+is when a sequence of characters as part of a string literal is not part of the
+final string, this can allow to include special characters such as newlines or
+the string delimiters. In a large part of languages, the backslash character is
+used (e.g. \textbackslash{}n, \textbackslash{}r, \textbackslash{}")}. We have
+found no examples of methods being called within an object and as such we did
+not have any examples of syntax to follow, as such we decided to follow the
+syntax used for super calls which is to prefix the calls, in this case with the
+keyword ``self'' (an example of call:
+\mintinline{text}{self.setName("Smith")}).
 
 Our only test passed (see \autoref{fig:stage1_test}) and we could move on to
 the following stages of development.
@@ -1923,7 +1950,7 @@ to use the programming language from one's browser.
 
 This first version was very basic, it had a \texttt{textarea} for the user's
 code and would just output to the web page through a \texttt{output} tag to
-achieve the correct formatting. A problem this version had is that it couldn't
+achieve a monospaced formatting. A problem this version had is that it couldn't
 print in real time. The web page was only updated once the program had finished
 executing due to the web's asynchronous architecture: when the user's program
 was running, its execution was blocking the DOM from being refreshed.
@@ -1941,7 +1968,7 @@ application.
 \subsection{Stage \subsecnum}
 
 For stage \subsecnum, we tried desperately to be able to print continuously in
-real time, such as with an infinitely running loop. We went through different
+real time, such as within an infinitely running loop. We went through different
 iterations and methods before we achieved something that worked in a robust
 way.
 
@@ -1979,7 +2006,11 @@ endwhile
 Whilst working on this feature, we reached another bug, output from the web
 worker would be corrupted. We are not sure why that is the case however we were
 able to solve it by calling \texttt{slice} on the output before sending it to
-the main thread.
+the main thread. We believe that the reason \texttt{slice} fixes the bug is
+that it makes a new copy of the data, however we do not understand why it is
+necessary as the data should not be mutated after it is sent as a message. This
+workaround probably has a negative impact on performance as it leads to data
+being copied and allocated.
 
 % Stage 12
 \subsection{Stage \subsecnum}
@@ -1988,6 +2019,8 @@ For stage \subsecnum, we added more features to the playground: the ability to
 stop a program using CTRL-C like in a normal terminal, a button to print the
 AST of a program and lastly we changed the editor from a \texttt{textarea} to
 using the \citetitle{monaco}, the same one that is used in \citetitle{vscode}.
+\autoref{fig:monaco} shows a screenshot of the playground after these changes
+were implemented.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{monaco}
@@ -2022,21 +2055,22 @@ changes have been implemented.
 For stage \subsecnum, we added support for arrays in the interpreter. We also
 improved our implementation of for loops by mutating a reference to the counter
 variable rather than inserting the counter variable into the stack on each
-iteration.
+iteration. This has the downside that if a program changes the counter
+variable, it will not be reset to the value it should have, something that may
+be beneficial or not depending on the context.
 
 We implemented multi-dimensional arrays as arrays of arrays which gives us a
-lot of flexibility. Additionally arrays can contain values of any type include
-of differing types. This follows our philosophy of accepting as much code as
-possible, something we have to do because of how loosely the language is
-defined by OCR.
+lot of flexibility. Additionally arrays can contain values of any type and do
+not have to contain only a single type. This follows our philosophy of
+accepting as much code as possible, something we have to do because of how
+loosely the language is defined by OCR.
 
 As part of this stage we also implemented string concatenation, something that
 is necessary for printing as well as the \texttt{do}-\texttt{until} loop. The
 tests added as part of this stage can be seen to pass in
 \autoref{fig:stage14_test}. We didn't add tests for \texttt{do}-\texttt{until}
-loops because we don't have support for \texttt{input} in tests. We plan on
-adding the use of \texttt{input} in tests later, at which time we'll add a test
-for \texttt{do}-\texttt{until} loops.
+loops because we haven't implemented \texttt{input} yet. When we will implement
+the \texttt{input} function, we will then add the appropriate tests.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{stage14_test}
@@ -2059,8 +2093,8 @@ all of our \texttt{.ast} files making this stage even more complex.
 Some of the changes to the AST made it more consistent by for example having
 attributes be references which had as parent the expression before the full
 stop, and a subroutine call being a call on a reference. This was quite complex
-as it meant making our parser recursive which as we explored before is not easy
-to implement.
+as it meant making more parts of our parser recursive which as we explored
+before is not easy to implement.
 
 \autoref{fig:stage15_test} shows the tests testing the features implemented in
 this stage passing.
@@ -2071,6 +2105,23 @@ this stage passing.
 	\label{fig:stage15_test}
 \end{figure}
 
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we added the possibility to use single quotes as quotes
+for string literals, similarly to languages such as \citetitle{javascript} and
+\citetitle{python} where single quotes and double quotes are entirely
+equivalent in semantics. This feature was put behind a feature flag because it
+is a deviation of the language defined by OCR.
+
+We also added support for basic functions, by executing their bodies when a
+function call is executed and making \texttt{execute\_statements} return a
+Value, although for the moment we have left it as returning Undefined.
+
+Last but not least, we implemented the \texttt{input} function for the CLI
+interface. We were not able to implement it for the playground because of the
+asynchronous nature of \citetitle{javascript} APIs. In order to receive a
+message inside of a worker, we need to do so asynchronously something that is
+not possible from our synchronous code.
 
 \subsection{Stage \subsecnum}
 
