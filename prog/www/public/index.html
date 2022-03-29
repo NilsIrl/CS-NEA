@@ -1,22 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title></title>
-        <link rel="stylesheet" href="style.css">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-    </head>
-    <body>
-        <div id="left">
-            <div id="actions">
-                <button id="run-button" type="button">Run!</button>
-                <button id="print-ast" type="button">Print AST</button>
-                <input type="checkbox" id="time-taken" name="time-taken" checked>
-                <label for="time-taken">Print the running time</label>
-            </div>
-            <div id="code-monaco"></div>
-        </div>
-        <div id="terminal"></div>
-        <script src="main.js"></script>
-    </body>
+  <head>
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+  <body>
+    <div id="left">
+      <div id="actions">
+        <button id="run-button" type="button">Run!</button>
+        <button id="print-ast" type="button">Print AST</button>
+        <ul>
+          <li>
+            <input type="checkbox" id="time-taken" name="time-taken" checked>
+            <label for="time-taken">Print the running time</label>
+          </li>
+          <li>
+            <input type="checkbox" id="case-sensitive" name="case-sensitive">
+            <label for="case-sensitive">Case sensitive</label>
+          </li>
+          <li>
+            <input type="checkbox" id="allow-single-quotes" name="allow-single-quotes" checked>
+            <label for="allow-single-quotes">Allow single quotes to delimit strings</label>
+          </li>
+          <li>
+            <input type="checkbox" id="allow-wrong-next" name="allow-wrong-next">
+            <label for="allow-wrong-next">Allow different variable after the next keyword</label>
+          </li>
+        </ul>
+      </div>
+      <div id="code-monaco"></div>
+    </div>
+    <div id="terminal"></div>
+    <script src="main.js"></script>
+  </body>
 </html>

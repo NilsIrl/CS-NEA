@@ -1,0 +1,9 @@
+class Dog
+    private name
+    public procedure new()
+        name = "Diogo"
+    endprocedure
+endclass
+
+doggo = new Dog()
+print(doggo.name)

@@ -47,15 +47,41 @@ pub fn init() {
 }
 
 #[wasm_bindgen]
-pub fn run(source: &str) {
-    let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
+pub fn run(
+    source: &str,
+    case_sensitive: bool,
+    reject_single_quote_as_quote: bool,
+    for_next_not_enforced: bool,
+) {
+    let ast = Program::from_str(
+        source,
+        &ParseSettings {
+            case_sensitive,
+            for_next_not_enforced,
+            reject_single_quote_as_quote,
+        },
+    )
+    .unwrap();
     ast.interpret_with_io(WorkerOutput, BufReader::new(WorkerInput));
     close();
 }
 
 #[wasm_bindgen]
-pub fn ast(source: &str) {
-    let ast = Program::from_str(source, &ParseSettings::default()).unwrap();
+pub fn ast(
+    source: &str,
+    case_sensitive: bool,
+    reject_single_quote_as_quote: bool,
+    for_next_not_enforced: bool,
+) {
+    let ast = Program::from_str(
+        source,
+        &ParseSettings {
+            case_sensitive,
+            for_next_not_enforced,
+            reject_single_quote_as_quote,
+        },
+    )
+    .unwrap();
     writeln!(WorkerOutput, "{:#?}", ast).unwrap();
     close();
 }

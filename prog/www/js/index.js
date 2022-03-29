@@ -55,9 +55,21 @@ term.onKey((e) => {
 
 const runButton = document.getElementById("run-button");
 const printAstButton = document.getElementById("print-ast");
-const timeCheckbox = document.getElementById("time-taken");
 
 const textarea = document.getElementById("code-textarea");
+
+const timeCheckbox = document.getElementById("time-taken");
+const caseSensitiveCheckbox = document.getElementById("case-sensitive");
+const allowSingleQuotesCheckbox = document.getElementById("allow-single-quotes");
+const allowWrongNextCheckbox = document.getElementById("allow-wrong-next");
+
+function settings_dictionary() {
+  return {
+    caseSensitive: caseSensitiveCheckbox.checked,
+    allowSingleQuotes: allowSingleQuotesCheckbox.checked,
+    allowWrongNext: allowWrongNextCheckbox.checked,
+  };
+}
 
 printAstButton.addEventListener("click", e => {
   term.clear();
@@ -65,6 +77,7 @@ printAstButton.addEventListener("click", e => {
   worker.postMessage({
     type: "ast",
     inner: editor.getValue(),
+    settings: settings_dictionary(),
   });
 });
 
@@ -77,6 +90,7 @@ runButton.addEventListener("click", e => {
     worker.postMessage({
       type: "code",
       inner: editor.getValue(),
+      settings: settings_dictionary(),
     });
     runButton.innerText = "Stop";
   }

@@ -39,6 +39,7 @@ impl<I, E> FromExternalError<I, E> for BigMistake<I> {
     }
 }
 
+#[derive(Debug)]
 pub struct ParseSettings {
     /// Accept keywords in a different case than they are originally defined
     ///
@@ -665,7 +666,7 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                     // recognize used to bypass differing types between branches
                     recognize(identifier(parse_settings))(input)
                 } else {
-                    token(tag(variable_name.as_str()))(input)
+                    token(terminated(tag(variable_name.as_str()), space1))(input)
                 }
             })),
         )(input)?;
