@@ -62,7 +62,7 @@ inner sep = 0pt]
 \tikzstyle{flowchartline} = [thick]
 
 \author{Nils André-Chang}
-\title{NEA: OCR Exam Reference Language as a Language, an implementation}
+\title{OCR Exam Reference Language as a Language: An Implementation (NEA)}
 \date{14th March 2022}
 
 \begin{document}
@@ -2514,6 +2514,17 @@ for loop, and whether to accept single quotes as valid quotes for strings.
 	\caption{Screenshot of playground with new options}
 	\label{fig:playground_options}
 \end{figure}
+
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we implemented access modifiers of attributes in the
+interpreter. Until now, access modifiers were simply ignored for simplicity.
+In order to implement access modifiers, we modified the store of classes in the
+context to include whether the field was a private field. Whilst we were at it,
+we also removed the list of all the fields which is redundant and used more
+memory than necessary. We also switched to using a \texttt{HashMap} to store the
+fields making field access a lot more efficient and no longer requiring linear
+search.
 
 \section{Evaluation}
 
