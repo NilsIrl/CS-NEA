@@ -105,6 +105,7 @@ struct Function<'a> {
 struct Method<'a> {
     function: Function<'a>,
     host_class: &'a str,
+    is_private: bool,
 }
 
 #[derive(Debug)]
@@ -329,11 +330,12 @@ fn execute_statements<'a>(
                     None => (HashMap::new(), HashMap::new(), 0),
                 };
                 // TODO: deal with private and public fields
-                new_methods.extend(methods.into_iter().map(|(_is_private, declaration)| {
+                new_methods.extend(methods.into_iter().map(|(is_private, declaration)| {
                     (
                         declaration.name.as_str(),
                         Method {
                             host_class: class_name,
+                            is_private: *is_private,
                             function: Function {
                                 args: &declaration.args,
                                 body: &declaration.body,
@@ -385,6 +387,8 @@ fn apply_method<'a>(
     obj: DenotedValue,
     method_name: &str,
     super_call: bool,
+    // whether to enforce private calls
+    self_call: bool,
     args: &Vec<Expression>,
     context: &mut Context<impl Write + Debug, impl BufRead + Debug>,
 ) -> Value {
@@ -418,6 +422,9 @@ fn apply_method<'a>(
                     class.methods[method_name].clone()
                 }
             };
+            if method.is_private && self_call == false {
+                panic!("cannot call private method `{}`", method_name);
+            }
 
             assert_argument_count(
                 &format!("{}.{}", class_name, method_name),
@@ -673,12 +680,13 @@ fn eval(
                 Expression::Reference(Reference::Identifier(identifier)) => {
                     if identifier == "super" {
                         let obj = context.environment.last().unwrap()["self"].clone();
-                        apply_method(obj, &method, true, arguments, context)
+                        apply_method(obj, &method, true, true, arguments, context)
                     } else {
                         apply_method(
                             apply_env(&identifier, context).unwrap(),
                             &method,
                             false,
+                            identifier == "self",
                             arguments,
                             context,
                         )
@@ -688,12 +696,20 @@ fn eval(
                     get_ref(&reference, context).expect("TODO: if reference does not exist"),
                     &method,
                     false,
+                    false,
                     &arguments,
                     context,
                 ),
                 obj => {
                     let obj = eval(&obj, context);
-                    apply_method(DenotedValue::from(obj), &method, false, arguments, context)
+                    apply_method(
+                        DenotedValue::from(obj),
+                        &method,
+                        false,
+                        false,
+                        arguments,
+                        context,
+                    )
                 }
             },
             Expression::Reference(Reference::Identifier(function_name)) => {
@@ -839,7 +855,7 @@ fn eval(
                         )
                         .collect(),
                 ));
-                apply_method(obj.clone(), "new", false, args, context);
+                apply_method(obj.clone(), "new", false, false, args, context);
                 let x = obj.borrow().clone();
                 x
             } else {
