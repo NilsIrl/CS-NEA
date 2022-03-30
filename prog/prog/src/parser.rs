@@ -418,7 +418,10 @@ fn not_depth(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
     move |input: &str| {
         alt((
             map(
-                preceded(preceded(space0, tag("NOT")), depth3(parse_settings)),
+                preceded(
+                    preceded(space0, tag_with_settings("NOT", parse_settings)),
+                    depth3(parse_settings),
+                ),
                 |exp| Expression::Not(Box::new(exp)),
             ),
             depth3(parse_settings),
@@ -432,7 +435,7 @@ fn depth2(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
             pair(
                 not_depth(parse_settings),
                 opt(preceded(
-                    preceded(space0, tag("AND")),
+                    preceded(space0, tag_with_settings("AND", parse_settings)),
                     preceded(space0, depth2(parse_settings)),
                 )),
             ),
@@ -450,7 +453,7 @@ fn depth1(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
             pair(
                 depth2(parse_settings),
                 opt(preceded(
-                    preceded(space0, tag("OR")),
+                    preceded(space0, tag_with_settings("OR", parse_settings)),
                     preceded(space0, depth1(parse_settings)),
                 )),
             ),
@@ -569,7 +572,10 @@ fn global_assignment_statement(
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, (identifier, expression)) = tuple((
-            preceded(pair(tag("global"), space1), identifier(parse_settings)),
+            preceded(
+                pair(tag_with_settings("global", parse_settings), space1),
+                identifier(parse_settings),
+            ),
             preceded(preceded(space0, char('=')), expression(parse_settings)),
         ))(input)?;
         Ok((input, Statement::GlobalAssignment(identifier, expression)))
@@ -607,7 +613,7 @@ fn class_declaration(
                 tuple((
                     identifier(parse_settings),
                     opt(preceded(
-                        pair(space1, tag("inherits")),
+                        pair(space1, tag_with_settings("inherits", parse_settings)),
                         identifier(parse_settings),
                     )),
                     many0(pair(
@@ -640,7 +646,7 @@ fn class_declaration(
 fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, (variable_name, assigned_value)) = preceded(
-            pair(tag("for"), space1),
+            pair(tag_with_settings("for", parse_settings), space1),
             map_opt(
                 assignment(parse_settings),
                 |Assignment(variable_name, assigned_value)| match variable_name {
@@ -651,24 +657,32 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
         )(input)?;
         let (input, (end_expression, step_expression, body)) = terminated(
             tuple((
-                preceded(pair(space1, tag("to")), expression(parse_settings)),
+                preceded(
+                    pair(space1, tag_with_settings("to", parse_settings)),
+                    expression(parse_settings),
+                ),
                 // Maybe depending on the preceding expression, space1 could be
                 // replaced by space0
                 opt(preceded(
-                    pair(space1, tag("step")),
+                    pair(space1, tag_with_settings("step", parse_settings)),
                     expression(parse_settings),
                 ))
                 .map(|step_expression| step_expression.unwrap_or(Expression::IntegerLiteral(1))),
                 list_of_statements(parse_settings),
             )),
-            tuple((space0, tag("next"), |input| {
-                if parse_settings.for_next_not_enforced {
-                    // recognize used to bypass differing types between branches
-                    recognize(identifier(parse_settings))(input)
-                } else {
-                    token(terminated(tag(variable_name.as_str()), space1))(input)
-                }
-            })),
+            tuple(
+                (space0, tag_with_settings("next", parse_settings), |input| {
+                    if parse_settings.for_next_not_enforced {
+                        // recognize used to bypass differing types between branches
+                        recognize(identifier(parse_settings))(input)
+                    } else {
+                        token(terminated(
+                            tag_with_settings(variable_name.as_str(), parse_settings),
+                            space1,
+                        ))(input)
+                    }
+                }),
+            ),
         )(input)?;
         Ok((
             input,
@@ -685,12 +699,12 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
 fn while_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, (exp, body)) = delimited(
-            tag("while"),
+            tag_with_settings("while", parse_settings),
             pair(
                 expression(parse_settings),
                 list_of_statements(parse_settings),
             ),
-            preceded(space0, tag("endwhile")),
+            preceded(space0, tag_with_settings("endwhile", parse_settings)),
         )(input)?;
         Ok((input, Statement::While(exp, body)))
     }
@@ -701,8 +715,14 @@ fn do_until_loop(
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, (exp, body)) = pair(
-            preceded(tag("do"), list_of_statements(parse_settings)),
-            preceded(pair(space0, tag("until")), expression(parse_settings)),
+            preceded(
+                tag_with_settings("do", parse_settings),
+                list_of_statements(parse_settings),
+            ),
+            preceded(
+                pair(space0, tag_with_settings("until", parse_settings)),
+                expression(parse_settings),
+            ),
         )(input)?;
         Ok((input, Statement::DoUntil(exp, body)))
     }
@@ -713,29 +733,29 @@ fn if_statement(
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, (exp, body, elseifs, else_body)) = delimited(
-            tag("if"),
+            tag_with_settings("if", parse_settings),
             tuple((
                 expression(parse_settings),
                 preceded(
-                    pair(space0, tag("then")),
+                    pair(space0, tag_with_settings("then", parse_settings)),
                     list_of_statements(parse_settings),
                 ),
                 many0(preceded(
-                    pair(space0, tag("elseif")),
+                    pair(space0, tag_with_settings("elseif", parse_settings)),
                     pair(
                         expression(parse_settings),
                         preceded(
-                            pair(space0, tag("then")),
+                            pair(space0, tag_with_settings("then", parse_settings)),
                             list_of_statements(parse_settings),
                         ),
                     ),
                 )),
                 opt(preceded(
-                    pair(space0, tag("else")),
+                    pair(space0, tag_with_settings("else", parse_settings)),
                     list_of_statements(parse_settings),
                 )),
             )),
-            pair(space0, tag("endif")),
+            pair(space0, tag_with_settings("endif", parse_settings)),
         )(input)?;
 
         Ok((
@@ -759,7 +779,7 @@ fn switch_statement(
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, exp) = delimited(
-            tag("switch"),
+            tag_with_settings("switch", parse_settings),
             expression(parse_settings),
             pair(space0, char(':')),
         )(input)?;
@@ -769,17 +789,19 @@ fn switch_statement(
                 pair(
                     alt((
                         preceded(
-                            tag("case"),
+                            tag_with_settings("case", parse_settings),
                             map(expression(parse_settings), |rhs| {
                                 Expression::Equal(Box::new(exp.clone()), Box::new(rhs))
                             }),
                         ),
-                        map(tag("default"), |_| Expression::BoolLiteral(true)),
+                        map(tag_with_settings("default", parse_settings), |_| {
+                            Expression::BoolLiteral(true)
+                        }),
                     )),
                     preceded(pair(space0, char(':')), list_of_statements(parse_settings)),
                 ),
             )),
-            pair(space0, tag("endswitch")),
+            pair(space0, tag_with_settings("endswitch", parse_settings)),
         )(input)?;
 
         Ok((
@@ -808,14 +830,14 @@ fn function(
     move |input: &str| {
         alt((
             delimited(
-                tag("function"),
+                tag_with_settings("function", parse_settings),
                 function_arguments_and_body(parse_settings),
-                token(tag("endfunction")),
+                token(tag_with_settings("endfunction", parse_settings)),
             ),
             delimited(
-                tag("procedure"),
+                tag_with_settings("procedure", parse_settings),
                 function_arguments_and_body(parse_settings),
-                token(tag("endprocedure")),
+                token(tag_with_settings("endprocedure", parse_settings)),
             ),
         ))(input)
     }
@@ -838,8 +860,8 @@ fn function_arguments_and_body(
                                 opt(preceded(
                                     token(char(':')),
                                     token(alt((
-                                        value(false, tag("byVal")),
-                                        value(true, tag("byRef")),
+                                        value(false, tag_with_settings("byVal", parse_settings)),
+                                        value(true, tag_with_settings("byRef", parse_settings)),
                                     ))),
                                 )),
                                 |opt| opt.unwrap_or_default(),
@@ -864,7 +886,10 @@ fn return_statement(
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         map(
-            preceded(tag("return"), expression(parse_settings)),
+            preceded(
+                tag_with_settings("return", parse_settings),
+                expression(parse_settings),
+            ),
             Statement::Return,
         )(input)
     }
