@@ -950,11 +950,6 @@ mod tests {
         ..ParseSettings::default()
     };
 
-    const REJECT_SINGLE_QUOTE: ParseSettings = ParseSettings {
-        reject_single_quote_as_quote: true,
-        ..ParseSettings::default()
-    };
-
     #[test]
     fn chess_different_index_syntax() {
         let program_str = include_str!("../test_data/chess_board_print.input");

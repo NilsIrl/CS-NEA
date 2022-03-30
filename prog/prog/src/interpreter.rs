@@ -846,6 +846,17 @@ mod tests {
         .interpret()
     }
 
+    #[test]
+    #[should_panic]
+    fn access_level() {
+        let program = Program::from_str(
+            include_str!("../test_data/access_level.input"),
+            &ParseSettings::default(),
+        )
+        .unwrap();
+        program.interpret();
+    }
+
     macro_rules! output_test {
         ( $function_name:ident ) => {
             output_test!($function_name, &ParseSettings::default());

@@ -640,7 +640,7 @@ successful the project was. The list is derived from the pseudocode guide in
 	\item Objects---Methods
 	\item Object---Access level
 	\item Object---Constructors
-	\item Object---Inheritence
+	\item Object---Inheritance
 \end{enumerate}
 
 In order to make the success criteria more objective, it would be preferable if
@@ -1177,15 +1177,17 @@ entirety of the interpreter at once.
             \hline
 			Writing to files & Run \texttt{./neasuccess writefile} & Listing \ref{lst:copy_file} \\
             \hline
-			Objects---Attributes & Run \texttt{./neasuccess attributes} & \\
+			Objects---Attributes & Run \texttt{./neasuccess attributes} & Listing \ref{lst:oop_attributes} \\
             \hline
-			Objects---Methods & Run \texttt{./neasuccess methods} & \\
+			Objects---Methods & Run \texttt{./neasuccess methods} & Listing \ref{lst:oop_inheritance_and_methods} \\
             \hline
-			Object---Access level & Run \texttt{./neasuccess access} & \\
+			Object---Access level & Run \texttt{./neasuccess access} & Listing \ref{lst:access_level} \\
             \hline
-			Object---Constructors & Run \texttt{./neasuccess constructors} & \\
+			Object---Constructors & Run \texttt{./neasuccess constructors} &
+			Listing \ref{lst:oop_attributes} and
+			\ref{lst:oop_inheritance_and_methods} \\
             \hline
-			Object---Inheritence & Run \texttt{./neasuccess inheritance} & \\
+			Object---Inheritance & Run \texttt{./neasuccess inheritance} & Listing \ref{lst:oop_inheritance_and_methods} \\
             \hline
         \end{tabular}
     \end{adjustbox}
@@ -1276,9 +1278,29 @@ entirety of the interpreter at once.
 
 \begin{listing}
 	\inputminted{text}{./prog/prog/test_data/copy_file.input}
-	\inputmintedgrey{text}{./prog/prog/test_data/copy_file.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/copy_file.output}
 	\caption{Test data for writing to files}
 	\label{lst:copy_file}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/class3.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/class3.output}
+	\caption{Test data for object attributes}
+	\label{lst:oop_attributes}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/class4.input}
+	\inputmintedgrey{text}{./prog/prog/test_data/class4.output}
+	\caption{Test data demonstrating method calls and inheritance}
+	\label{lst:oop_inheritance_and_methods}
+\end{listing}
+
+\begin{listing}
+	\inputminted{text}{./prog/prog/test_data/access_level.input}
+	\caption{Test data for testing access level. If the language is implemented correctly, this should fail}
+	\label{lst:access_level}
 \end{listing}
 
 % TODO (don't forget about ./savedstuff.tex)
@@ -1443,7 +1465,7 @@ than 100 pages, to reach these 100 pages of code twice the amount of code had
 to be written, which would make this document 300 pages of code, something that
 is not possible.
 
-\subsection{Stage 1}
+\subsection{Stage \subsecnum}
 
 In the first stage of development we focused only on the parser. Using the
 grammar described in design we wrote the \texttt{struct}\footnote{The
@@ -2616,8 +2638,8 @@ in an array, thereby greatly improving performance.
 
 A major limitation of the current implementation is the almost unreadable error
 messages, although they have been improved with the interpreter in
-\nameref{sec:better_errors}, trying to understand where a syntax error is
-located is a difficult challenge which even someone with an idea of the
+\hyperref[sec:better_errors]{Stage 24}, trying to understand where a syntax
+error is located is a difficult challenge which even someone with an idea of the
 internals of the parser has trouble understanding.  This issue could be fixed in
 many ways, part of the issue is that data about the initial source code is
 discarded after it is parsed and as such it is not possible to display to the

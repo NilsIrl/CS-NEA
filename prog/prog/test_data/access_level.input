@@ -1,0 +1,11 @@
+class Animal
+    private name
+
+    public procedure new(name_local)
+        name = name_local
+    endprocedure
+endclass
+
+animal = new Animal("Shelby")
+// This should fail
+print(animal.name)
