@@ -1,0 +1,17 @@
+class Person
+    private name
+
+    public procedure new(name_local)
+        name = name_local
+    endprocedure
+
+    private procedure say_hi()
+        print("Hi! I'm " + name)
+    endprocedure
+
+    public procedure say_hi_proxy()
+        self.say_hi()
+    endprocedure
+endclass
+
+(new Person("Dora")).say_hi_proxy()
