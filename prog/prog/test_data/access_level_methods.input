@@ -1,0 +1,13 @@
+class Person
+    private name
+
+    public procedure new(name_local)
+        name = name_local
+    endprocedure
+
+    private procedure say_hi()
+        print("Hi! Im " + name)
+    endprocedure
+endclass
+
+(new Person("Dora")).say_hi()

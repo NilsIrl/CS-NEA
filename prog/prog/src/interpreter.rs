@@ -857,6 +857,17 @@ mod tests {
         program.interpret();
     }
 
+    #[test]
+    #[should_panic]
+    fn access_level_methods() {
+        let program = Program::from_str(
+            include_str!("../test_data/access_level_methods.input"),
+            &ParseSettings::reject_single_quote(),
+        )
+        .unwrap();
+        program.interpret();
+    }
+
     macro_rules! output_test {
         ( $function_name:ident ) => {
             output_test!($function_name, &ParseSettings::default());
