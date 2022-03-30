@@ -109,8 +109,9 @@ struct Method<'a> {
 
 #[derive(Debug)]
 struct Class<'a> {
-    fields: Vec<&'a str>,
-    fields_in_scope: Vec<(usize, &'a str)>,
+    field_count: usize,
+    // field_index, is_private, field_name
+    fields_in_scope: HashMap<&'a str, (usize, bool)>,
     methods: HashMap<&'a str, Method<'a>>,
     parent_class: Option<&'a str>,
 }
@@ -177,19 +178,17 @@ fn get_ref(
             let obj = eval(reference, context);
             match obj {
                 Value::Object(class, values) => {
-                    let class = &context.classes[class.as_str()];
-                    let location_of_value = class
+                    let field_data = context.classes[class.as_str()]
                         .fields_in_scope
-                        .iter()
-                        .find_map(|(index, attribute_in_class)| {
-                            if attribute == attribute_in_class {
-                                Some(index)
-                            } else {
-                                None
-                            }
-                        })
-                        .expect("TODO: beterre error message, attribute does not exist on object");
-                    Some(values[*location_of_value].clone())
+                        .get(attribute.as_str())
+                        .expect(&format!(
+                            "field `{}` does not exist in `{}`",
+                            attribute, &class
+                        ));
+                    if field_data.1 {
+                        panic!("field `{}` is private and cannot be accessed from outside the class `{}`", attribute, &class);
+                    }
+                    Some(values[field_data.0].clone())
                 }
                 Value::String(string) => match attribute.as_str() {
                     "length" => Some(DenotedValue::from(Value::from(string.len() as i64))),
@@ -319,12 +318,15 @@ fn execute_statements<'a>(
                 fields,
                 methods,
             } => {
-                let (mut new_methods, mut new_fields) = match parent_name {
+                let (mut new_methods, mut fields_in_scope, mut field_count) = match parent_name {
                     Some(parent_name) => (
                         context.classes[parent_name.as_str()].methods.clone(),
-                        context.classes[parent_name.as_str()].fields.clone(),
+                        context.classes[parent_name.as_str()]
+                            .fields_in_scope
+                            .clone(),
+                        context.classes[parent_name.as_str()].field_count,
                     ),
-                    None => (HashMap::new(), Vec::new()),
+                    None => (HashMap::new(), HashMap::new(), 0),
                 };
                 // TODO: deal with private and public fields
                 new_methods.extend(methods.into_iter().map(|(is_private, declaration)| {
@@ -339,15 +341,22 @@ fn execute_statements<'a>(
                         },
                     )
                 }));
-                new_fields.extend(fields.into_iter().map(|(is_private, name)| name.as_str()));
-                let mut fields_in_scope: Vec<_> =
-                    new_fields.iter().map(|v| *v).enumerate().collect();
-                fields_in_scope.sort_by_key(|a| a.1);
-                fields_in_scope.dedup_by_key(|a| a.1);
+                for field in fields {
+                    match fields_in_scope.get_mut(field.1.as_str()) {
+                        Some(field_in_scope) => {
+                            field_in_scope.0 = field_count;
+                            field_in_scope.1 = field.0;
+                        }
+                        None => {
+                            fields_in_scope.insert(field.1.as_str(), (field_count, field.0));
+                        }
+                    }
+                    field_count += 1;
+                }
                 context.classes.insert(
                     class_name,
                     Class {
-                        fields: new_fields,
+                        field_count,
                         methods: new_methods,
                         parent_class: parent_name.as_deref(),
                         fields_in_scope,
@@ -411,7 +420,7 @@ fn apply_method<'a>(
             let mut method_frame: HashMap<&str, DenotedValue> = context.classes[method.host_class]
                 .fields_in_scope
                 .iter()
-                .map(|(field_location, field_name)| {
+                .map(|(field_name, (field_location, _))| {
                     (*field_name, field_values[*field_location].clone())
                 })
                 .collect();
@@ -816,8 +825,7 @@ fn eval(
                                 .classes
                                 .get(class_name.as_str())
                                 .expect(&format!("class `{}` is not defined", &class_name))
-                                .fields
-                                .len(),
+                                .field_count,
                         )
                         .collect(),
                 ));
