@@ -20,6 +20,7 @@
 \usepackage{hyperref}
 \usepackage{biblatex}
 \addbibresource{nea.bib}
+\usepackage{caption}
 
 \usepackage{adjustbox}
 \usepackage{makecell, siunitx}
@@ -1543,7 +1544,7 @@ system} such that test were not manually written but generated automatically.
 This allows us to add tests rapidly and in a reliable way. Now it was possible
 to just add tests by adding an entry in the ``tests'' directory and then
 referencing it in our code with \mintinline{rust}{ast_test!()}, see listing
-\autoref{lst:macro_test}. Evidence of the tests passing can be found in
+\ref{lst:macro_test}. Evidence of the tests passing can be found in
 \autoref{fig:stage2_test}. The actual content of the tests can be found in the
 final code listing in \autoref{sec:final_project} on page
 \pageref{sec:final_project}.
@@ -2557,13 +2558,13 @@ fn access_level() {
 	\includegraphics[width=\textwidth]{before_access_level}
 	\caption{Screenshot showing the access modifier test failing before access
 	modifiers are properly implemented.}
-	\label{fig:before_access_level}
+	\label{lst:before_access_level}
 \end{figure}
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{after_access_level}
 	\caption{Screenshot showing the access modifier test succeeding}
-	\label{fig:after_access_level}
+	\label{lst:after_access_level}
 \end{figure}
 
 \section{Evaluation}
@@ -2724,7 +2725,9 @@ monaco-editor which doesn't support tree-sitter yet, but instead uses its own
 syntax definition format. This means that the benefits of using tree-sitter
 would be reduced as we wouldn't be able to use it for syntax highlighting,
 nevertheless, implementing tree-sitter has further benefits such as the
-potential it has for writing further tooling such as linters.
+potential it has for writing further tooling such as linters\footnote{A linter
+is a static code analysis tool that flags programming errors, bugs, stylistic
+errors and suspicious constructs}\cite{ben_tree_sitter_linter}.
 
 \section{Final project}
 \label{sec:final_project}
