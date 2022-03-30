@@ -2517,7 +2517,7 @@ for loop, and whether to accept single quotes as valid quotes for strings.
 
 \subsection{Stage \subsecnum}
 
-For stage \subsecnum, we implemented access modifiers of attributes in the
+For stage \subsecnum, we implemented access modifiers for attributes in the
 interpreter. Until now, access modifiers were simply ignored for simplicity.
 In order to implement access modifiers, we modified the store of classes in the
 context to include whether the field was a private field. Whilst we were at it,
@@ -2525,6 +2525,46 @@ we also removed the list of all the fields which is redundant and used more
 memory than necessary. We also switched to using a \texttt{HashMap} to store the
 fields making field access a lot more efficient and no longer requiring linear
 search.
+
+But first, we had to make the test from listing \ref{lst:access_level} be ran
+automatically. Unlike other tests where we check whether the program
+successfully executed and whether the output is correct, we had to check that
+the program failed to execute. We were able to do this using the
+\mintinline{rust}{#[should_panic]} provided by rust as can be seen in listing
+\ref{lst:access_level_test}. \autoref{lst:before_access_level} shows the test
+failing before access modifiers are implemented and
+\autoref{lst:after_access_level} shows the test succeeding after the
+implementation.
+
+\begin{listing}
+	\begin{minted}{rust}
+#[test]
+#[should_panic]
+fn access_level() {
+    let program = Program::from_str(
+        include_str!("../test_data/access_level.input"),
+        &ParseSettings::default(),
+    )
+    .unwrap();
+    program.interpret();
+}
+	\end{minted}
+	\caption{Code to test access modifiers automatically}
+	\label{lst:access_level_test}
+\end{listing}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{before_access_level}
+	\caption{Screenshot showing the access modifier test failing before access
+	modifiers are properly implemented.}
+	\label{fig:before_access_level}
+\end{figure}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{after_access_level}
+	\caption{Screenshot showing the access modifier test succeeding}
+	\label{fig:after_access_level}
+\end{figure}
 
 \section{Evaluation}
 
