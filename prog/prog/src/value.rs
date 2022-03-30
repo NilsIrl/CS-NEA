@@ -31,11 +31,10 @@ pub enum Value {
     ReadFile(Rc<RefCell<Option<BufReader<File>>>>),
     WriteFile(Rc<RefCell<Option<File>>>),
 
-    // When a value is uninitialized
+    // User facing null
+    Null,
+    // When a value is uninitialized (implementation detail)
     Undefined,
-
-    // to deal with functions vs procedures
-    NoVal,
 }
 
 impl Value {
@@ -116,6 +115,7 @@ impl PartialEq for Value {
             (Value::Boolean(a), Value::Boolean(b)) => a == b,
             (Value::Array(a), Value::Array(b)) => a == b,
             (Value::Object(a1, a2), Value::Object(b1, b2)) => a1 == b1 && a2 == b2,
+            (Value::Null, Value::Null) => true,
             _ => false,
         }
     }
@@ -279,6 +279,7 @@ impl Display for Value {
             Self::Float(float) => write!(f, "{}", float),
             Self::String(str) => f.write_str(str),
             Self::Boolean(bool) => f.write_str(if *bool { "True" } else { "False" }),
+            Self::Null => f.write_str("null"),
             v => panic!("Cannot display {:?}", v),
         }
     }
@@ -290,7 +291,7 @@ pub struct DenotedValue(pub Rc<RefCell<Value>>);
 impl DenotedValue {
     pub fn new_array_from_dimensions(dimensions: &[usize]) -> Self {
         match dimensions {
-            [] => Self::default(),
+            [] => Self::from(Value::Null),
             [x, xs @ ..] => Self::from(Value::Array(
                 iter::repeat_with(|| Self::new_array_from_dimensions(xs))
                     .take(*x)
@@ -332,57 +333,9 @@ impl DenotedValue {
     }
 }
 
-impl Default for DenotedValue {
-    fn default() -> Self {
-        DenotedValue::from(Value::Undefined)
-    }
-}
-
-impl From<bool> for DenotedValue {
-    fn from(v: bool) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::Boolean(v))))
-    }
-}
-
-impl From<i64> for DenotedValue {
-    fn from(v: i64) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::Integer(v))))
-    }
-}
-
-impl From<f64> for DenotedValue {
-    fn from(v: f64) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::Float(v))))
-    }
-}
-
-impl From<&str> for DenotedValue {
-    fn from(v: &str) -> Self {
-        DenotedValue(Rc::new(RefCell::new(Value::String(v.to_string()))))
-    }
-}
-
 impl From<Value> for DenotedValue {
     fn from(v: Value) -> Self {
         DenotedValue(Rc::new(RefCell::new(v)))
-    }
-}
-
-impl TryInto<bool> for DenotedValue {
-    type Error = ProgError;
-    fn try_into(self) -> Result<bool, Self::Error> {
-        match *self.0.borrow() {
-            Value::Boolean(b) => Ok(b),
-            _ => Err(ProgError::NotBool),
-        }
-    }
-}
-
-impl Not for DenotedValue {
-    type Output = DenotedValue;
-
-    fn not(self) -> Self::Output {
-        Self::from(!&*self.0.borrow())
     }
 }
 
@@ -394,16 +347,7 @@ impl AddAssign<&Value> for DenotedValue {
 
 impl PartialEq for DenotedValue {
     fn eq(&self, other: &Self) -> bool {
-        match (&*self.0.borrow(), &*other.0.borrow()) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => lhs == rhs,
-            (Value::Float(lhs), Value::Float(rhs)) => lhs == rhs,
-            (Value::Boolean(lhs), Value::Boolean(rhs)) => lhs == rhs,
-            (Value::String(lhs), Value::String(rhs)) => lhs == rhs,
-            //(Value::Integer(lhs), Value::Float(rhs)) => *lhs as f64 == *rhs,
-            //(Value::Float(lhs), Value::Integer(rhs)) => *lhs == *rhs as f64,
-            // TODO: How should we consider NoVal?
-            (lhs, rhs) => panic!("Cannot compare {:?} and {:?}", lhs, rhs),
-        }
+        &*self.0.borrow() == &*other.0.borrow()
     }
 }
 

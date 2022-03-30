@@ -329,7 +329,7 @@ fn execute_statements<'a>(
                     None => (HashMap::new(), HashMap::new(), 0),
                 };
                 // TODO: deal with private and public fields
-                new_methods.extend(methods.into_iter().map(|(is_private, declaration)| {
+                new_methods.extend(methods.into_iter().map(|(_is_private, declaration)| {
                     (
                         declaration.name.as_str(),
                         Method {
@@ -551,6 +551,7 @@ fn eval(
         Expression::StringLiteral(str) => Value::from(*str),
         Expression::BoolLiteral(bool) => Value::from(*bool),
         Expression::FloatLiteral(float) => Value::from(*float),
+        Expression::NullLiteral => Value::Null,
         Expression::And(lhs, rhs) => {
             let lhs = eval(&*lhs, context);
             let rhs = eval(&*rhs, context);
@@ -819,7 +820,7 @@ fn eval(
             if let Expression::Reference(Reference::Identifier(class_name)) = &**class_name {
                 let obj = DenotedValue::from(Value::Object(
                     class_name.to_string(),
-                    iter::repeat_with(|| DenotedValue::from(Value::Undefined))
+                    iter::repeat_with(|| DenotedValue::from(Value::Null))
                         .take(
                             context
                                 .classes

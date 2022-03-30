@@ -104,7 +104,7 @@ pub enum Expression<'a> {
     IntegerLiteral(i64),
     FloatLiteral(f64),
     BoolLiteral(bool),
-    //FunctionCall(Call<'a>),
+    NullLiteral,
     Reference(Reference<'a>),
 
     //MethodCall(Box<Expression<'a>>, Call<'a>),
@@ -238,6 +238,15 @@ fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
                 //map(call(parse_settings), Expression::FunctionCall),
                 map(identifier(parse_settings), |identifier| {
                     Expression::Reference(Reference::Identifier(identifier))
+                }),
+                map(tag_with_settings("true", parse_settings), |_| {
+                    Expression::BoolLiteral(true)
+                }),
+                map(tag_with_settings("false", parse_settings), |_| {
+                    Expression::BoolLiteral(false)
+                }),
+                map(tag_with_settings("null", parse_settings), |_| {
+                    Expression::NullLiteral
                 }),
             )),
         )(input)
@@ -491,7 +500,7 @@ fn is_identifer_char(c: char) -> bool {
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
 /// Sorted list of keywords that cannot be used as identifiers.
 /// This list must be kept sorted otherwise binary search will fail.
-const KEYWORDS: [&str; 14] = [
+const KEYWORDS: [&str; 17] = [
     "case",
     "default",
     "else",
@@ -502,9 +511,12 @@ const KEYWORDS: [&str; 14] = [
     "endprocedure",
     "endswitch",
     "endwhile",
+    "false",
     "function",
     "next",
+    "null",
     "procedure",
+    "true",
     "until",
 ];
 
