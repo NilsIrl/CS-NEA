@@ -390,8 +390,8 @@ mod tests {
     #[test]
     fn new_array_test() {
         let array = DenotedValue::new_array_from_dimensions(&[10]);
-        array.set_value_at_index(Value::from(3), DenotedValue::from(4));
-        array.set_value_at_index(Value::from(4), DenotedValue::from(5));
+        array.set_value_at_index(Value::from(3), DenotedValue::from(Value::from(4)));
+        array.set_value_at_index(Value::from(4), DenotedValue::from(Value::from(5)));
         let val_at_index_3: i64 = array
             .get_value_at_index(Value::from(3))
             .borrow()

@@ -718,6 +718,7 @@ fn eval(
 
                         let mut input_string = String::new();
                         context.stdin.read_line(&mut input_string).unwrap();
+                        input_string.pop().unwrap();
                         Value::String(input_string)
                     }
                     "ASC" => {
@@ -893,7 +894,8 @@ mod tests {
             #[test]
             fn $function_name() {
                 let mut stdout = Vec::new();
-                Program::from_str(
+
+                let program = Program::from_str(
                     include_str!(concat!(
                         "../test_data/",
                         stringify!($function_name),
@@ -901,8 +903,11 @@ mod tests {
                     )),
                     $parse_settings,
                 )
-                .unwrap()
-                .interpret_with_io(&mut stdout, io::Cursor::new(Vec::new()));
+                .unwrap();
+                match File::open(concat!("test_data/", stringify!($function_name), ".stdin")) {
+                    Ok(file) => program.interpret_with_io(&mut stdout, io::BufReader::new(file)),
+                    Err(_) => program.interpret_with_io(&mut stdout, io::Cursor::new(Vec::new())),
+                };
                 print!("{}", std::str::from_utf8(&stdout).unwrap());
                 assert_eq!(
                     stdout,
@@ -952,5 +957,6 @@ mod tests {
     output_test!(class3);
     output_test!(class4);
     output_test!(logical_operators2);
+    output_test!(do_until1);
     output_test!(access_level_methods1, &ParseSettings::reject_single_quote());
 }
