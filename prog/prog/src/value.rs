@@ -351,6 +351,12 @@ impl PartialEq for DenotedValue {
     }
 }
 
+impl PartialOrd for DenotedValue {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        (&*self.0.borrow()).partial_cmp(&*other.0.borrow())
+    }
+}
+
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         match (self, other) {
@@ -358,6 +364,9 @@ impl PartialOrd for Value {
             (Value::Float(lhs), Value::Float(rhs)) => lhs.partial_cmp(rhs),
             (Value::Integer(lhs), Value::Float(rhs)) => (*lhs as f64).partial_cmp(rhs),
             (Value::Float(lhs), Value::Integer(rhs)) => lhs.partial_cmp(&(*rhs as f64)),
+            (Value::String(lhs), Value::String(rhs)) => lhs.partial_cmp(rhs),
+            (Value::Boolean(lhs), Value::Boolean(rhs)) => lhs.partial_cmp(rhs),
+            (Value::Array(lhs), Value::Array(rhs)) => lhs.partial_cmp(rhs),
 
             (lhs, rhs) => panic!("Cannot compare {:?} and {:?}", lhs, rhs),
         }

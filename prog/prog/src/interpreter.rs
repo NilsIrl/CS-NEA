@@ -383,15 +383,15 @@ fn assert_argument_count(method_name: &str, expected: usize, found: usize) {
 
 fn apply_method<'a>(
     obj: DenotedValue,
-    method: &str,
+    method_name: &str,
     super_call: bool,
     args: &Vec<Expression>,
     context: &mut Context<impl Write + Debug, impl BufRead + Debug>,
 ) -> Value {
     match &*obj.borrow() {
-        Value::Object(class, field_values) => {
+        Value::Object(class_name, field_values) => {
             let method = {
-                let class = &context.classes[class.as_str()];
+                let class = &context.classes[class_name.as_str()];
                 if super_call {
                     let current_class = &context.classes[context
                         .environment
@@ -412,11 +412,18 @@ fn apply_method<'a>(
                     // class
                     // EDIT: this should actually be alright because the parent class is set as the
                     // host class
-                    context.classes[current_class.parent_class.unwrap()].methods[method].clone()
+                    context.classes[current_class.parent_class.unwrap()].methods[method_name]
+                        .clone()
                 } else {
-                    class.methods[method].clone()
+                    class.methods[method_name].clone()
                 }
             };
+
+            assert_argument_count(
+                &format!("{}.{}", class_name, method_name),
+                method.function.args.len(),
+                args.len(),
+            );
             let mut method_frame: HashMap<&str, DenotedValue> = context.classes[method.host_class]
                 .fields_in_scope
                 .iter()
@@ -451,7 +458,7 @@ fn apply_method<'a>(
             context.environment.pop();
             val
         }
-        Value::String(string) => match method {
+        Value::String(string) => match method_name {
             "substring" => {
                 if args.len() != 2 {
                     panic!(
@@ -493,7 +500,7 @@ fn apply_method<'a>(
                 panic!("Cannot apply `{}` on string", method_name)
             }
         },
-        Value::ReadFile(file) => match method {
+        Value::ReadFile(file) => match method_name {
             "readLine" => {
                 let mut line = String::new();
                 file.borrow_mut()
@@ -516,9 +523,9 @@ fn apply_method<'a>(
                 file.take();
                 Value::Undefined
             }
-            _ => panic!("No method {} on file", method),
+            _ => panic!("No method {} on file", method_name),
         },
-        Value::WriteFile(file) => match method {
+        Value::WriteFile(file) => match method_name {
             "writeLine" => {
                 assert_argument_count("writeLine", 1, args.len());
                 let line: String = eval(&args[0], context).try_into().unwrap();
@@ -534,7 +541,7 @@ fn apply_method<'a>(
                 file.take();
                 Value::Undefined
             }
-            _ => panic!("No method {} on file", method),
+            _ => panic!("No method {} on file", method_name),
         },
         _ => panic!("Cannot apply method on non object value"),
     }
@@ -783,6 +790,7 @@ fn eval(
                             .get(function_name)
                             .expect(&format!("function `{}` is not defined", function_name))
                             .clone();
+                        assert_argument_count(function_name, function.args.len(), arguments.len());
                         let stack_frame = StackFrame {
                             variables: function
                                 .args
