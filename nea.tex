@@ -2451,6 +2451,7 @@ not print anything to the console.
 to the playground.
 
 \subsection{Stage \subsecnum}
+\label{sec:better_errors}
 
 For stage \subsecnum, we improved the error messages for missing identifiers.
 As it stands when a function or variable is not found the error message gives
@@ -2612,6 +2613,27 @@ store variables this means that every access to a variable is a costly
 operation. In the future an improvement that could be made to the language is
 to use lexical addressing, a method in which variables are turned into indices
 in an array, thereby greatly improving performance.
+
+A major limitation of the current implementation is the almost unreadable error
+messages, although they have been improved with the interpreter in
+\nameref{sec:better_errors}, trying to understand where a syntax error is
+located is a difficult challenge which even someone with an idea of the
+internals of the parser has trouble understanding.  This issue could be fixed in
+many ways, part of the issue is that data about the initial source code is
+discarded after it is parsed and as such it is not possible to display to the
+user which line of code caused a runtime error. A solution would be to include
+this data in the abstract syntax tree. Error messages could also be improved by
+using the tooling that nom provides to make better error messages. However both
+of these solutions would be quite complex to implement and as such it may be
+preferable to start by using a parser generator which would make most of these
+issues much easier to handle. We had originally planned to use tree-sitter as
+our parser, so it may be the opportunity to go back to tree-sitter and use it as
+our parser. In the current version of the playground, the editor used is the
+monaco-editor which doesn't support tree-sitter yet, but instead uses its own
+syntax definition format. This means that the benefits of using tree-sitter
+would be reduced as we wouldn't be able to use it for syntax highlighting,
+nevertheless, implementing tree-sitter has further benefits such as the
+potential it has for writing further tooling such as linters.
 
 \section{Final project}
 \label{sec:final_project}
