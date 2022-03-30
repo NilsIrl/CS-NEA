@@ -1,0 +1,80 @@
+// This function is totally unchanged from the one given in the mark scheme
+// Apart from the mistake that was present in the paper which was corrected by
+// OCR afterwards
+function searchForData(currentNode:byVal, searchValue:byVal)
+    thisNode = getData(currentNode)
+    if thisNode == searchValue then
+        return true
+    elseif thisNode > searchValue then
+        if currentNode.left () != null then
+            return (searchForData(currentNode.left(), searchValue))
+        else
+            return false
+        endif
+    else
+        if currentNode.right() != null then
+            return (searchForData(currentNode.right(), searchValue))
+        else
+            return false
+        endif
+    endif
+endfunction
+
+// Everything above this has not been modified from the exam paper, only the
+// comment on line 1 was added by us
+
+// From here this is our own code to implement the features required for this
+// question
+class Node
+    private left
+    private right
+    public data
+
+    public procedure new(data_local, left_local, right_local)
+        data = data_local
+        left = left_local
+        right = right_local
+    endprocedure
+
+    public function left()
+        return left
+    endfunction
+
+    public function right()
+        return right
+    endfunction
+
+    public function getData()
+        return data
+    endfunction
+endclass
+
+function getData(node)
+    return node.getData()
+endfunction
+
+tree =
+    new Node("Italy",
+        new Node("France",
+            new Node("Austria",
+                new Node("Australia", null, null),
+                new Node("England", null, null)),
+            new Node("Germany", null, null)),
+        new Node("Spain",
+            new Node("Norway",
+                null,
+                new Node("Scotland", null, null)),
+            new Node("Wales", null, null)))
+
+
+do
+    needle = input("Enter country you want to search for(just press enter to quit): ")
+    if needle.length > 0 then
+        if searchForData(tree, needle) then
+            print(needle + " was found")
+        else
+            print(needle + " was not found")
+        endif
+    endif
+until needle == ""
+

@@ -2245,8 +2245,14 @@ following address: \url{https://nilsirl.github.io/CS-NEA/}.
 \subsection{Stage \subsecnum}
 
 For stage \subsecnum, we added support for file operations: \texttt{newFile},
-\texttt{open} (from \citetitle{j277}), \texttt{openRead}, \texttt{readLine},
-\texttt{endOfFile}, \texttt{openWrite}, \texttt{writeLine}, \texttt{close}.
+\texttt{openRead}, \texttt{readLine}, \texttt{endOfFile}, \texttt{openWrite},
+\texttt{writeLine}, \texttt{close}. We will not add support for the
+\texttt{open} function defined in \citetitle{j277} because it corresponds to no
+known behaviour in other programming languages. The \texttt{open} function
+seems to be a read-write open which at the same time appends and starts from
+the beginning, something that doesn't make much sense, as such we prefer to
+leave it unimplemented, and keep using the functions from the A level
+specification.
 
 \autoref{fig:file_test_fail} shows the tests failing before the file operations
 are implemented.
@@ -2518,22 +2524,25 @@ for loop, and whether to accept single quotes as valid quotes for strings.
 
 \subsection{Stage \subsecnum}
 
-For stage \subsecnum, we implemented access modifiers for attributes in the
-interpreter. Until now, access modifiers were simply ignored for simplicity.
-In order to implement access modifiers, we modified the store of classes in the
-context to include whether the field was a private field. Whilst we were at it,
-we also removed the list of all the fields which is redundant and used more
-memory than necessary. We also switched to using a \texttt{HashMap} to store the
-fields making field access a lot more efficient and no longer requiring linear
-search.
+For stage \subsecnum, we implemented access modifiers for attributes and
+methods in the interpreter. Until now, access modifiers were simply ignored for
+simplicity. In order to implement access modifiers, we modified the store of
+classes in the context to include whether the field was a private field. Whilst
+we were at it, we also removed the list of all the fields which is redundant
+and used more memory than necessary. We also switched to using a
+\texttt{HashMap} to store the fields making field access a lot more efficient
+and no longer requiring linear search. For methods, we added an argument to the
+\texttt{apply\_method} function which indicate whether this is a call to self
+(the current object) or a different object. If it is a call to a different
+object, it will fail if the method called is marked as private.
 
 But first, we had to make the test from listing \ref{lst:access_level} be ran
-automatically. Unlike other tests where we check whether the program
-successfully executed and whether the output is correct, we had to check that
-the program failed to execute. We were able to do this using the
-\mintinline{rust}{#[should_panic]} provided by rust as can be seen in listing
-\ref{lst:access_level_test}. \autoref{lst:before_access_level} shows the test
-failing before access modifiers are implemented and
+automatically in addition to additional tests. Unlike other tests where we
+check whether the program successfully executed and whether the output is
+correct, we had to check that the program failed to execute. We were able to do
+this using the \mintinline{rust}{#[should_panic]} provided by rust as can be
+seen in listing \ref{lst:access_level_test}. \autoref{lst:before_access_level}
+shows the test failing before access modifiers are implemented and
 \autoref{lst:after_access_level} shows the test succeeding after the
 implementation.
 
@@ -2545,6 +2554,17 @@ fn access_level() {
     let program = Program::from_str(
         include_str!("../test_data/access_level.input"),
         &ParseSettings::default(),
+    )
+    .unwrap();
+    program.interpret();
+}
+                                                                 
+#[test]
+#[should_panic]
+fn access_level_methods() {
+    let program = Program::from_str(
+        include_str!("../test_data/access_level_methods.input"),
+        &ParseSettings::reject_single_quote(),
     )
     .unwrap();
     program.interpret();
@@ -2567,6 +2587,20 @@ fn access_level() {
 	\label{lst:after_access_level}
 \end{figure}
 
+\subsection{Stage \subsecnum}
+
+For stage \subsecnum, we added tests that make use of the \texttt{input()}
+function. The way they work is that they attempt to read from the corresponding
+\texttt{.stdin} file and if it succeeds uses that as the input to the program.
+\autoref{fig:do_until1} shows a test using the \texttt{input()} function
+passing.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{do_until1}
+	\caption{Screenshot of a test using the \texttt{input()} function passing}
+	\label{fig:do_until1}
+\end{figure}
+
 \section{Evaluation}
 
 % We could have fuzzed the parser
@@ -2577,6 +2611,78 @@ fn access_level() {
 % benchmarking
 % no code coverage
 % we used a different testing strategy that was much better
+
+% testing stdin
+% access modifiers
+
+\subsection{Testing and success criteria}
+
+Because of our use of automated testing, every success criteria except for the
+first (as visible in \autoref{tbl:success_criteria}) can be tested by running
+the test suite (which includes all the tests mentioned in the success criteria
+and more) which by now consists of more than 1000 lines of test code
+distributed over more than 70 tests as can be seen in \autoref{fig:final_test}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{final_test}
+	\caption{Screenshot showing the full test suite passing}
+	\label{fig:final_test}
+\end{figure}
+
+To test the first item of the success criteria, which is to execute a program
+in a file from the command-line interface (CLI), we will write a program to
+verify the correct solution for the OCR A level June 2018 paper, where the
+binary tree algorithm is implemented. This example from the exam board uses
+\texttt{null} values, something that we have not implemented because they
+appeared nowhere in the specification. This is why we will first implement null
+values (we consider any document from OCR to fully respect the rules of the
+language).
+
+Listing \ref{lst:2018_Q1c} shows the source code used and
+\autoref{fig:2018_Q1c} shows the result of running the source code.
+
+\begin{listing}
+	\inputminted{text}{./code_examples/2018_Q1c.prog}
+	\caption{Source code to test out function written in the mark scheme}
+	\label{lst:2018_Q1c}
+\end{listing}
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{2018_Q1c}
+	\caption{Screenshot of terminal when testing the program}
+	\label{fig:2018_Q1c}
+\end{figure}
+
+\subsection{Unmet criteria}
+
+There are no unmet criteria for the main project. The interpreter from the
+command line interface is fully functional and supports all the features of the
+OCR Reference Language and more.
+
+However, whilst developing the project we realised it would be very hard to
+test it so we developed a playground to test out the language. This playground
+is fully functional and supports all the features of the language except the
+ones that do not make sense on the web, such as file operations and the
+\texttt{system} function. However a function that was originally planned was
+the use of the \texttt{input()} function to accept input from the user.
+Unfortunately this function does not work on the playground because of
+JavaScript's and the web's asynchronous nature. It is not possible for our
+synchronous web assembly module to wait for input from the user as that would
+necessarily require our program to work asynchronously. In order to fix this
+issue, there are two ways that we can think of. Firstly, convert our program to
+be asynchronous. This is an option that is possible as rust's Future is
+compatible with JavaScript Promises, the types that represent something that
+has not yet been computed in the respective languages. However it would mean
+rewriting large portions of our interpreter and adding dependencies to
+asynchronous runtimes, all of that for something that already works for the CLI
+interface. Another solution would be to use a channel between the worker and
+the web page that is synchronous. This is possible with the
+\texttt{SharedArrayBuffer} type in combination with the \texttt{Atomics} module
+of the JavaScript API. There are also packages such as
+\citetitle{shared_channel} which implement the channel already, although
+because of the way \citetitle{shared_channel} is implemented, it would require
+creating a new crate in our project which both the WebAssembly module and the
+web page would depend on to communicate using a common language.
 
 \subsection{Maintenance and limitations}
 
@@ -2728,6 +2834,20 @@ nevertheless, implementing tree-sitter has further benefits such as the
 potential it has for writing further tooling such as linters\footnote{A linter
 is a static code analysis tool that flags programming errors, bugs, stylistic
 errors and suspicious constructs}\cite{ben_tree_sitter_linter}.
+
+Still in regards to errors, we currently only have two tests that check a
+program fails to run and both tests are written manually instead of using a
+macro like we usually do. This means that adding more tests in the future will
+be error prone and time consuming, so to make the interpreter more
+maintainable, declaring tests that should fail should be done using a macro.
+Additionally, these tests to done restrain what type of error should occur
+which means that if the program fails to execute for a reason other than the
+reason it should, it will not be detected. In order to fix this, we would have
+to improve the error system so that errors are returned based on what failed to
+execute and which means we should stop the use of panic to communicate error
+message to the user, something that is heavily discouraged. Panicking in rust
+should only be used for errors that are unpredicted or unrecoverable from which
+aren't the case for most errors that a user will encounter.
 
 \section{Final project}
 \label{sec:final_project}
