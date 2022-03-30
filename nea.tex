@@ -2659,27 +2659,45 @@ as python, which is notoriously slow.
 
 \begin{table}
 	\begin{center}
-		\begin{tabular}{|l|l|S|}
+		\begin{tabular}{|c|l|S|}
 			\hline
 			Language & Runtime & Time (s) \\
 			\hline
-			\multirowcell{2}{OCR Reference Language} & Web Assembly & 198.331 \\
+			OCR Reference Language & Web Assembly & 198.331 \\
 			\cline{2-3}
-			& Native & 102.902 \\
+			listing \ref{lst:bench.prog} & Native & 102.902 \\
 			\hline
-			\multirowcell{2}{Python} & CPython & 54.422 \\
+			Python & CPython & 54.422 \\
 			\cline{2-3}
-			& PyPy & 8.450 \\
+			listing \ref{lst:bench.py} & PyPy & 8.450 \\
 			\hline
-			\multirowcell{2}{Rust} & No optimisations & 8.422 \\
+			Rust & No optimisations & 8.422 \\
 			\cline{2-3}
-			& \texttt{opt-level=3} & 1.044 \\
+			listing \ref{lst:bench.rs} & \texttt{opt-level=3} & 1.044 \\
 			\hline
 		\end{tabular}
 	\end{center}
 	\caption{Results of prime number calculation benchmark}
 	\label{tab:bench_prime}
 \end{table}
+
+\begin{listing}
+	\inputminted{text}{./code_examples/prime.prog}
+	\caption{Prime number benchmark in OCR Reference Language}
+	\label{lst:bench.prog}
+\end{listing}
+
+\begin{listing}
+	\inputminted{python}{./code_examples/prime.py}
+	\caption{Prime number benchmark in python}
+	\label{lst:bench.py}
+\end{listing}
+
+\begin{listing}
+	\inputminted{rust}{./code_examples/prime.rs}
+	\caption{Prime number benchmark in rust}
+	\label{lst:bench.rs}
+\end{listing}
 
 One of the reasons that our language is slow is our heavy use of hash tables to
 store variables this means that every access to a variable is a costly

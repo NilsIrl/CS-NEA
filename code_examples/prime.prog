@@ -1,0 +1,16 @@
+for i = 3 to 100000
+    bail = False
+    j = 3
+    do
+        if i MOD j == 0 then
+            bail = True
+        endif
+        j = j + 1
+    until bail
+
+    if j == i + 1 then
+        biggest = i
+    endif
+next i
+
+print(biggest)
