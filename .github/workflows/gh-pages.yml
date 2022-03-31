@@ -7,7 +7,7 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: ./prog
+        working-directory: prog
     env:
       RUSTFLAGS: "-C target-feature=+crt-static"
     steps:
@@ -18,10 +18,11 @@ jobs:
         name: prog-cli-windows
         path: prog/target/release/prog-cli.exe
   deploy:
+    needs: build-windows
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./prog/www
+        working-directory: prog/www
     steps:
       - uses: actions/checkout@v3
       - name: Install wasm-pack
@@ -30,9 +31,13 @@ jobs:
         run: npm install
       - name: Build
         run: npx webpack --mode production
+      - uses: actions/download-artifact@v3
+        with:
+          name: prog-cli-windows
+          path: prog/www/dist
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./prog/www/dist
+          publish_dir: prog/www/dist
 
