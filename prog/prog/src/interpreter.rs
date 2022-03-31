@@ -9,6 +9,7 @@ use std::{
     io::{self, BufRead, BufReader, Write},
     iter::{self, zip},
     ops::Index,
+    process::Command,
     rc::Rc,
 };
 
@@ -23,7 +24,6 @@ use super::{
 #[cfg(unix)]
 fn system(command: String) -> io::Result<String> {
     use lazy_static::lazy_static;
-    use std::process::Command;
     use std::{env, ffi::OsString};
 
     lazy_static! {
