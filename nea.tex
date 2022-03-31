@@ -2601,6 +2601,13 @@ passing.
 	\label{fig:do_until1}
 \end{figure}
 
+\subsection{Stage \subsecnum}
+
+When playing around with the playground, we noticed an issue, the worker seemed
+to be unresponsive after too many errors occuring. We decided to fix it by
+restarting the worker whenever an error occurs and by disabling the action
+buttons on the playground until the worker is ready to accept code.
+
 \section{Evaluation}
 
 % code from 2018 goes beyond page
