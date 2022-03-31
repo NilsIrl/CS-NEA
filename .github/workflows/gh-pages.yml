@@ -3,6 +3,20 @@ on:
     branches:
       - trunk
 jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./prog/prog-cli
+    env:
+      RUSTFLAGS: "-C target-feature=+crt-static"
+    steps:
+    - uses: actions/checkout@v3
+    - run: cargo build --release
+    - uses: actions/upload-artifact@v3
+      with:
+        name: prog-cli-windows
+        path: ../target/release/prog-cli.exe
   deploy:
     runs-on: ubuntu-latest
     defaults:
