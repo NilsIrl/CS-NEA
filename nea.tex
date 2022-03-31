@@ -2651,14 +2651,15 @@ appeared nowhere in the specification. This is why we will first implement null
 values (we consider any document from OCR to fully respect the rules of the
 language).
 
-Listing \ref{lst:2018_Q1c} shows the source code used and
-\autoref{fig:2018_Q1c} shows the result of running the source code.
+Now we had to implement some of the functions used by the code example such as
+the Node class used in the binary tree. \autoref{fig:2018_Q1c} shows the result
+of running the code and the code used is the following:
 
-\begin{listing}
-	\inputminted{text}{./code_examples/2018_Q1c.prog}
-	\caption{Source code to test out function written in the mark scheme}
-	\label{lst:2018_Q1c}
-\end{listing}
+%\begin{listing}
+\inputminted{text}{./code_examples/2018_Q1c.prog}
+%	\caption{Source code to test out function written in the mark scheme}
+%	\label{lst:2018_Q1c}
+%\end{listing}
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{2018_Q1c}
@@ -2672,30 +2673,41 @@ There are no unmet criteria for the main project. The interpreter from the
 command line interface is fully functional and supports all the features of the
 OCR Reference Language and more.
 
-However, whilst developing the project we realised it would be very hard to
-test it so we developed a playground to test out the language. This playground
-is fully functional and supports all the features of the language except the
-ones that do not make sense on the web, such as file operations and the
-\texttt{system} function. However a function that was originally planned was
-the use of the \texttt{input()} function to accept input from the user.
-Unfortunately this function does not work on the playground because of
-JavaScript's and the web's asynchronous nature. It is not possible for our
-synchronous web assembly module to wait for input from the user as that would
-necessarily require our program to work asynchronously. In order to fix this
-issue, there are two ways that we can think of. Firstly, convert our program to
-be asynchronous. This is an option that is possible as rust's Future is
-compatible with JavaScript Promises, the types that represent something that
+However, whilst developing the project we realised it would be very hard to use
+a CLI for most people so we developed a playground to test out the language.
+This playground is fully functional and supports all the features of the
+language except the ones that do not make sense on the web, such as file
+operations and the \texttt{system} function. However a function that was
+originally planned was the use of the \texttt{input()} function to accept input
+from the user.  Unfortunately this function does not work on the playground
+because of JavaScript's and the web's asynchronous nature. It is not possible
+for our synchronous web assembly module to wait for input from the user as that
+would necessarily require our program to work asynchronously. In order to fix
+this issue, there are two ways that we can think of. Firstly, convert our
+program to be asynchronous. This is an option that is possible as rust's Future
+is compatible with JavaScript Promises, the types that represent something that
 has not yet been computed in the respective languages. However it would mean
 rewriting large portions of our interpreter and adding dependencies to
 asynchronous runtimes, all of that for something that already works for the CLI
-interface. Another solution would be to use a channel between the worker and
-the web page that is synchronous. This is possible with the
+interface. Another solution would be to use a channel between the worker and the
+web page that is synchronous. This is possible with the
 \texttt{SharedArrayBuffer} type in combination with the \texttt{Atomics} module
 of the JavaScript API. There are also packages such as
-\citetitle{shared_channel} which implement the channel already, although
-because of the way \citetitle{shared_channel} is implemented, it would require
-creating a new crate in our project which both the WebAssembly module and the
-web page would depend on to communicate using a common language.
+\citetitle{shared_channel} which implement the channel already, although because
+of the way \citetitle{shared_channel} is implemented, it would require creating
+a new crate in our project which both the WebAssembly module and the web page
+would depend on to communicate using a common language.
+
+In regards to additional features we had invisioned for the language and to make
+it more usable, we have implemented only the playground. Considering the
+playground has been built we believe that most users will use that instead of
+the CLI interface for most of their usage, this means that implementing syntax
+highliting for the playground alone would be a worthwhile investment as it would
+benefit a majority of the userbase. Additionally because the monaco editor is
+what is used by Visual Studio Code, writing a syntax definition for the language
+for monaco would serve Visual Studio Code users as well which means a vast
+majority of the users will benefit considering Visual Studio Code is the most
+popular text editor in 2022.
 
 \subsection{Maintenance and limitations}
 
@@ -2862,6 +2874,14 @@ message to the user, something that is heavily discouraged. Panicking in rust
 should only be used for errors that are unpredicted or unrecoverable from which
 aren't the case for most errors that a user will encounter.
 
+To make the programming language more usable, having a REPL\footnote{A
+read-eval-print loop (REPL) is an interface in which the user types commands and
+gets the results of the operation back} would be nice. A REPL would allow users
+to quickly develop their programs and trying out the different features the
+language provides without having to run everything from scratch. A REPL could
+also be used to then build a debugger where once a break point is reached the
+user can type commands as if they were in the language.
+
 \section{Final project}
 \label{sec:final_project}
 
@@ -2873,6 +2893,9 @@ In order to compile the final project, here is a list of dependencies:
 	\item Node.js (for playground)
 	\item wasm-pack (for playground)
 \end{itemize}
+
+A pre-compiled binary for windows is available at
+\url{https://nilsirl.github.io/CS-NEA/prog-cli.exe}.
 
 Some of the listings in the following section are not displayed correctly. For
 example, some lines are too long and go over the page and some of the
