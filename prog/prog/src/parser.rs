@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case, take_till, take_while},
     character::complete::{self, char, i64, not_line_ending, satisfy},
-    combinator::{all_consuming, map, map_opt, map_res, opt, recognize, value, verify},
+    combinator::{all_consuming, eof, map, map_opt, map_res, opt, recognize, value, verify},
     error::{ErrorKind, FromExternalError, ParseError},
     multi::{many0, separated_list0, separated_list1},
     number::complete::double,
@@ -92,6 +92,7 @@ fn space1(input: &str) -> IResult<&str, &str> {
             comment,
             complete::multispace0,
         ))),
+        eof,
     ))(input)
 }
 
