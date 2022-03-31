@@ -2667,6 +2667,13 @@ of running the code and the code used is the following:
 	\label{fig:2018_Q1c}
 \end{figure}
 
+We believe that some of the decisions that were taken such as the one to use
+rust's testing framework instead of writing our own testing tool was a very
+positive decision. Not only did it save time as nothing additional had to be
+written it also means that testing can be automated much more easily and we
+benefit from the large ecosystem of rust including, if we wanted to with the
+ability to view how much of our code is covered by tests (code coverage).
+
 \subsection{Unmet criteria}
 
 There are no unmet criteria for the main project. The interpreter from the
@@ -2704,10 +2711,11 @@ playground has been built we believe that most users will use that instead of
 the CLI interface for most of their usage, this means that implementing syntax
 highliting for the playground alone would be a worthwhile investment as it would
 benefit a majority of the userbase. Additionally because the monaco editor is
-what is used by Visual Studio Code, writing a syntax definition for the language
-for monaco would serve Visual Studio Code users as well which means a vast
-majority of the users will benefit considering Visual Studio Code is the most
-popular text editor in 2022.
+used by Visual Studio Code, a syntax definition for monaco would be compatible with
+Visual Studio Code. Which means that users of the most popular text editor since
+2018 will also benefit. We however do not believe that implementing a language
+server for the language would be worth it. It would be a significant effort when
+improving the error messages itself would benefit far more.
 
 \subsection{Maintenance and limitations}
 
@@ -2881,6 +2889,11 @@ to quickly develop their programs and trying out the different features the
 language provides without having to run everything from scratch. A REPL could
 also be used to then build a debugger where once a break point is reached the
 user can type commands as if they were in the language.
+
+Although not of great interest considering the use case of the language, an
+evolutionary step that could be taken would be the implement a compiler for the
+language in the language itself. If this is successful it would allow the
+language to be self hosted and extremely performant.
 
 \section{Final project}
 \label{sec:final_project}
