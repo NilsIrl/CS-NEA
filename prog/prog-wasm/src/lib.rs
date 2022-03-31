@@ -42,7 +42,6 @@ impl Read for WorkerInput {
 pub fn init() {
     std::panic::set_hook(Box::new(|info| {
         writeln!(WorkerOutput, "\x1b[31m{}\x1b[39m", info.to_string()).unwrap();
-        close();
     }));
 }
 
@@ -63,7 +62,6 @@ pub fn run(
     )
     .unwrap();
     ast.interpret_with_io(WorkerOutput, BufReader::new(WorkerInput));
-    close();
 }
 
 #[wasm_bindgen]
@@ -83,5 +81,4 @@ pub fn ast(
     )
     .unwrap();
     writeln!(WorkerOutput, "{:#?}", ast).unwrap();
-    close();
 }

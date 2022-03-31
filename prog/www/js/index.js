@@ -9,25 +9,43 @@ const editor = monaco.editor.create(document.getElementById("code-monaco"), {
 
 const term = new Terminal({ convertEol: true });
 
+const runButton = document.getElementById("run-button");
+const printAstButton = document.getElementById("print-ast");
+
+const timeCheckbox = document.getElementById("time-taken");
+const caseSensitiveCheckbox = document.getElementById("case-sensitive");
+const allowSingleQuotesCheckbox = document.getElementById("allow-single-quotes");
+const allowWrongNextCheckbox = document.getElementById("allow-wrong-next");
+
 function workerListener(e) {
   switch (e.data.type) {
     case "print":
       term.write(e.data.inner);
       break;
-    case "close":
+    case "done":
       runButton.innerText = "Run!";
       if (timeCheckbox.checked) {
         const timeElapsed = (performance.now() - start_time) / 1000;
         term.write(`${timeElapsed} seconds elapsed.\n`)
       }
       break;
-
+    case "ready":
+      runButton.disabled = false;
+      printAstButton.disabled = false;
+      break;
   }
+}
+
+function workerErrorListener(e) {
+  terminate_worker();
 }
 
 function start_worker() {
   worker = new Worker(new URL('worker.js', import.meta.url));
   worker.addEventListener("message", workerListener);
+  worker.addEventListener("error", workerErrorListener);
+  runButton.disabled = true;
+  printAstButton.disabled = true;
 }
 
 function terminate_worker() {
@@ -52,16 +70,6 @@ term.onKey((e) => {
     terminate_worker();
   }
 });
-
-const runButton = document.getElementById("run-button");
-const printAstButton = document.getElementById("print-ast");
-
-const textarea = document.getElementById("code-textarea");
-
-const timeCheckbox = document.getElementById("time-taken");
-const caseSensitiveCheckbox = document.getElementById("case-sensitive");
-const allowSingleQuotesCheckbox = document.getElementById("allow-single-quotes");
-const allowWrongNextCheckbox = document.getElementById("allow-wrong-next");
 
 function settings_dictionary() {
   return {

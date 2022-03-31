@@ -14,5 +14,7 @@ import("../../prog-wasm/pkg").then(prog => {
         prog.ast(ev.data.inner, ...settings);
         break;
     }
+    self.postMessage({ type: "done" });
   });
+  self.postMessage({ type: "ready" });
 });
