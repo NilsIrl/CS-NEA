@@ -364,7 +364,7 @@ interpreter.
 This software only targets the OCR Reference language which so far has only be
 defined as part of GCSE specifications and as such doesn't include support for
 classes and objects, something that our project will feature. Additionally, it
-only supports Windows which is problematic for macOS and Linux users.
+only supports Windows which is problematic for MacOS and Linux users.
 
 An issue with this program is that it only allows to run programs within it and
 doesn't support proper input and output, whenever the input function is called,
@@ -381,16 +381,10 @@ that are present.
 	\label{fig:pseudocodeuk_errors}
 \end{figure}
 
-\paragraph{Other projects:}
-
-\begin{itemize}
-    \item{https://github.com/Sherlemious/IGCSE-CS-PC-Transpiler}
-\end{itemize}
-
 \subsubsection{On LLVM}
 
 LLVM has been mentioned multiple times in this section. It is ``a collection of
-modular and reusable compiler and toolchain technologies'' as described by its
+modular and reusable compiler and tool-chain technologies'' as described by its
 website. One of the feature it provides is an intermediate representation (IR)
 known as LLVM IR. Many compilers including the rust compiler, the
 implementation language, compile the source code given to them to LLVM IR and
@@ -2967,6 +2961,11 @@ mean that the entirety of the shared code is within the URL which can get very
 large. Certain web servers and browsers have a limit on the length of the URL
 which would cause issues with this method. A hybrid approach can always be
 considered.
+
+Another feature to make the playground more user-friendly would be to have
+example programs users can load to test out the playground. For the moment the
+only example program we have is a hello world program which cannot be changed
+for something else.
 
 Although file operations on the web do not work and are not intended to work,
 it would actually be possible to implement them through a virtual file system,
