@@ -68,7 +68,13 @@ inner sep = 0pt]
 
 \begin{document}
 
-{\huge THIS COPY OF THE DOCUMENT IS A DRAFT AND IS NOT MEANT TO BE MARKED}
+Name: Nils André
+
+Project Name: Interpreter for the OCR Exam Reference Language
+
+Candidate Number: 5135
+
+Exam centre: 14285
 
 \maketitle
 
@@ -2604,29 +2610,56 @@ passing.
 \subsection{Stage \subsecnum}
 
 When playing around with the playground, we noticed an issue, the worker seemed
-to be unresponsive after too many errors occuring. We decided to fix it by
+to be unresponsive after too many errors occurring. We decided to fix it by
 restarting the worker whenever an error occurs and by disabling the action
-buttons on the playground until the worker is ready to accept code.
+buttons on the playground until the worker is ready to accept code. This fixed
+the issue entirely and the playground now works perfectly even when panics
+occur.
+
+We suspect the module wasn't usable after panics because the memory was
+corrupted as rust programs are not meant to continue working after a panic.
+
+\subsection{Stage \subsecnum}
+
+Whilst testing our interpreter against some of the examples offered by
+\citetitle{pseudocode-uk} we found that examples which defined a global array
+were not parsed correctly. This can be seen in
+\autoref{fig:global_array_declaration_failing}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{global_array_declaration_failing_run}
+	\includegraphics[width=\textwidth]{global_array_declaration_failing_ast}
+	\includegraphics[width=\textwidth]{global_array_declaration_failing_test}
+	\caption{Three screenshots demonstrating that global array declarations do
+	not work}
+	\label{fig:global_array_declaration_failing}
+\end{figure}
+
+We have decided to fix this by adding a new variant to the Statement object,
+\texttt{GlobalArrayDeclaration} which is identical to
+\texttt{ArrayDeclaration} instead of a common type between the two. The reason
+behind this is that writing a common type between the two would require
+changing all  the \texttt{.ast} files that make use of array declarations, an
+operation that is time consuming.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{global_array_declaration_success_test}
+	\caption{Screenshot of test for global array declaration passing}
+	\label{fig:global_array_declaration_success}
+\end{figure}
+
+After the fix was implemented \autoref{fig:global_array_declaration_success}
+demonstrates that the fix worked and was effective.
 
 \section{Evaluation}
 
-% code from 2018 goes beyond page
-% talk about website having issues after panics
-% maybe the button can be disabled until the worker is ready
 % implement better cli with features
 % differ from other pseudocode: no implicit cast, space in keywords, processes
 % functions beforehand
 % implement a way to share code in the playground
 % look at the list of todos
 
-% We could have fuzzed the parser
-% we could have used tree-sitter instead (would have been a lot better than our
-% current method of implementing precedence)
-% we could have probably gotten around the problem we had
-% lexical addressing
-% benchmarking
-% no code coverage
-% we used a different testing strategy that was much better
+% support files online is actually possible
 
 \subsection{Testing and success criteria}
 
@@ -2674,6 +2707,19 @@ written it also means that testing can be automated much more easily and we
 benefit from the large ecosystem of rust including, if we wanted to with the
 ability to view how much of our code is covered by tests (code coverage).
 
+Looking at the examples of code from \textcite{pseudocode-uk} most of them
+didn't run on our interpreter for various reasons. One of them is that if a
+call to a function that was defined later was done, the code would work and
+still code a function defined later. In our interpreter, this is not possible,
+functions and classes must be declared before they are called. We believe that
+this behaviour is acceptable because it is the behaviour of python and the
+language is a very dynamic one so most users would not expect the language to
+support references to items defined later in the code. Another thing that is
+featured in these examples is the use of a space between ``end'' and another
+keyword like ``function''. This is something that is not defined in the OCR
+Reference Language and as such we have not implemented it, we do not believe it
+is correct.
+
 \subsection{Unmet criteria}
 
 There are no unmet criteria for the main project. The interpreter from the
@@ -2705,17 +2751,27 @@ of the way \citetitle{shared_channel} is implemented, it would require creating
 a new crate in our project which both the WebAssembly module and the web page
 would depend on to communicate using a common language.
 
-In regards to additional features we had invisioned for the language and to make
-it more usable, we have implemented only the playground. Considering the
+In regards to additional features we had envisioned for the language and to
+make it more usable, we have implemented only the playground. Considering the
 playground has been built we believe that most users will use that instead of
 the CLI interface for most of their usage, this means that implementing syntax
-highliting for the playground alone would be a worthwhile investment as it would
-benefit a majority of the userbase. Additionally because the monaco editor is
-used by Visual Studio Code, a syntax definition for monaco would be compatible with
-Visual Studio Code. Which means that users of the most popular text editor since
-2018 will also benefit. We however do not believe that implementing a language
-server for the language would be worth it. It would be a significant effort when
-improving the error messages itself would benefit far more.
+highlighting for the playground alone would be a worthwhile investment as it
+would benefit a majority of the userbase. Additionally because the monaco
+editor is used by Visual Studio Code, a syntax definition for monaco would be
+compatible with Visual Studio Code. Which means that users of the most popular
+text editor since 2018 will also benefit. We however do not believe that
+implementing a language server for the language would be worth it. It would be
+a significant effort when improving the error messages itself would benefit far
+more.
+
+We have however not implemented any of the optional features on the
+command-line interface. This means that if a user wants to use some of the
+optional language feature/settings on the command line they will be unable to
+and will have to use the playground which itself has some other missing
+features (e.g. file system support and input). However we believe that
+implementing features to the command line would be quite trivial as we are
+already using the clap argument parser which means only a few lines of code
+would be required.
 
 \subsection{Maintenance and limitations}
 
@@ -2895,8 +2951,64 @@ evolutionary step that could be taken would be the implement a compiler for the
 language in the language itself. If this is successful it would allow the
 language to be self hosted and extremely performant.
 
+A usability feature that could be added to the playground is the ability is
+share code, this is something that playgrounds in most programming language
+support. Sharing code would allow teachers to rapidly show a snippet of code to
+their students or for a student to share some code quickly. There are two ways
+this could be implemented, either as a parameter in the URL that contains the
+entire code snippet or as stored code on the server. The advantage of storing
+the code on the server side is that it allows to share short URLs however it
+means that a back-end needs to be implemented to store the code. Alternatively,
+an already back-end could be used such as one of the ones used by many of the
+already existing ``pastebin'' services. The second method is to store the code
+within the URL with a query parameter or using the fragment identifier. These
+methods are less complex to implement as they don't require a backend but they
+mean that the entirety of the shared code is within the URL which can get very
+large. Certain web servers and browsers have a limit on the length of the URL
+which would cause issues with this method. A hybrid approach can always be
+considered.
+
+Although file operations on the web do not work and are not intended to work,
+it would actually be possible to implement them through a virtual file system,
+a file system that exists within the web page. This approach is the one used by
+\citetitle{emscripten}\footnote{a C/C++ compiler to WebAssembly which also
+supports any language which compiles to LLVM}. It would also be possible to
+support file system operations through the use of the Native File Access API, a
+new API which allows to access the local files of a user after they have given
+their permission.
+
+\section{Conclusion}
+
+For this project, we have demonstrated the need for the ability to be able to
+execute programs written using the OCR Reference Language (also known as the
+OCR pseudocode in older specifications such as the A-level one).
+
+Our developed project has a modular structure made up of the back-end. A parser
+and interpreter for the programming language. And it features, two front-ends,
+a command-line interface downloadable from
+\url{https://nilsirl.github.io/CS-NEA/prog-cli.exe} and a web interface
+developed using the help of Web Assembly available at
+\url{https://nilsirl.github.io/CS-NEA/}.
+
+Although they are still minor bugs in the software we consider our project
+mainly completed to a very high standard of development and with very low
+technical depth thanks to a very rigorous use of automated testing and
+following the best practices used in software engineering. We also attribute
+the correctness of our implementation to the strong typing of Rust which has
+allowed us to restrict our software by the use of the type system to improve
+its correctness.
+
+Outside of the scope of this report we plan to polish the software for it to be
+usable for the students that will study Computer Science at A-level and GCSE
+for the coming years.
+
 \section{Final project}
 \label{sec:final_project}
+
+This section lists our final code as well as describe the structure of the
+project for someone interested in running it.
+
+\subsection{Dependencies}
 
 In order to compile the final project, here is a list of dependencies:
 
@@ -2910,6 +3022,25 @@ In order to compile the final project, here is a list of dependencies:
 A pre-compiled binary for windows is available at
 \url{https://nilsirl.github.io/CS-NEA/prog-cli.exe}.
 
+\subsection{Running / Structure of the files}
+
+After un-archiving the files, one is faced with a few directories. The
+\texttt{prog} directory contains the back-end/library for the language.
+\texttt{prog-cli} contains the command-line interface, just a few lines of code
+calling the library. \texttt{www} contains the playground. \texttt{prog-wasm}
+contains the rust code to make it work in the playground.
+
+To run the command line interface, just run \texttt{cargo run} anywhere in the
+project. Use \texttt{cargo run -- --help} to view the help menu. The
+command-line interface just accepts a file as its first argument which it will
+execute. It can also execute a program from standard input if no file is given.
+
+To run the web interface go to the \texttt{www} directory and run \texttt{npm i
+\&\& npm run serve}. To build the website into the \texttt{dist} directory run
+\texttt{npm i \&\& npx webpack}.
+
+\subsection{Download}
+
 Some of the listings in the following section are not displayed correctly. For
 example, some lines are too long and go over the page and some of the
 characters, in particularly the chess pieces and the curved double quotation
@@ -2920,143 +3051,9 @@ these mistakes, here are 2 attachments of it in
 support attachments, Firefox and Adobe Acrobat Reader are known to work,
 macOS's Preview and Google Chrome \textbf{do not} work).
 
+\subsection{Listing}
+
 \input{./final_files.tex}
-
-\section{NOTES NOT PART OF REPORT}
-
-Note on string literals: the unicode characters `“` and `”` seem to be used to
-delimit string literals. Is that normal??
-
-In the examples given, different unicode characters are used, that's a bit
-wacky.
-
-Escaping doesn't seem to exist either
-
-We'll assume identifiers cannot start with numbers (see alter, maybe this can
-be changed)
-
-What do we consider whitespace? is a zero width space whitespace?
-
-Do we want to implement closures?? (for language? for implementation? for parsing? for interpreting?)
-
-What are valid identifiers? We'll follow C with: only: letters, digits and
-underscore, but first character must be letter or underscore.
-
-Test cases shouldn't be called '*.input' they can contain actual programs so
-that doesn't make sense.
-
-%We do not have operator precedence (help)
-
-%Rust doesn't support backtracking in macros:
-%https://github.com/rust-lang/rust/issues/24827, https://github.com/rust-lang/rust/issues/42838
-so we had to inverse the direction of our ops macro
-
-%Use pretty_assertions to speed up AST testing
-
-Switch statement implemented as a bunch of if else
-
-This language makes no sense. For example, switch statements have a colon after
-the expression. WHY?
-
-On (physical) page 39, there is a 1, after `case "B"`, wtf
-
-Switch statement if given complex expression will compute expression at every
-check
-
-Log:
-
-%Changed from ../ to CARGO_MANIFEST_DIR
-
-alt((
-	value(x, x),
-	value(x, x),
-	value(x, x),
-	value(x, x),
-))
-
-was failing to compile. So I had to report it to the authors.
-
-There is no "break" statement for loops.
-
-// TODO: talk about this somewhere in design section
-Array is defined as "array" and "Array" in the spec...
-
-Fields in classes must be defined before methods.
-
-For loops will rewrite the counter variable, so the user can change it.
-Pascal prevents compilation of programs where the variable is changed so I
-think that's a fine behaviour.
-
-For dealing with when to return a float or integer, we are following python's
-behaviour. E.g. division always returns float (exception, thinking logically
-seems to have issues with the new code) (update: so I asked Mrs Zeshan to show
-me the solution to the homework to be 100\% of the correct. Turns out what I
-had was correct. So the issue is with the interpreter or PG Online having
-terrible questions/mark schemes.
-
-Power return integer or other depending on various things
-
-Problem, test with stdout
-Solution: allow to write to other places than stdout
-
-Problem: numerical values can be ints or floats.
-Solution: fail no silently whenever types are somewhat not similar and
-comparing the 2 hasn't explicitly been defined.
-
-This behaviour is different than what python does. Python will happily compare
-an integer and a string, always returning False.
-
-Another way in which the behaviour is away from python is that when we print a
-float, if it doesn't have any decimal place it shows like an int. This is
-because we use the rust formatter. Although we have said we try to emulate
-python behaviour, we will probably use rust behaviour before.
-
-Programmed wasm support in browser it works!!!! I'm a bit wary of performance
-issues with stuff being copied.
-
-Fixed performance issue potentially (idk didn't benchmark) but we still have
-the problem that the dom won't redraw in this infinite loop...
-
-Tried using xterm js, reached a problem where the input was corrupted. This was
-solved by using .slice(): https://github.com/rustwasm/wasm-bindgen/issues/1668
-
-The problem is that even with xterm js the output doesn't show.
-
-Last solution: using a background worker.
-
-Couldn't load web worker. Turns out it's because Firefox doesn't support web
-workers as modules.
-
-The solution is to load it dynamically or smth now it works. It's weird how we
-have to receive the message first before we can load the module.
-
-Fixed a bug with integer literal parsing where "-1" would be detected a
-variable
-
-Could have used something like https://github.com/mitsuhiko/insta to improve
-development speed.
-
-Added a reference type which in the end I had to remove, nevermind, I'll just
-extend it, why am I so retarded 😖
-
-We need to implement returning from functions inside of execute\_statements
-
-Add converting functions
-
-Tests wouldn't run because interpret\_with\_write had been removed (fixed in
-eb1de2f0f95e77992fabe31b2b5274ad0c4549d0)
-
-There's a test that never finishes and I couldn't detect which, luckily after
-60 seconds I was told why (present in eb1de2f0f95e77992fabe31b2b5274ad0c4549d0)
-
-Add this alternative: https://pseudocode.uk/
-
-\subsection{Where to find example code}
-
-\begin{itemize}
-	\item In the specification
-	\item Unit 10 Computational thinking, Homework 4 Thinking logically
-\end{itemize}
 
 \printbibliography[heading=bibintoc]
 
