@@ -83,8 +83,6 @@ fn space0(input: &str) -> IResult<&str, &str> {
 }
 
 fn space1(input: &str) -> IResult<&str, &str> {
-    // FIXME space0 allows no whietspace to be classified as space1
-    // The comment should not be optional
     alt((
         complete::multispace1,
         recognize(tuple((
@@ -155,6 +153,7 @@ pub enum Statement<'a> {
     Assignment(Assignment<'a>),
     GlobalAssignment(String, Expression<'a>),
     ArrayDeclaration(String, Vec<Expression<'a>>),
+    GlobalArrayDeclaration(String, Vec<Expression<'a>>),
     ClassDeclaration {
         name: String,
         superclass: Option<String>,
@@ -595,6 +594,22 @@ fn global_assignment_statement(
     }
 }
 
+fn global_array_declaration(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
+    move |input: &str| {
+        let (input, statement) = preceded(
+            pair(tag_with_settings("global", parse_settings), space1),
+            array_declaration(parse_settings),
+        )(input)?;
+        if let Statement::ArrayDeclaration(name, dimension) = statement {
+            Ok((input, Statement::GlobalArrayDeclaration(name, dimension)))
+        } else {
+            unreachable!("array_declaration can only return a Statement::ArrayDeclaration")
+        }
+    }
+}
+
 fn array_declaration(
     parse_settings: &ParseSettings,
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
@@ -913,6 +928,7 @@ fn statement(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
         preceded(
             space0,
             alt((
+                global_array_declaration(parse_settings),
                 array_declaration(parse_settings),
                 class_declaration(parse_settings),
                 global_assignment_statement(parse_settings),
@@ -1024,4 +1040,5 @@ mod tests {
     ast_test!(minus_one_literal, &CASE_SENSITIVE);
     ast_test!(precedence1, &CASE_SENSITIVE);
     ast_test!(new_bug, &CASE_SENSITIVE);
+    ast_test!(global_array_declaration, &CASE_SENSITIVE);
 }

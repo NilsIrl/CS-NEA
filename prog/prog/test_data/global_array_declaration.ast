@@ -1,0 +1,3 @@
+Program(vec![
+    Statement::GlobalArrayDeclaration("board".to_string(), vec![Expression::IntegerLiteral(5)]),
+])

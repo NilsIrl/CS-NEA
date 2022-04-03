@@ -261,6 +261,14 @@ fn execute_statements<'a>(
                 let value = eval(value, context);
                 context.environment[0].insert(name, DenotedValue::from(value));
             }
+            Statement::GlobalArrayDeclaration(ref name, dimensions) => {
+                let dimensions: Vec<_> = dimensions
+                    .iter()
+                    .map(|size| eval(size, context).try_into().unwrap())
+                    .collect();
+                context.environment[0]
+                    .insert(name, DenotedValue::new_array_from_dimensions(&dimensions));
+            }
             Statement::ArrayDeclaration(ref name, dimensions) => {
                 let dimensions: Vec<_> = dimensions
                     .iter()
