@@ -1,5 +1,6 @@
 import "xterm/css/xterm.css";
-import * as monaco from "monaco-editor";
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
+
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
