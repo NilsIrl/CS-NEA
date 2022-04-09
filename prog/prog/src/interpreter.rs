@@ -22,14 +22,9 @@ use super::{
 
 #[cfg(unix)]
 fn system(command: String) -> io::Result<String> {
-    use lazy_static::lazy_static;
-    use std::{env, ffi::OsString};
+    use std::env;
 
-    lazy_static! {
-        static ref SHELL: OsString = env::var_os("SHELL").unwrap();
-    };
-
-    std::process::Command::new(&*SHELL)
+    std::process::Command::new(env::var_os("SHELL").unwrap())
         .arg("-c")
         .arg(command)
         .output()
