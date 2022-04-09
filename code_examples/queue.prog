@@ -1,0 +1,58 @@
+function isEmpty()
+	if size == 0 then
+		return true
+	else
+		return false
+	endif
+endfunction
+
+function isFull()
+	if size == maxsize then
+		return true
+	else
+		return false
+	endif
+endfunction
+
+procedure enQueue(item)
+	if isFull() == true then
+		print("Queue full")
+	else
+		rear = (rear + 1) mod maxsize
+		size = size + 1
+		q[rear] = item
+	endif
+endprocedure
+
+function deQueue()
+	if isEmpty() == true then
+		return "Queue empty"
+	else
+		temp = q[front]
+		front = (front + 1) mod maxsize
+		size = size - 1
+		return temp
+	endif
+endfunction
+
+
+global maxsize = 5
+global array q[maxsize]
+global front = 0
+global rear = -1
+global size = 0
+
+enQueue("A")
+enQueue("B")
+enQueue("C")
+enQueue("D")
+enQueue("E")
+enQueue("F")
+print(deQueue())
+print(deQueue())
+enQueue("F")
+print(deQueue())
+print(deQueue())
+print(deQueue())
+print(deQueue())
+print(deQueue())
