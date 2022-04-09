@@ -4,6 +4,7 @@ members = [
     "prog",
     "prog-cli",
     "prog-wasm",
+    "prog-wasm-channel",
 ]
 
 [profile.release]

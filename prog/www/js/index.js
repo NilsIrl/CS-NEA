@@ -4,6 +4,8 @@ import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 
+import { Sender } from "../../prog-wasm-channel/pkg";
+
 const editor = monaco.editor.create(document.getElementById("code-monaco"), {
   value: 'print("Hello World!")',
 });
@@ -56,6 +58,7 @@ function terminate_worker() {
 }
 
 let worker;
+let channel;
 let start_time;
 start_worker();
 
@@ -65,10 +68,18 @@ term.loadAddon(fit_addon);
 term.open(document.getElementById("terminal"));
 fit_addon.fit();
 
-term.onKey((e) => {
-  const ev = e.domEvent;
-  if (ev.ctrlKey && ev.key == "c") {
-    terminate_worker();
+term.onData((e) => {
+  switch (e) {
+    case '\u0003':
+      term.write("^C");
+      terminate_worker();
+      break;
+    case '\r':
+      e = '\n';
+    default:
+      channel.send(e);
+      term.write(e);
+      break;
   }
 });
 
@@ -96,9 +107,11 @@ runButton.addEventListener("click", e => {
   } else {
     term.clear();
     start_time = performance.now();
+    channel = new Sender();
     worker.postMessage({
       type: "code",
       inner: editor.getValue(),
+      channel: channel.replica(),
       settings: settings_dictionary(),
     });
     runButton.innerText = "Stop";

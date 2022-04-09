@@ -1,17 +1,15 @@
 use prog::{ParseSettings, Program};
+use wasm_rs_shared_channel::spsc;
 use std::{
-    io::{BufReader, Read, Write},
-    str,
+    io::{Write, Read, BufReader},
+    str, time::Duration,
 };
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(module = "/js/utils.js")]
 extern "C" {
     #[wasm_bindgen]
     fn print(data: &[u8]);
-
-    #[wasm_bindgen]
-    fn close();
 }
 
 #[derive(Debug)]
@@ -29,14 +27,34 @@ impl Write for WorkerOutput {
     }
 }
 
-#[derive(Debug)]
-struct WorkerInput;
+struct WorkerInput(spsc::Receiver<char>);
 
-impl Read for WorkerInput {
-    fn read(&mut self, _buf: &mut [u8]) -> std::io::Result<usize> {
-        todo!("input on worker")
+impl WorkerInput {
+    fn new(channel: JsValue) -> Self {
+        let (_, receiver) = spsc::SharedChannel::from(channel).split();
+        Self(receiver)
     }
 }
+
+impl Read for WorkerInput {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let mut i = 0;
+        while buf.len() - i >= 4 {
+            match self.0.recv(Some(Duration::from_secs(9999))) {
+                Ok(Some(v)) => {
+                    i += v.encode_utf8(&mut buf[i..]).len();
+                    if v == '\n' {
+                        return Ok(i);
+                    }
+                }
+                Ok(None) => return Ok(i),
+                Err(err) => panic!("{:?}", err),
+            }
+        }
+        Ok(i)
+    }
+}
+
 
 #[wasm_bindgen]
 pub fn init() {
@@ -48,6 +66,7 @@ pub fn init() {
 #[wasm_bindgen]
 pub fn run(
     source: &str,
+    channel: JsValue,
     case_sensitive: bool,
     reject_single_quote_as_quote: bool,
     for_next_not_enforced: bool,
@@ -61,7 +80,7 @@ pub fn run(
         },
     )
     .unwrap();
-    ast.interpret_with_io(WorkerOutput, BufReader::new(WorkerInput));
+    ast.interpret_with_io(WorkerOutput, BufReader::new(WorkerInput::new(channel)));
 }
 
 #[wasm_bindgen]

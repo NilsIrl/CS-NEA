@@ -20,6 +20,9 @@ module.exports = {
     new WasmPackPlugin({
       crateDirectory: path.resolve(__dirname, "../prog-wasm"),
     }),
+    new WasmPackPlugin({
+      crateDirectory: path.resolve(__dirname, "../prog-wasm-channel"),
+    }),
     new MonacoWebpackPlugin({ languages: [] }),
     new CopyPlugin({
       patterns: [
@@ -32,6 +35,10 @@ module.exports = {
       overlay: {
         warnings: false,
       },
+    },
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
     },
   },
 };
