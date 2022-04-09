@@ -77,7 +77,7 @@ impl Program<'_> {
         execute_statements(&self.0, &mut context);
     }
 
-    pub fn interpret_with_io(self, stdout: impl Write , stdin: impl BufRead ) {
+    pub fn interpret_with_io(self, stdout: impl Write, stdin: impl BufRead) {
         let mut context = Context {
             functions: HashMap::new(),
             classes: HashMap::new(),
@@ -181,7 +181,10 @@ fn get_ref(
                             attribute, &class
                         ));
                     if field_data.1 {
-                        panic!("field `{}` is private and cannot be accessed from outside the class `{}`", attribute, &class);
+                        panic!(
+                            "field `{}` is private and cannot be accessed from outside the class `{}`",
+                            attribute, &class
+                        );
                     }
                     Some(values[field_data.0].clone())
                 }
@@ -202,7 +205,7 @@ fn get_ref(
 fn extend_env<'a>(
     reference: &'a Reference,
     value: Value,
-    context: &mut Context<'a, impl Write , impl BufRead >,
+    context: &mut Context<'a, impl Write, impl BufRead>,
 ) -> DenotedValue {
     match get_ref(reference, context) {
         Some(denoted_value) => {
@@ -243,7 +246,7 @@ macro_rules! execute_statements {
 
 fn execute_statements<'a>(
     statements: &'a ListOfStatements<'a>,
-    context: &mut Context<'a, impl Write , impl BufRead >,
+    context: &mut Context<'a, impl Write, impl BufRead>,
 ) -> Value {
     for statement in statements {
         match statement {
@@ -392,7 +395,7 @@ fn apply_method<'a>(
     // whether to enforce private calls
     self_call: bool,
     args: &Vec<Expression>,
-    context: &mut Context<impl Write , impl BufRead >,
+    context: &mut Context<impl Write, impl BufRead>,
 ) -> Value {
     match &*obj.borrow() {
         Value::Object(class_name, field_values) => {
@@ -558,10 +561,7 @@ fn apply_method<'a>(
 
 // We should probably change this to return Value instead of DenotedValue
 // This will prevent assigning to a non trivial expression as a thing
-fn eval(
-    expression: &Expression,
-    context: &mut Context<impl Write , impl BufRead >,
-) -> Value {
+fn eval(expression: &Expression, context: &mut Context<impl Write, impl BufRead>) -> Value {
     match expression {
         Expression::IntegerLiteral(integer) => Value::from(*integer),
         Expression::StringLiteral(str) => Value::from(*str),

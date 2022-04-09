@@ -1,10 +1,11 @@
 use prog::{ParseSettings, Program};
-use wasm_rs_shared_channel::spsc;
 use std::{
-    io::{Write, Read, BufReader},
-    str, time::Duration,
+    io::{BufReader, Read, Write},
+    str,
+    time::Duration,
 };
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use wasm_rs_shared_channel::spsc;
 
 #[wasm_bindgen(module = "/js/utils.js")]
 extern "C" {
@@ -54,7 +55,6 @@ impl Read for WorkerInput {
         Ok(i)
     }
 }
-
 
 #[wasm_bindgen]
 pub fn init() {

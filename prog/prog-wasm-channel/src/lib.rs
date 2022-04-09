@@ -1,5 +1,5 @@
-use wasm_rs_shared_channel::spsc;
 use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+use wasm_rs_shared_channel::spsc;
 
 #[wasm_bindgen]
 pub struct Sender(spsc::Sender<char>);
