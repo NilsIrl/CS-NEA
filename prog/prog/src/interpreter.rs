@@ -9,7 +9,6 @@ use std::{
     io::{self, BufRead, BufReader, Write},
     iter::{self, zip},
     ops::Index,
-    process::Command,
     rc::Rc,
 };
 
@@ -30,7 +29,7 @@ fn system(command: String) -> io::Result<String> {
         static ref SHELL: OsString = env::var_os("SHELL").unwrap();
     };
 
-    Command::new(&*SHELL)
+    std::process::Command::new(&*SHELL)
         .arg("-c")
         .arg(command)
         .output()
@@ -39,7 +38,7 @@ fn system(command: String) -> io::Result<String> {
 
 #[cfg(windows)]
 fn system(command: String) -> io::Result<String> {
-    Command::new("cmd")
+    std::process::Command::new("cmd")
         .arg("/C")
         .arg(command)
         .output()
