@@ -58,6 +58,7 @@ function terminate_worker() {
 }
 
 let worker;
+let current_line = "";
 let channel;
 let start_time;
 start_worker();
@@ -70,14 +71,26 @@ fit_addon.fit();
 
 term.onData((e) => {
   switch (e) {
-    case '\u0003':
+    case "\u0003": // Ctrl + C
       term.write("^C");
       terminate_worker();
       break;
+    case "\u007F": // Backspace
+      if (current_line.length > 0) {
+        term.write("\b \b");
+        current_line = current_line.slice(0, -1);
+      }
+      break;
     case '\r':
-      e = '\n';
+      term.write("\n");
+      for (const c of current_line) {
+        channel.send(c);
+      }
+      channel.send("\n");
+      current_line = "";
+      break;
     default:
-      channel.send(e);
+      current_line += e;
       term.write(e);
       break;
   }
@@ -108,6 +121,7 @@ runButton.addEventListener("click", e => {
     term.clear();
     start_time = performance.now();
     channel = new Sender();
+    current_line = "";
     worker.postMessage({
       type: "code",
       inner: editor.getValue(),
