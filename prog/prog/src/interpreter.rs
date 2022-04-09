@@ -24,7 +24,7 @@ use super::{
 fn system(command: String) -> io::Result<String> {
     use std::env;
 
-    std::process::Command::new(env::var_os("SHELL").unwrap())
+    std::process::Command::new(env::var_os("SHELL").unwrap_or("/bin/sh".into()))
         .arg("-c")
         .arg(command)
         .output()
