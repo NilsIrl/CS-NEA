@@ -455,7 +455,7 @@ fn not_depth(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
             map(
                 preceded(
                     preceded(space0, tag_with_settings("NOT", parse_settings)),
-                    depth3(parse_settings),
+                    not_depth(parse_settings),
                 ),
                 |exp| Expression::Not(Box::new(exp)),
             ),
