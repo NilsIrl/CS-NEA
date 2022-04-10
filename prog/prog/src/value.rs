@@ -158,6 +158,8 @@ impl Add for Value {
         match (self, rhs) {
             (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs + rhs),
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs + rhs),
+            (Value::Integer(lhs), Value::Float(rhs)) => Value::Float(lhs as f64 + rhs),
+            (Value::Float(lhs), Value::Integer(rhs)) => Value::Float(lhs + rhs as f64),
             (Value::String(lhs), Value::String(rhs)) => Value::String(format!("{}{}", lhs, rhs)),
             (lhs, rhs) => panic!("can't add {:?} and {:?}", lhs, rhs),
         }
@@ -183,6 +185,8 @@ impl Sub for Value {
         match (self, rhs) {
             (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs - rhs),
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs - rhs),
+            (Value::Integer(lhs), Value::Float(rhs)) => Value::Float(lhs as f64 - rhs),
+            (Value::Float(lhs), Value::Integer(rhs)) => Value::Float(lhs - rhs as f64),
             (lhs, rhs) => panic!("can't substract {:?} and {:?}", lhs, rhs),
         }
     }
