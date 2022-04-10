@@ -255,6 +255,8 @@ impl Mul for Value {
         match (self, rhs) {
             (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs * rhs),
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs * rhs),
+            (Value::Integer(lhs), Value::Float(rhs)) => Value::Float(lhs as f64 * rhs),
+            (Value::Float(lhs), Value::Integer(rhs)) => Value::Float(lhs * rhs as f64),
             (lhs, rhs) => panic!("Can't multiply {:?} and {:?}", lhs, rhs),
         }
     }
