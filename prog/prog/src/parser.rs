@@ -128,6 +128,9 @@ pub enum Expression<'a> {
     And(Box<Expression<'a>>, Box<Expression<'a>>),
     Or(Box<Expression<'a>>, Box<Expression<'a>>),
     Not(Box<Expression<'a>>),
+
+    UnaryPlus(Box<Expression<'a>>),
+    UnaryMinus(Box<Expression<'a>>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -189,6 +192,19 @@ fn close_bracket(input: &str) -> IResult<&str, char> {
 
 fn comma(input: &str) -> IResult<&str, char> {
     char(',')(input)
+}
+
+fn tag_with_settings<'a>(
+    tag_str: &'a str,
+    parse_settings: &'a ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, &str> + 'a {
+    move |input: &str| {
+        if parse_settings.case_sensitive {
+            tag(tag_str)(input)
+        } else {
+            tag_no_case(tag_str)(input)
+        }
+    }
 }
 
 fn number_literal(input: &str) -> IResult<&str, Expression> {
@@ -322,16 +338,26 @@ fn depth6(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
     }
 }
 
-fn tag_with_settings<'a>(
-    tag_str: &'a str,
-    parse_settings: &'a ParseSettings,
-) -> impl FnMut(&str) -> IResult<&str, &str> + 'a {
+/// Parsing depth for unary operators
+fn unary_depth(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
-        if parse_settings.case_sensitive {
-            tag(tag_str)(input)
-        } else {
-            tag_no_case(tag_str)(input)
-        }
+        alt((
+            preceded(
+                char('-'),
+                map(unary_depth(parse_settings), |exp| {
+                    Expression::UnaryMinus(Box::new(exp))
+                }),
+            ),
+            preceded(
+                char('+'),
+                map(unary_depth(parse_settings), |exp| {
+                    Expression::UnaryPlus(Box::new(exp))
+                }),
+            ),
+            depth6(parse_settings),
+        ))(input)
     }
 }
 
@@ -344,7 +370,7 @@ fn tag_with_settings<'a>(
 // And no vector is allocated (this would happen with the many0 + fold method that was used before)
 fn depth5(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
-        let (input, initial) = depth6(parse_settings)(input)?;
+        let (input, initial) = unary_depth(parse_settings)(input)?;
         match preceded(preceded(space0, tag("*")), depth5(parse_settings))(input) {
             Ok((input, rhs)) => Ok((input, Expression::Times(Box::new(initial), Box::new(rhs)))),
             Err(_) => match preceded(preceded(space0, tag("/")), depth5(parse_settings))(input) {

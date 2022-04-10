@@ -5,7 +5,7 @@ use std::{
     fs::File,
     io::BufReader,
     iter,
-    ops::{Add, AddAssign, Div, Mul, Not, Rem, Sub},
+    ops::{Add, AddAssign, Div, Mul, Neg, Not, Rem, Sub},
     rc::Rc,
 };
 
@@ -98,6 +98,14 @@ impl Value {
             v => panic!("Cannot cast {} to float", v),
         })
     }
+
+    pub fn unary_plus(self) -> Self {
+        match self {
+            Value::Integer(i) => Value::Integer(i),
+            Value::Float(f) => Value::Float(f),
+            val => panic!("Cannot perform unary plus on {:?}", val),
+        }
+    }
 }
 
 impl Default for Value {
@@ -152,6 +160,69 @@ impl Add for Value {
             (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs + rhs),
             (Value::String(lhs), Value::String(rhs)) => Value::String(format!("{}{}", lhs, rhs)),
             (lhs, rhs) => panic!("can't add {:?} and {:?}", lhs, rhs),
+        }
+    }
+}
+
+impl Neg for Value {
+    type Output = Value;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Value::Integer(val) => Value::Integer(-val),
+            Value::Float(val) => Value::Float(-val),
+            v => panic!("Cannot perform unary minus of {:?}", v),
+        }
+    }
+}
+
+impl Sub for Value {
+    type Output = Value;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs - rhs),
+            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs - rhs),
+            (lhs, rhs) => panic!("can't substract {:?} and {:?}", lhs, rhs),
+        }
+    }
+}
+
+impl Rem for Value {
+    type Output = Value;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs % rhs),
+            (lhs, rhs) => panic!("can't calculate the remainder of {:?} and {:?}", lhs, rhs),
+        }
+    }
+}
+
+impl Mul for Value {
+    type Output = Value;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs * rhs),
+            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs * rhs),
+            (Value::Integer(lhs), Value::Float(rhs)) => Value::Float(lhs as f64 * rhs),
+            (Value::Float(lhs), Value::Integer(rhs)) => Value::Float(lhs * rhs as f64),
+            (lhs, rhs) => panic!("Can't multiply {:?} and {:?}", lhs, rhs),
+        }
+    }
+}
+
+impl Div for Value {
+    type Output = Value;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Float(lhs as f64 / rhs as f64),
+            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs / rhs),
+            (Value::Integer(lhs), Value::Float(rhs)) => Value::Float(lhs as f64 / rhs),
+            (Value::Float(lhs), Value::Integer(rhs)) => Value::Float(lhs / rhs as f64),
+            (lhs, rhs) => panic!("Can't divide {:?} and {:?}", lhs, rhs),
         }
     }
 }
@@ -221,57 +292,6 @@ impl TryInto<String> for Value {
         match self {
             Value::String(s) => Ok(s),
             _ => Err(ProgError::NotString),
-        }
-    }
-}
-
-impl Sub for Value {
-    type Output = Value;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs - rhs),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs - rhs),
-            (lhs, rhs) => panic!("can't substract {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
-
-impl Rem for Value {
-    type Output = Value;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs % rhs),
-            (lhs, rhs) => panic!("can't calculate the remainder of {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
-
-impl Mul for Value {
-    type Output = Value;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Integer(lhs * rhs),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs * rhs),
-            (Value::Integer(lhs), Value::Float(rhs)) => Value::Float(lhs as f64 * rhs),
-            (Value::Float(lhs), Value::Integer(rhs)) => Value::Float(lhs * rhs as f64),
-            (lhs, rhs) => panic!("Can't multiply {:?} and {:?}", lhs, rhs),
-        }
-    }
-}
-
-impl Div for Value {
-    type Output = Value;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        match (self, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => Value::Float(lhs as f64 / rhs as f64),
-            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs / rhs),
-            (Value::Integer(lhs), Value::Float(rhs)) => Value::Float(lhs as f64 / rhs),
-            (Value::Float(lhs), Value::Integer(rhs)) => Value::Float(lhs / rhs as f64),
-            (lhs, rhs) => panic!("Can't divide {:?} and {:?}", lhs, rhs),
         }
     }
 }

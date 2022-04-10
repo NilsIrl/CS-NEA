@@ -1,8 +1,7 @@
 Program(
     vec![
         Statement::Expression(
-            Expression::IntegerLiteral(
-                -1,
+            Expression::UnaryMinus(Box::new(Expression::IntegerLiteral(1))
             ),
         ),
     ],

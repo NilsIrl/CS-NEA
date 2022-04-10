@@ -865,6 +865,12 @@ fn eval(expression: &Expression, context: &mut Context<impl Write, impl BufRead>
                 panic!("Cannot create new instance of non class")
             }
         }
+        Expression::UnaryPlus(exp) => {
+            eval(exp, context)
+        }
+        Expression::UnaryMinus(exp) => {
+            -eval(exp, context)
+        }
     }
 }
 
