@@ -278,22 +278,20 @@ fn execute_statements<'a>(
                     .insert(name, DenotedValue::new_array_from_dimensions(&dimensions));
             }
             Statement::For(Assignment(var, begin), end, step, body) => {
-                let counter = eval(begin, context);
+                let mut counter = eval(begin, context);
                 let end = eval(end, context);
                 let step = eval(step, context);
                 let step_is_positive_or_zero = step >= Value::from(0);
-                let mut counter = extend_env(var, counter, context);
+                let counter_ref = extend_env(var, counter.clone(), context);
 
                 while {
-                    step_is_positive_or_zero && *counter.borrow() <= end
-                        || !step_is_positive_or_zero && *counter.borrow() >= end
+                    step_is_positive_or_zero && counter.clone() <= end
+                        || !step_is_positive_or_zero && counter.clone() >= end
                 } {
                     execute_statements!(body, context);
-                    // This clone is cheap because it is an Rc<_>
-                    // However I feel like there must be a better solution
-                    //
-                    // The counter is also updated in the environment because the clone is an Rc
-                    counter += &step;
+
+                    counter = counter + step.clone();
+                    counter_ref.replace(counter.clone());
                 }
                 // TODO: We should probably remove the variable from the environment once we are done
             }
@@ -865,12 +863,8 @@ fn eval(expression: &Expression, context: &mut Context<impl Write, impl BufRead>
                 panic!("Cannot create new instance of non class")
             }
         }
-        Expression::UnaryPlus(exp) => {
-            eval(exp, context)
-        }
-        Expression::UnaryMinus(exp) => {
-            -eval(exp, context)
-        }
+        Expression::UnaryPlus(exp) => eval(exp, context),
+        Expression::UnaryMinus(exp) => -eval(exp, context),
     }
 }
 

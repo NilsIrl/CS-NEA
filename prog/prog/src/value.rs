@@ -5,7 +5,7 @@ use std::{
     fs::File,
     io::BufReader,
     iter,
-    ops::{Add, AddAssign, Div, Mul, Neg, Not, Rem, Sub},
+    ops::{Add, Div, Mul, Neg, Not, Rem, Sub},
     rc::Rc,
 };
 
@@ -138,16 +138,6 @@ impl Not for &Value {
             Value::Boolean(false) => Value::Boolean(true),
             _ => panic!("Cannot compute logical negation of {:?}", self),
         }
-    }
-}
-
-impl AddAssign<&Value> for Value {
-    fn add_assign(&mut self, other: &Self) {
-        match (self, other) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => *lhs += rhs,
-            (Value::Float(lhs), Value::Float(rhs)) => *lhs += rhs,
-            (lhs, rhs) => panic!("can't add_assign {:?} and {:?}", lhs, rhs),
-        };
     }
 }
 
@@ -366,13 +356,6 @@ impl From<Value> for DenotedValue {
         DenotedValue(Rc::new(RefCell::new(v)))
     }
 }
-
-impl AddAssign<&Value> for DenotedValue {
-    fn add_assign(&mut self, other: &Value) {
-        *self.0.borrow_mut() += other;
-    }
-}
-
 impl PartialEq for DenotedValue {
     fn eq(&self, other: &Self) -> bool {
         &*self.0.borrow() == &*other.0.borrow()
@@ -404,16 +387,6 @@ impl PartialOrd for Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn add_assign_test1() {
-        let mut val1 = DenotedValue::from(Value::Integer(2));
-        let val2 = Value::Integer(5);
-        val1 += &val2;
-        assert_eq!(val1, DenotedValue::from(Value::Integer(7)));
-        val1 += &val2;
-        assert_eq!(val1, DenotedValue::from(Value::Integer(12)));
-    }
 
     #[test]
     fn new_array_test() {
