@@ -1,0 +1,12 @@
+function sqrt(number)
+    return number^0.5
+endfunction
+
+a = real(input("Enter the first coefficient: "))
+b = real(input("Enter the second coefficient: "))
+c = real(input("Enter the third coefficient: "))
+
+first_solution = (-b + sqrt(b^2 - 4 * a * c)) / (2 * a)
+second_solution = (-b - sqrt(b^2 - 4 * a * c)) / (2 * a)
+
+print("first solution is " + str(first_solution) + " and the second solution is " + str(second_solution))
