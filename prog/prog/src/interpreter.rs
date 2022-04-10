@@ -983,4 +983,5 @@ mod tests {
     output_test!(do_until1);
     output_test!(access_level_methods1, &ParseSettings::reject_single_quote());
     output_test!(quadratic_solver);
+    output_test!(unary_chain);
 }

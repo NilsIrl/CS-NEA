@@ -1,0 +1,14 @@
+a = 3
+b = True
+print(a)
+print(-a)
+print(--a)
+print(---a)
+print(----a)
+print(-----a)
+print(b)
+print(NOT b)
+print(NOT NOT b)
+print(NOT NOT NOT b)
+print(NOT NOT NOT NOT b)
+print(NOT NOT NOT NOT NOT b)
