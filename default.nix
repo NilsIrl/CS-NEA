@@ -9,7 +9,8 @@ pkgs.mkShell {
     pkgs.python39Packages.pygments
     pkgs.biber
     pkgs.wasm-pack
-    pkgs.tectonic
-    pkgs.texlive.combined.scheme-full
+    (pkgs.texlive.combine {
+      inherit (pkgs.texlive) scheme-minimal latexmk newunicodechar babel import hyperref biblatex caption adjustbox makecell siunitx attachfile2 minted letltxmacro xkeyval collectbox pgf fvextra upquote lineno fancyvrb catchfile xstring framed float collection-latex;
+    })
   ];
 }
