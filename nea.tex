@@ -1,5 +1,7 @@
 \documentclass{article}
 
+\usepackage{geometry}
+
 \usepackage[utf8]{inputenc}
 %\usepackage{fontspec}
 \usepackage{newunicodechar}
@@ -33,10 +35,14 @@
 \ifluatex
 % Lualatex
 \usepackage[outputdir=build]{minted}
+\setminted{breaklines=true}
+
 \newcommand{\inputmintedgrey}[2]{\inputminted[bgcolor=bg]{#1}{#2}}
 \else
 % Tectonic
-\usepackage[]{minted}
+\usepackage{minted}
+\setminted{breaklines=true}
+
 \usepackage{letltxmacro}
 
 % redefine \inputminted to work with tectonic
@@ -1003,7 +1009,7 @@ Another difficult issue to tackle was how we were going to implement
 exponentiation. This is a very complex operation which on one hand people
 generally wish to return an integer if possible but on the other hand requires
 to return a floating point value if need be. We settled for a design inspired
-from python which can be found in \autoref{lst:power_alg}.
+from python which can be found in listing \ref{lst:power_alg}.
 
 \begin{listing}
 	\begin{minted}{text}
@@ -2240,7 +2246,7 @@ so that building the web application would not include dependencies used by the
 CLI.
 
 With all of that done, the language is now available from the web! At the
-following address: \url{https://nilsirl.github.io/CS-NEA/}.
+following address: \url{https://prog.tools.nilsand.re/}.
 
 \subsection{Stage \subsecnum}
 
@@ -2645,6 +2651,65 @@ operation that is time consuming.
 After the fix was implemented \autoref{fig:global_array_declaration_success}
 demonstrates that the fix worked and was effective.
 
+\subsection{Stage \subsecnum}
+
+For this stage we wanted to test our programming language further and to do so,
+we wrote a small program which calculates the roots of a quadratic equation.
+
+\begin{listing}
+	\inputminted{text}{./code_examples/quadratic_solver.prog}
+	\caption{Source code for the quadratic equation solver}
+	\label{lst:quadratic_solver}
+\end{listing}
+
+However, it did not run successfully because of some unimplemented features in
+the language as can be seen in \autoref{fig:quadratic_solver}. Becaues of this
+we decided to add it as a test to our test suite and implement the features
+required.
+
+\begin{figure}
+	\begin{minted}{text}
+% prog-cli ./code_examples/quadratic_solver.prog
+Enter the first coefficient: 1
+Enter the second coefficient: -3
+Enter the third coefficient: -10
+thread 'main' panicked at 'Reference `Identifier("-b")` is not defined', prog/src/interpreter.rs:677:14
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+	\end{minted}
+	\caption{Ouput of running the quadratic solver}
+	\label{fig:quadratic_solver}
+\end{figure}
+
+We can see from the error message that ``\texttt{-b}'' was recognised as its
+own identifier instead of as the negative of b. This is because unary
+operations have not been implemented in the language so we will implement them.
+
+We decided to implement both unary plus and unary minus operations to be less
+restrictive however not implementing unary plus is always a possibility. For
+example \citetitle{rust} does not implement the unary plus operation leading to
+a parsing error however python does support the operation.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{unary_minus_causes_regression}
+	\caption{Screenshot of a test failing after adding the unary minus operator}
+	\label{fig:unary_minus_causes_regression}
+\end{figure}
+
+However this caused another test to regress as can be seen in
+\autoref{fig:unary_minus_causes_regression}. This is a test we added in an
+earlier stage when we couldn't parse negative numbers. However the solution we
+implemented at the time is inadequate and this one is more appropriate as it is
+more general. To fix this failing test we will simply change the \texttt{.ast}
+file to match the new output.
+
+Now all the tests pass as can be seen in \autoref{fig:unary_minus_test_pass}.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{unary_minus_test_pass}
+	\caption{Screenshot of tests passing after the changes are implemented}
+	\label{fig:unary_minus_test_pass}
+\end{figure}
+
 \section{Evaluation}
 
 % implement better cli with features
@@ -2737,7 +2802,7 @@ This playground is fully functional and supports all the features of the
 language except the ones that do not make sense on the web, such as file
 operations and the \texttt{system} function. However a function that was
 originally planned was the use of the \texttt{input()} function to accept input
-from the user.  Unfortunately this function does not work on the playground
+from the user. Unfortunately this function does not work on the playground
 because of JavaScript's and the web's asynchronous nature. It is not possible
 for our synchronous web assembly module to wait for input from the user as that
 would necessarily require our program to work asynchronously. In order to fix
@@ -2754,7 +2819,17 @@ of the JavaScript API. There are also packages such as
 \citetitle{shared_channel} which implement the channel already, although because
 of the way \citetitle{shared_channel} is implemented, it would require creating
 a new crate in our project which both the WebAssembly module and the web page
-would depend on to communicate using a common language.
+would depend on to communicate using a common language. However because of the
+use of the \texttt{SharedArrayBuffer} this would require setting certain HTTP
+response headers from the server for security purposes\footnote{These
+requirements were introduced in light of the Spectre vulnerabilities} which
+would mean changing hosting provider as as of the time of writing GitHub Pages
+don't support setting HTTP headers. However there are alternatives to GitHub
+Pages like Cloudflare Pages which support headers at no additional cost so this
+doesn't defeat the economic advantage of having a static website\footnote{After
+completion of the NEA, we implemented input on the playground which meant
+having to change the hosting provider so the playground linked is actually
+hosted on Cloudflare Pages and does support \texttt{input()}}.
 
 In regards to additional features we had envisioned for the language and to
 make it more usable, we have implemented only the playground. Considering the
@@ -2996,9 +3071,9 @@ OCR pseudocode in older specifications such as the A-level one).
 Our developed project has a modular structure made up of the back-end. A parser
 and interpreter for the programming language. And it features, two front-ends,
 a command-line interface downloadable from
-\url{https://nilsirl.github.io/CS-NEA/prog-cli.exe} and a web interface
-developed using the help of Web Assembly available at
-\url{https://nilsirl.github.io/CS-NEA/}.
+\url{https://prog.tools.nilsand.re/prog-cli.exe} and a web interface developed
+using the help of Web Assembly available at
+\url{https://prog.tools.nilsand.re/}.
 
 Although they are still minor bugs in the software we consider our project
 mainly completed to a very high standard of development and with very low
@@ -3030,7 +3105,7 @@ In order to compile the final project, here is a list of dependencies:
 \end{itemize}
 
 A pre-compiled binary for windows is available at
-\url{https://nilsirl.github.io/CS-NEA/prog-cli.exe}.
+\url{https://prog.tools.nilsand.re/prog-cli.exe}.
 
 \subsection{Running / Structure of the files}
 
@@ -3062,6 +3137,8 @@ support attachments, Firefox and Adobe Acrobat Reader are known to work,
 macOS's Preview and Google Chrome \textbf{do not} work).
 
 \subsection{Listing}
+
+\newgeometry{margin=1in}
 
 \input{./final_files.tex}
 
