@@ -932,10 +932,9 @@ mod tests {
                     Ok(file) => program.interpret_with_io(&mut stdout, io::BufReader::new(file)),
                     Err(_) => program.interpret_with_io(&mut stdout, io::Cursor::new(Vec::new())),
                 };
-                print!("{}", std::str::from_utf8(&stdout).unwrap());
                 assert_eq!(
-                    stdout,
-                    include_bytes!(concat!(
+                    std::str::from_utf8(&stdout).unwrap(),
+                    include_str!(concat!(
                         "../test_data/",
                         stringify!($function_name),
                         ".output"
