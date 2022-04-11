@@ -3,7 +3,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case, take_till, take_while},
     character::complete::{self, char, i64, not_line_ending, satisfy},
-    combinator::{all_consuming, eof, map, map_opt, map_res, opt, recognize, value, verify},
+    combinator::{all_consuming, eof, map, map_opt, map_res, opt, peek, recognize, value, verify},
     error::{ErrorKind, FromExternalError, ParseError},
     multi::{many0, separated_list0, separated_list1},
     number::complete::double,
@@ -85,12 +85,17 @@ fn space0(input: &str) -> IResult<&str, &str> {
 fn space1(input: &str) -> IResult<&str, &str> {
     alt((
         complete::multispace1,
-        recognize(tuple((
-            complete::multispace0,
-            comment,
-            complete::multispace0,
-        ))),
+        recognize(verify(
+            recognize(tuple((
+                complete::multispace0,
+                comment,
+                complete::multispace0,
+            ))),
+            |s: &str| !s.is_empty(),
+        )),
         eof,
+        peek(recognize(open_bracket)),
+        peek(recognize(satisfy(|c| c.is_ascii_digit()))),
     ))(input)
 }
 
@@ -222,50 +227,51 @@ fn number_literal(input: &str) -> IResult<&str, Expression> {
 
 fn terminal(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
-        preceded(
-            space0,
-            alt((
-                delimited(open_bracket, expression(parse_settings), close_bracket),
-                map(
-                    delimited(
-                        quote(parse_settings),
-                        take_till(is_quote(parse_settings)),
-                        quote(parse_settings),
-                    ),
-                    |string_const| Expression::StringLiteral(string_const),
+        alt((
+            delimited(
+                open_bracket,
+                token(expression(parse_settings)),
+                close_bracket,
+            ),
+            map(
+                delimited(
+                    quote(parse_settings),
+                    take_till(is_quote(parse_settings)),
+                    quote(parse_settings),
                 ),
-                map(tag_with_settings("true", parse_settings), |_| {
-                    Expression::BoolLiteral(true)
-                }),
-                map(tag_with_settings("false", parse_settings), |_| {
-                    Expression::BoolLiteral(false)
-                }),
-                number_literal,
-                map_res(
-                    preceded(
-                        pair(tag_with_settings("new", parse_settings), space1),
-                        expression(parse_settings),
-                    ),
-                    |expression| match expression {
-                        Expression::Call(call) => Ok(Expression::New(call)),
-                        _ => Err(()),
-                    },
+                |string_const| Expression::StringLiteral(string_const),
+            ),
+            map(tag_with_settings("true", parse_settings), |_| {
+                Expression::BoolLiteral(true)
+            }),
+            map(tag_with_settings("false", parse_settings), |_| {
+                Expression::BoolLiteral(false)
+            }),
+            number_literal,
+            map_res(
+                preceded(
+                    pair(tag_with_settings("new", parse_settings), space1),
+                    expression(parse_settings),
                 ),
-                //map(call(parse_settings), Expression::FunctionCall),
-                map(identifier(parse_settings), |identifier| {
-                    Expression::Reference(Reference::Identifier(identifier))
-                }),
-                map(tag_with_settings("true", parse_settings), |_| {
-                    Expression::BoolLiteral(true)
-                }),
-                map(tag_with_settings("false", parse_settings), |_| {
-                    Expression::BoolLiteral(false)
-                }),
-                map(tag_with_settings("null", parse_settings), |_| {
-                    Expression::NullLiteral
-                }),
-            )),
-        )(input)
+                |expression| match expression {
+                    Expression::Call(call) => Ok(Expression::New(call)),
+                    _ => Err(()),
+                },
+            ),
+            //map(call(parse_settings), Expression::FunctionCall),
+            map(identifier(parse_settings), |identifier| {
+                Expression::Reference(Reference::Identifier(identifier))
+            }),
+            map(tag_with_settings("true", parse_settings), |_| {
+                Expression::BoolLiteral(true)
+            }),
+            map(tag_with_settings("false", parse_settings), |_| {
+                Expression::BoolLiteral(false)
+            }),
+            map(tag_with_settings("null", parse_settings), |_| {
+                Expression::NullLiteral
+            }),
+        ))(input)
     }
 }
 
@@ -285,7 +291,7 @@ fn call_depth(
                 Err(nom::Err::Error(_)) => {
                     match delimited(
                         token(char('[')),
-                        separated_list1(token(comma), expression(parse_settings)),
+                        separated_list1(token(comma), token(expression(parse_settings))),
                         token(char(']')),
                     )(input)
                     {
@@ -301,7 +307,7 @@ fn call_depth(
                         Err(nom::Err::Error(_)) => {
                             match delimited(
                                 token(open_bracket),
-                                separated_list0(token(comma), expression(parse_settings)),
+                                separated_list0(token(comma), token(expression(parse_settings))),
                                 token(close_bracket),
                             )(input)
                             {
@@ -325,15 +331,16 @@ fn call_depth(
 fn depth6(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
         let (input, initial) = call_depth(parse_settings)(input)?;
-        let (input, rest) = many0(preceded(
-            preceded(space0, tag("^")),
-            call_depth(parse_settings),
+        let (input, rest) = opt(preceded(
+            preceded(space0, char('^')),
+            depth6(parse_settings),
         ))(input)?;
         Ok((
             input,
-            rest.into_iter().fold(initial, |acc, current| {
-                Expression::Power(Box::new(acc), Box::new(current))
-            }),
+            match rest {
+                Some(rest) => Expression::Power(Box::new(initial), Box::new(rest)),
+                None => initial,
+            },
         ))
     }
 }
@@ -345,13 +352,13 @@ fn unary_depth(
     move |input: &str| {
         alt((
             preceded(
-                char('-'),
+                terminated(char('-'), space0),
                 map(unary_depth(parse_settings), |exp| {
                     Expression::UnaryMinus(Box::new(exp))
                 }),
             ),
             preceded(
-                char('+'),
+                terminated(char('+'), space0),
                 map(unary_depth(parse_settings), |exp| {
                     Expression::UnaryPlus(Box::new(exp))
                 }),
@@ -371,33 +378,35 @@ fn unary_depth(
 fn depth5(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
         let (input, initial) = unary_depth(parse_settings)(input)?;
-        match preceded(preceded(space0, tag("*")), depth5(parse_settings))(input) {
+        match preceded(pair(space0, char('*')), token(depth5(parse_settings)))(input) {
             Ok((input, rhs)) => Ok((input, Expression::Times(Box::new(initial), Box::new(rhs)))),
-            Err(_) => match preceded(preceded(space0, tag("/")), depth5(parse_settings))(input) {
-                Ok((input, rhs)) => {
-                    Ok((input, Expression::Divide(Box::new(initial), Box::new(rhs))))
-                }
-                Err(_) => match preceded(
-                    preceded(space0, tag_with_settings("MOD", parse_settings)),
-                    depth5(parse_settings),
-                )(input)
-                {
+            Err(_) => {
+                match preceded(preceded(space0, char('/')), token(depth5(parse_settings)))(input) {
                     Ok((input, rhs)) => {
-                        Ok((input, Expression::Modulus(Box::new(initial), Box::new(rhs))))
+                        Ok((input, Expression::Divide(Box::new(initial), Box::new(rhs))))
                     }
                     Err(_) => match preceded(
-                        preceded(space0, tag_with_settings("DIV", parse_settings)),
-                        depth5(parse_settings),
+                        preceded(space0, tag_with_settings("MOD", parse_settings)),
+                        preceded(space1, depth5(parse_settings)),
                     )(input)
                     {
-                        Ok((input, rhs)) => Ok((
-                            input,
-                            Expression::Quotient(Box::new(initial), Box::new(rhs)),
-                        )),
-                        Err(_) => Ok((input, initial)),
+                        Ok((input, rhs)) => {
+                            Ok((input, Expression::Modulus(Box::new(initial), Box::new(rhs))))
+                        }
+                        Err(_) => match preceded(
+                            preceded(space0, tag_with_settings("DIV", parse_settings)),
+                            preceded(space1, depth5(parse_settings)),
+                        )(input)
+                        {
+                            Ok((input, rhs)) => Ok((
+                                input,
+                                Expression::Quotient(Box::new(initial), Box::new(rhs)),
+                            )),
+                            Err(_) => Ok((input, initial)),
+                        },
                     },
-                },
-            },
+                }
+            }
         }
     }
 }
@@ -405,23 +414,28 @@ fn depth5(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
 fn depth4(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
         let (input, initial) = depth5(parse_settings)(input)?;
-        let (input, rest) = many0(pair(
-            preceded(space0, alt((tag("+"), tag("-")))),
-            preceded(space0, depth5(parse_settings)),
+        let (input, rest) = opt(pair(
+            preceded(space0, alt((char('+'), char('-')))),
+            preceded(space0, depth4(parse_settings)),
         ))(input)?;
-        Ok((input, rest.into_iter().fold(initial, |prev, current| match current.0 {
-                "+" => Expression::Plus,
-                "-" => Expression::Minus,
-                _ => unreachable!(),
-            }
-            (Box::new(prev), Box::new(current.1)))))
+        Ok((
+            input,
+            match rest {
+                Some(rest) => (match rest.0 {
+                    '+' => Expression::Plus,
+                    '-' => Expression::Minus,
+                    _ => unreachable!(),
+                })(Box::new(initial), Box::new(rest.1)),
+                None => initial,
+            },
+        ))
     }
 }
 
 fn depth3(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
     move |input: &str| {
         let (input, initial) = depth4(parse_settings)(input)?;
-        let (input, rest) = many0(pair(
+        let (input, rest) = opt(pair(
             preceded(
                 space0,
                 alt((
@@ -433,19 +447,23 @@ fn depth3(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
                     tag(">"),
                 )),
             ),
-            preceded(space0, depth4(parse_settings)),
+            preceded(space0, depth3(parse_settings)),
         ))(input)?;
-        Ok((input, rest.into_iter().fold(initial, |acc, current| match current.0 {
-                "==" => Expression::Equal,
-                "!=" => Expression::NotEqual,
-                "<=" => Expression::LessThanOrEqual,
-                ">=" => Expression::GreaterThanOrEqual,
-                "<" => Expression::LessThan,
-                ">" => Expression::GreaterThan,
-                _ => unreachable!(),
-            }
-            (Box::new(acc), Box::new(current.1))
-    )))
+        Ok((
+            input,
+            match rest {
+                Some(rest) => (match rest.0 {
+                    "==" => Expression::Equal,
+                    "!=" => Expression::NotEqual,
+                    "<=" => Expression::LessThanOrEqual,
+                    ">=" => Expression::GreaterThanOrEqual,
+                    "<" => Expression::LessThan,
+                    ">" => Expression::GreaterThan,
+                    _ => unreachable!(),
+                })(Box::new(initial), Box::new(rest.1)),
+                None => initial,
+            },
+        ))
     }
 }
 
@@ -454,8 +472,8 @@ fn not_depth(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str
         alt((
             map(
                 preceded(
-                    preceded(space0, tag_with_settings("NOT", parse_settings)),
-                    not_depth(parse_settings),
+                    tag_with_settings("NOT", parse_settings),
+                    preceded(space1, not_depth(parse_settings)),
                 ),
                 |exp| Expression::Not(Box::new(exp)),
             ),
@@ -500,6 +518,13 @@ fn depth1(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, E
     }
 }
 
+// depth added to deal with references
+fn expression(
+    parse_settings: &ParseSettings,
+) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
+    move |input: &str| depth1(parse_settings)(input)
+}
+
 const QUOTES: [char; 3] = ['"', '“', '”'];
 
 fn is_quote(parse_settings: &ParseSettings) -> impl Fn(char) -> bool + '_ {
@@ -512,15 +537,8 @@ fn quote(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, ch
     move |input: &str| satisfy(is_quote(parse_settings))(input)
 }
 
-// depth added to deal with references
-fn expression(
-    parse_settings: &ParseSettings,
-) -> impl FnMut(&str) -> IResult<&str, Expression> + '_ {
-    move |input: &str| depth1(parse_settings)(input)
-}
-
 fn is_identifer_char(c: char) -> bool {
-    c.is_ascii_alphanumeric() || c == '_' || c == '-'
+    c.is_ascii_alphanumeric() || c == '_'
 }
 
 // TODO: this only contains the endings, the beginnings are not necessary for parsing
@@ -596,7 +614,7 @@ fn assignment(
     move |input: &str| {
         let (input, (left, right)) = tuple((
             expression(parse_settings),
-            preceded(preceded(space0, char('=')), expression(parse_settings)),
+            preceded(token(char('=')), token(expression(parse_settings))),
         ))(input)?;
         match left {
             Expression::Reference(left) => Ok((input, Assignment(left, right))),
@@ -614,7 +632,7 @@ fn global_assignment_statement(
                 pair(tag_with_settings("global", parse_settings), space1),
                 identifier(parse_settings),
             ),
-            preceded(preceded(space0, char('=')), expression(parse_settings)),
+            preceded(token(char('=')), token(expression(parse_settings))),
         ))(input)?;
         Ok((input, Statement::GlobalAssignment(identifier, expression)))
     }
@@ -648,7 +666,7 @@ fn array_declaration(
                 ),
                 delimited(
                     token(char('[')),
-                    separated_list1(token(comma), expression(parse_settings)),
+                    separated_list1(token(comma), token(expression(parse_settings))),
                     token(char(']')),
                 ),
             ),
@@ -712,13 +730,13 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
         let (input, (end_expression, step_expression, body)) = terminated(
             tuple((
                 preceded(
-                    pair(space1, tag_with_settings("to", parse_settings)),
+                    tuple((space1, tag_with_settings("to", parse_settings), space1)),
                     expression(parse_settings),
                 ),
                 // Maybe depending on the preceding expression, space1 could be
                 // replaced by space0
                 opt(preceded(
-                    pair(space1, tag_with_settings("step", parse_settings)),
+                    tuple((space1, tag_with_settings("step", parse_settings), space1)),
                     expression(parse_settings),
                 ))
                 .map(|step_expression| step_expression.unwrap_or(Expression::IntegerLiteral(1))),
@@ -753,7 +771,7 @@ fn for_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str,
 fn while_loop(parse_settings: &ParseSettings) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, (exp, body)) = delimited(
-            tag_with_settings("while", parse_settings),
+            pair(tag_with_settings("while", parse_settings), space1),
             pair(
                 expression(parse_settings),
                 list_of_statements(parse_settings),
@@ -774,7 +792,7 @@ fn do_until_loop(
                 list_of_statements(parse_settings),
             ),
             preceded(
-                pair(space0, tag_with_settings("until", parse_settings)),
+                tuple((space0, tag_with_settings("until", parse_settings), space1)),
                 expression(parse_settings),
             ),
         )(input)?;
@@ -787,7 +805,7 @@ fn if_statement(
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, (exp, body, elseifs, else_body)) = delimited(
-            tag_with_settings("if", parse_settings),
+            pair(tag_with_settings("if", parse_settings), space1),
             tuple((
                 expression(parse_settings),
                 preceded(
@@ -795,7 +813,7 @@ fn if_statement(
                     list_of_statements(parse_settings),
                 ),
                 many0(preceded(
-                    pair(space0, tag_with_settings("elseif", parse_settings)),
+                    tuple((space0, tag_with_settings("elseif", parse_settings), space1)),
                     pair(
                         expression(parse_settings),
                         preceded(
@@ -833,7 +851,7 @@ fn switch_statement(
 ) -> impl FnMut(&str) -> IResult<&str, Statement> + '_ {
     move |input: &str| {
         let (input, exp) = delimited(
-            tag_with_settings("switch", parse_settings),
+            terminated(tag_with_settings("switch", parse_settings), space1),
             expression(parse_settings),
             pair(space0, char(':')),
         )(input)?;
@@ -843,7 +861,7 @@ fn switch_statement(
                 pair(
                     alt((
                         preceded(
-                            tag_with_settings("case", parse_settings),
+                            terminated(tag_with_settings("case", parse_settings), space1),
                             map(expression(parse_settings), |rhs| {
                                 Expression::Equal(Box::new(exp.clone()), Box::new(rhs))
                             }),
@@ -941,7 +959,7 @@ fn return_statement(
     move |input: &str| {
         map(
             preceded(
-                tag_with_settings("return", parse_settings),
+                terminated(tag_with_settings("return", parse_settings), space1),
                 expression(parse_settings),
             ),
             Statement::Return,
