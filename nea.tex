@@ -2871,7 +2871,10 @@ can be fixed by cloning values instead of passing references to them. Cloning a
 value is an expensive operation which requires memory allocation and ultimately
 results in decreased performance.}. In particular when implementing
 precedence we have to write very nested and difficult to read code, something
-that would have been avoided had a parser generator been used instead.
+that would have been avoided had a parser generator been used instead. Overall
+durring the development many bugs occured in the parser and it is a section
+that is difficult to debug due to its terrible error making the maintenance
+even more difficult.
 
 Another major maintenance issue with the parser is its testing. When testing
 it, abstract syntax tree produced is compared to an abstract syntax tree loaded
@@ -3028,6 +3031,13 @@ to quickly develop their programs and trying out the different features the
 language provides without having to run everything from scratch. A REPL could
 also be used to then build a debugger where once a break point is reached the
 user can type commands as if they were in the language.
+
+Additionally currently there are no settings for the interpreter, only some for
+the parser. This means that additional features we added in the interpter such
+as the system function aren't behind a flag/setting and are always enabled. It
+would be beneficial to add support for these settings something that can be
+done by adding settings within the \texttt{Context} struct, an object that is
+alive for the entire duration of the interpreter.
 
 Although not of great interest considering the use case of the language, an
 evolutionary step that could be taken would be the implement a compiler for the
