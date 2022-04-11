@@ -991,11 +991,14 @@ because it was never strictly defined in the exam specifications from OCR. For
 example the format of identifiers (class, function and variable names) is not
 defined. So we decided to have a design similar to most languages (such as
 python and rust): identifiers can be made of letters and digits, as well as
-underscores and dashes however they cannot start with a digit. The reason most
-languages do this and we have decided to follow their decision is because
-having an identifier start with a digit makes parsing more difficult as a
-integer literal parser could succeed when what is being parsed is not a number
-but rather an identifier.
+underscores however they cannot start with a digit\footnote{These are the same
+rules as for python:
+\url{https://docs.python.org/3/reference/lexical_analysis.html\#identifiers}}.
+The reason most languages do this and we have decided to follow their decision
+is because having an identifier start with a digit makes parsing more difficult
+as a integer literal parser could succeed when what is being parsed is not a
+number but rather an identifier. Identifiers also cannot contain dashes as
+these are used for the minus sign.
 
 The last two design decisions have been made due to parsers not being mutually
 successful (i.e. multiple parsers can succeed for a given input).
