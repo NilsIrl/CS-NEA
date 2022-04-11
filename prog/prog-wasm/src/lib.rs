@@ -7,10 +7,14 @@ use std::{
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use wasm_rs_shared_channel::spsc;
 
-#[wasm_bindgen(module = "/js/utils.js")]
+#[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen]
-    fn print(data: &[u8]);
+    fn postMessage(data: &str);
+}
+
+fn print(data: &[u8]) {
+    postMessage(str::from_utf8(data).unwrap());
 }
 
 #[derive(Debug)]

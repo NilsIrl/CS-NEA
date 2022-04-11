@@ -21,21 +21,25 @@ const allowSingleQuotesCheckbox = document.getElementById("allow-single-quotes")
 const allowWrongNextCheckbox = document.getElementById("allow-wrong-next");
 
 function workerListener(e) {
-  switch (e.data.type) {
-    case "print":
-      term.write(e.data.inner);
-      break;
-    case "done":
-      runButton.innerText = "Run!";
-      if (timeCheckbox.checked) {
-        const timeElapsed = (performance.now() - start_time) / 1000;
-        term.write(`${timeElapsed} seconds elapsed.\n`)
-      }
-      break;
-    case "ready":
-      runButton.disabled = false;
-      printAstButton.disabled = false;
-      break;
+  if (typeof e.data == "string") {
+    term.write(e.data);
+  } else {
+    switch (e.data.type) {
+      case "print":
+        term.write(e.data.inner);
+        break;
+      case "done":
+        runButton.innerText = "Run!";
+        if (timeCheckbox.checked) {
+          const timeElapsed = (performance.now() - start_time) / 1000;
+          term.write(`${timeElapsed} seconds elapsed.\n`)
+        }
+        break;
+      case "ready":
+        runButton.disabled = false;
+        printAstButton.disabled = false;
+        break;
+    }
   }
 }
 
