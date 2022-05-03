@@ -2805,34 +2805,46 @@ This playground is fully functional and supports all the features of the
 language except the ones that do not make sense on the web, such as file
 operations and the \texttt{system} function. However a function that was
 originally planned was the use of the \texttt{input()} function to accept input
-from the user. Unfortunately this function does not work on the playground
+from the user. Unfortunately, this function does not work on the playground
 because of JavaScript's and the web's asynchronous nature. It is not possible
 for our synchronous web assembly module to wait for input from the user as that
 would necessarily require our program to work asynchronously. In order to fix
 this issue, there are two ways that we can think of. Firstly, convert our
-program to be asynchronous. This is an option that is possible as rust's Future
-is compatible with JavaScript Promises, the types that represent something that
-has not yet been computed in the respective languages. However it would mean
-rewriting large portions of our interpreter and adding dependencies to
-asynchronous runtimes, all of that for something that already works for the CLI
-interface. Another solution would be to use a channel between the worker and the
-web page that is synchronous. This is possible with the
-\texttt{SharedArrayBuffer} type in combination with the \texttt{Atomics} module
-of the JavaScript API. There are also packages such as
-\citetitle{shared_channel} which implement the channel already, although because
-of the way \citetitle{shared_channel} is implemented, it would require creating
-a new crate in our project which both the WebAssembly module and the web page
-would depend on to communicate using a common language. However because of the
-use of the \texttt{SharedArrayBuffer} this would require setting certain HTTP
-response headers from the server for security purposes\footnote{These
-requirements were introduced in light of the Spectre vulnerabilities} which
-would mean changing hosting provider as as of the time of writing GitHub Pages
-don't support setting HTTP headers. However there are alternatives to GitHub
-Pages like Cloudflare Pages which support headers at no additional cost so this
-doesn't defeat the economic advantage of having a static website\footnote{After
-completion of the NEA, we implemented input on the playground which meant
-having to change the hosting provider so the playground linked is actually
-hosted on Cloudflare Pages and does support \texttt{input()}}.
+program to be asynchronous. This is an option that is possible as rust's
+\texttt{Future} is compatible with JavaScript \texttt{Promises}, the types that
+represent something that has not yet been computed in the respective languages.
+However it would mean rewriting large portions of our interpreter and adding
+dependencies to asynchronous runtimes\footnote{In rust, in order to write
+asynchronous code, a runtime needs to be used}, all of that for something that
+already works for the CLI interface. Another solution would be to use a
+synchronous channel between the worker and the web page. This is possible with
+the \texttt{SharedArrayBuffer} type in combination with the \texttt{Atomics}
+module of the JavaScript API. There are also packages such as
+\citetitle{shared_channel} which implement the channel already, although
+because of the way \citetitle{shared_channel} is implemented, it would require
+creating a new crate in our project which both the WebAssembly module and the
+web page would depend on to communicate using a common language. However
+because of the use of the \texttt{SharedArrayBuffer} this would require setting
+certain HTTP response headers from the server for security
+purposes\footnote{These requirements were introduced in light of the Spectre
+vulnerabilities} which would mean changing hosting provider GitHub Pages
+doesn't support setting HTTP headers, as of the time of writing. However, there
+are alternatives to GitHub Pages like Cloudflare Pages which support headers at
+no additional cost so this doesn't defeat the economic advantage of having a
+static website\footnote{After completion of the NEA, we implemented input on
+the playground which meant having to change the hosting provider so the
+playground linked is actually hosted on Cloudflare Pages and does support
+\texttt{input()}}. A third solution is to make the interpreter asynchronous by
+rewriting it in a continuation-passing style such that all the state is stored
+in an array instead of a on the stack, allowing us to stop the computation in
+the middle of the execution and resume it later. Using a continuation-passing
+style would also be beneficial for performance as less memory is used because
+the stack of our interpreter doesn't grow, just the array storing the state.
+Lastly continuation-passing passing interpreters can also make use of features
+that aren't possible easily with our current design such as the ability to
+break in a loop or return values from a function\footnote{We were able to
+implemention function return by making everything, including statements an
+expression}.
 
 In regards to additional features we had envisioned for the language and to
 make it more usable, we have implemented only the playground. Considering the
@@ -2982,10 +2994,18 @@ as python, which is notoriously slow.
 \end{listing}
 
 One of the reasons that our language is slow is our heavy use of hash tables to
-store variables this means that every access to a variable is a costly
+store variables which means that every access to a variable is a costly
 operation. In the future an improvement that could be made to the language is
 to use lexical addressing, a method in which variables are turned into indices
-in an array, thereby greatly improving performance.
+in an array, thereby greatly improving performance. Another performance
+improvement we could carry out is improving the way switch statements are
+implemented. Currently, all switch statements are converted into if statements
+at the time of parsing which results in the expression in switch statements
+being evaluated multiple times at runtime, a needless operation. If instead we
+made it so that switch statements are kept as switch statements or a temporary
+variable feature is added it would remove this overhead. A temporary variable
+feature, allow the interpreter to store variables that cannot have name
+collisions with names used by the program it is executing.
 
 A major limitation of the current implementation is the almost unreadable error
 messages, although they have been improved with the interpreter in
