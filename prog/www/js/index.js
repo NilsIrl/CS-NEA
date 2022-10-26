@@ -7,7 +7,10 @@ import { FitAddon } from "xterm-addon-fit";
 import { Sender } from "../../prog-wasm-channel/pkg";
 
 const editor = monaco.editor.create(document.getElementById("code-monaco"), {
-  value: 'print("Hello World!")',
+  value: `// Language reference:
+// https://www.ocr.org.uk/Images/260952-pseudocode-guide.pdf
+
+print("Hello World!")`,
 });
 
 const term = new Terminal({ convertEol: true });
