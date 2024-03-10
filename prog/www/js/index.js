@@ -9,6 +9,8 @@ import { Sender } from "../../prog-wasm-channel/pkg";
 const editor = monaco.editor.create(document.getElementById("code-monaco"), {
   value: `// Language reference:
 // https://www.ocr.org.uk/Images/260952-pseudocode-guide.pdf
+// Source code:
+// https://github.com/NilsIrl/CS-NEA
 
 print("Hello World!")`,
 });
